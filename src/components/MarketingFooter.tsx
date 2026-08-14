@@ -1,0 +1,16 @@
+import Link from "next/link";
+
+export function MarketingFooter() {
+  return (
+    <footer className="border-t border-[var(--border)] px-6 md:px-10 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="font-heading font-semibold">MENTA</div>
+      <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-text-2">
+        <Link href="/faq" className="hover:text-text-1">FAQ</Link>
+        <Link href="/trust" className="hover:text-text-1">Trust &amp; Safety</Link>
+        <span className="text-text-3">Privacy (draft, pending legal review)</span>
+        <span className="text-text-3">Terms (draft, pending legal review)</span>
+      </nav>
+      <div className="mono text-text-3">© {new Date().getFullYear()} MENTA</div>
+    </footer>
+  );
+}
