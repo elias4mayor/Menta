@@ -22,6 +22,10 @@ const ROLES: { role: string; blurb: string }[] = [
   },
 ];
 
+function article(word: string): "a" | "an" {
+  return /^[aeiou]/i.test(word) ? "an" : "a";
+}
+
 export function WhoSection() {
   const [active, setActive] = useState<string | null>(null);
   const selected = ROLES.find((r) => r.role === active);
@@ -41,7 +45,7 @@ export function WhoSection() {
                 : { background: "var(--surface)", color: "var(--text-2)", borderColor: "var(--border)" }
             }
           >
-            I&rsquo;m a {r.role}
+            I&rsquo;m {article(r.role)} {r.role}
           </button>
         ))}
       </div>

@@ -27,10 +27,24 @@ const fraunces = Fraunces({
   weight: ["400", "500"],
 });
 
+const TITLE = "MENTA — Build the Athlete. Build the Mind.";
+const DESCRIPTION =
+  "MENTA is the AI-powered Athlete Operating System — one platform for film, training, recruiting, academics, and more.";
+
 export const metadata: Metadata = {
-  title: "MENTA — Build the Athlete. Build the Mind.",
-  description:
-    "MENTA is the AI-powered Athlete Operating System — one platform for film, training, recruiting, academics, and more.",
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    siteName: "MENTA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
