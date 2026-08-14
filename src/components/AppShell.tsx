@@ -78,14 +78,17 @@ export function AppShell({
 
   return (
     <div className="min-h-screen flex bg-bg">
-      <aside className="hidden md:flex md:w-60 shrink-0 flex-col border-r border-[var(--border)] px-4 py-6">
-        <Link href="/dashboard" className="font-heading font-semibold text-lg px-2 mb-8">
+      <aside
+        className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6"
+        style={{ borderRight: "1px solid var(--border-soft)", background: "rgba(255,255,255,0.012)" }}
+      >
+        <Link href="/dashboard" className="font-heading font-semibold text-lg px-2 mb-10 tracking-tight">
           MENTA
         </Link>
-        <nav className="flex-1 space-y-6 overflow-y-auto">
+        <nav className="flex-1 space-y-7 overflow-y-auto">
           {NAV_SECTIONS.map((section) => (
             <div key={section.label}>
-              <div className="mono text-text-3 px-2 mb-2">{section.label}</div>
+              <div className="mono text-text-3 px-3 mb-2">{section.label}</div>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
                   const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -93,12 +96,18 @@ export function AppShell({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="block px-2 py-1.5 rounded-[var(--r-sm)] text-sm transition-colors"
+                      className="relative block px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300"
                       style={{
                         color: active ? "var(--text-1)" : "var(--text-2)",
-                        background: active ? "var(--surface-2)" : "transparent",
+                        background: active ? "rgba(255,255,255,0.055)" : "transparent",
                       }}
                     >
+                      {active && (
+                        <span
+                          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full"
+                          style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
+                        />
+                      )}
                       {item.label}
                     </Link>
                   );
@@ -107,21 +116,36 @@ export function AppShell({
             </div>
           ))}
         </nav>
-        <div className="border-t border-[var(--border)] pt-4 mt-4">
+        <div className="pt-4 mt-4" style={{ borderTop: "1px solid var(--border-soft)" }}>
           <div className="px-2 text-sm">{user.name}</div>
           <div className="px-2 mono text-text-3 mb-2">{user.role}</div>
-          <button onClick={handleLogout} disabled={loggingOut} className="w-full text-left px-2 py-1.5 text-sm text-text-2 hover:text-text-1">
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full text-left px-2 py-1.5 text-sm text-text-2 hover:text-text-1 transition-colors"
+          >
             {loggingOut ? "Logging out…" : "Log out"}
           </button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
-          <div className="md:hidden font-heading font-semibold">MENTA</div>
+        <header
+          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4"
+          style={{
+            borderBottom: "1px solid var(--border-soft)",
+            background: "rgba(8,8,10,0.72)",
+            backdropFilter: "blur(16px)",
+          }}
+        >
+          <div className="md:hidden font-heading font-semibold tracking-tight">MENTA</div>
           <div className="hidden md:block" />
           <div className="flex items-center gap-4">
-            <Link href="/notifications" className="relative text-text-2 hover:text-text-1" aria-label="Notifications">
+            <Link
+              href="/notifications"
+              className="relative text-text-2 hover:text-text-1 transition-colors"
+              aria-label="Notifications"
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -141,14 +165,21 @@ export function AppShell({
         <main className="flex-1 px-6 py-8 pb-24 md:pb-8">{children}</main>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-[var(--border)] bg-bg flex justify-around py-2">
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2"
+        style={{
+          borderTop: "1px solid var(--border-soft)",
+          background: "rgba(8,8,10,0.9)",
+          backdropFilter: "blur(16px)",
+        }}
+      >
         {MOBILE_ITEMS.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 px-2 py-1 text-xs"
+              className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors"
               style={{ color: active ? "var(--text-1)" : "var(--text-3)" }}
             >
               {item.label}

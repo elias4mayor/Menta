@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Space_Grotesk, Inter, IBM_Plex_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -20,6 +20,13 @@ const plexMono = IBM_Plex_Mono({
   weight: ["500"],
 });
 
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  style: ["italic"],
+  weight: ["400", "500"],
+});
+
 export const metadata: Metadata = {
   title: "MENTA — Build the Athlete. Build the Mind.",
   description:
@@ -30,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} h-full`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} ${fraunces.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-bg text-text-1">
         {children}

@@ -40,8 +40,8 @@ export default function TrustPage() {
   return (
     <>
       <MarketingNav />
-      <main className="px-6 md:px-10 py-20 max-w-2xl mx-auto">
-        <div className="mono text-text-3 mb-2 text-center">Trust &amp; Safety</div>
+      <main className="px-6 md:px-10 pt-32 pb-20 max-w-2xl mx-auto">
+        <div className="eyebrow justify-center flex mx-auto w-fit mb-2">Trust &amp; Safety</div>
         <h1 className="text-4xl font-semibold mb-4 text-center">How MENTA handles trust.</h1>
         <p className="text-text-2 text-sm text-center mb-10">
           We&rsquo;re pre-launch. This page is honest about what&rsquo;s built and what&rsquo;s still in progress —
@@ -49,7 +49,7 @@ export default function TrustPage() {
         </p>
         <div className="space-y-4">
           {SECTIONS.map((s) => (
-            <div key={s.title} className="card p-5">
+            <div key={s.title} className="card card-hover p-5">
               <div className="font-heading font-semibold mb-2">{s.title}</div>
               <p className="text-text-2 text-sm">{s.body}</p>
             </div>

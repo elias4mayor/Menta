@@ -5,6 +5,7 @@
   --surface: #121215;
   --surface-2: #17171b;
   --border: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.05);
   --border-strong: rgba(255, 255, 255, 0.14);
   --text-1: #f5f6f8;
   --text-2: #8b8c94;
@@ -16,9 +17,13 @@
   --r-sm: 10px;
   --r-md: 14px;
   --r-lg: 20px;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 30px 60px -28px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(216, 218, 223, 0.08);
+  --ease: cubic-bezier(0.16, 0.8, 0.3, 1);
   --font-heading: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-body: var(--font-inter), "Inter", sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
+  --font-serif: var(--font-fraunces), "Fraunces", serif;
 }
 
 @theme inline {
@@ -35,6 +40,7 @@
   --font-heading: var(--font-heading);
   --font-body: var(--font-body);
   --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
@@ -46,6 +52,7 @@
 
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -70,6 +77,26 @@ h4 {
   font-size: 11px;
 }
 
+/* Marketing-page section eyebrow: a small dash-prefixed mono label. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 16px;
+  height: 1px;
+  background: var(--text-2);
+}
+
 .signal-text {
   background: var(--grad-signal);
   -webkit-background-clip: text;
@@ -77,49 +104,72 @@ h4 {
   color: transparent;
 }
 
+.serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.card-hover {
+  transition: transform 0.35s var(--ease), border-color 0.35s var(--ease);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
 }
 
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--grad-signal);
+  background: var(--text-1);
   color: #08080a;
   font-weight: 600;
   padding: 11px 20px;
   border-radius: 999px;
   font-size: 14px;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), opacity 0.15s ease;
 }
 
 .btn-primary:hover {
-  opacity: 0.88;
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 14px 32px -6px rgba(255, 255, 255, 0.18);
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text-1);
   border: 1px solid var(--border-strong);
   padding: 10px 19px;
   border-radius: 999px;
   font-size: 14px;
-  transition: background 0.15s ease;
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), transform 0.3s var(--ease);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
 }
 
 .field-label {
@@ -143,13 +193,14 @@ h4 {
   padding: 11px 14px;
   font-size: 14px;
   font-family: var(--font-body);
+  transition: border-color 0.25s var(--ease);
 }
 
 .field-input:focus,
 .field-select:focus,
 .field-textarea:focus {
   outline: none;
-  border-color: var(--border-strong);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .badge {
@@ -176,6 +227,95 @@ h4 {
   color: var(--success);
   border-color: rgba(126, 217, 160, 0.35);
   background: rgba(126, 217, 160, 0.08);
+}
+
+/* Scroll-reveal: toggled by useScrollReveal (client-side, marketing pages only). */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  filter: blur(6px);
+  transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), filter 0.9s var(--ease);
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+}
+
+/* Cursor-follow ambient glow, positioned by JS (hero section only). */
+.cursor-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    circle,
+    rgba(216, 218, 223, 0.09),
+    rgba(255, 255, 255, 0.04) 45%,
+    transparent 72%
+  );
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  will-change: transform;
+}
+
+/* Subtle 3D tilt + sheen for the hero product mockup. */
+.tilt-card {
+  transform-style: preserve-3d;
+  will-change: transform;
+  position: relative;
+}
+
+.tilt-card .glass-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.09) 0%, transparent 32%);
+}
+
+.tilt-card:hover .glass-sheen {
+  opacity: 1;
+}
+
+.shiny-text {
+  background: linear-gradient(100deg, var(--text-2) 30%, #ffffff 50%, var(--text-2) 70%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shinyText 3s linear infinite;
+}
+
+@keyframes shinyText {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiny-text {
+    animation: none;
+    background-position: 0 center;
+  }
 }
 
 ::selection {

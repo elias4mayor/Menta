@@ -32,12 +32,12 @@ export default function FaqPage() {
   return (
     <>
       <MarketingNav />
-      <main className="px-6 md:px-10 py-20 max-w-2xl mx-auto">
-        <div className="mono text-text-3 mb-2 text-center">Questions</div>
+      <main className="px-6 md:px-10 pt-32 pb-20 max-w-2xl mx-auto">
+        <div className="eyebrow justify-center flex mx-auto w-fit mb-2">Questions</div>
         <h1 className="text-4xl font-semibold mb-10 text-center">Frequently asked.</h1>
         <div className="space-y-3">
           {FAQS.map((item) => (
-            <details key={item.q} className="card p-5 group">
+            <details key={item.q} className="card card-hover p-5 group">
               <summary className="cursor-pointer font-medium list-none flex items-center justify-between">
                 {item.q}
                 <span className="text-text-3 group-open:rotate-45 transition-transform">+</span>
