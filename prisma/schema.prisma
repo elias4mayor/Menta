@@ -46,6 +46,9 @@ model User {
   createdWorkouts    Workout[]           @relation("WorkoutCreator")
   workoutCompletions WorkoutCompletion[]
   performanceEntries PerformanceEntry[]
+  uploadedFilms      Film[]              @relation("FilmUploader")
+  clips              Clip[]              @relation("ClipCreator")
+  highlights         Highlight[]
 
   @@index([role])
 }
@@ -123,6 +126,7 @@ model Team {
   events       CalendarEvent[]
   conversation Conversation?
   workouts     Workout[]
+  films        Film[]
 
   @@index([organizationId])
 }
@@ -374,4 +378,73 @@ model GuardianLink {
   athlete  User @relation("AthleteOfGuardian", fields: [athleteId], references: [id])
 
   @@unique([guardianId, athleteId])
+}
+
+/// Category: GAME, PRACTICE, TRAINING, HIGHLIGHT
+/// Visibility: PRIVATE, TEAM, PUBLIC
+model Film {
+  id               String   @id @default(cuid())
+  title            String
+  description      String?
+  category         String   @default("GAME")
+  opponent         String?
+  season           String?
+  storageKey       String
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  durationSec      Float?
+  visibility       String   @default("PRIVATE")
+  teamId           String?
+  uploadedById     String
+  createdAt        DateTime @default(now())
+
+  team       Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation("FilmUploader", fields: [uploadedById], references: [id])
+  clips      Clip[]
+
+  @@index([teamId])
+  @@index([uploadedById])
+}
+
+model Clip {
+  id          String   @id @default(cuid())
+  filmId      String
+  createdById String
+  startSec    Float
+  endSec      Float?
+  label       String
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  film           Film            @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  createdBy      User            @relation("ClipCreator", fields: [createdById], references: [id])
+  highlightItems HighlightItem[]
+
+  @@index([filmId])
+}
+
+model Highlight {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items HighlightItem[]
+
+  @@index([userId])
+}
+
+model HighlightItem {
+  id          String @id @default(cuid())
+  highlightId String
+  clipId      String
+  order       Int
+
+  highlight Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  clip      Clip      @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, clipId])
+  @@index([highlightId])
 }

@@ -109,3 +109,18 @@ export async function canManageTeam(user: SessionUser, teamId: string): Promise<
   if (user.role === "SUPER_ADMIN") return true;
   return isTeamCoachOrAdmin(user.id, teamId);
 }
+
+/** Film/clip visibility follows the same PRIVATE/TEAM/PUBLIC pattern as calendar events. */
+export async function canViewFilm(
+  viewer: SessionUser,
+  film: { uploadedById: string; visibility: string; teamId: string | null }
+): Promise<boolean> {
+  if (viewer.id === film.uploadedById) return true;
+  if (film.visibility === "PUBLIC") return true;
+  if (viewer.role === "SUPER_ADMIN") return true;
+  if (film.visibility === "TEAM" && film.teamId) {
+    const role = await getTeamRole(viewer.id, film.teamId);
+    return role !== null;
+  }
+  return false;
+}

@@ -103,6 +103,29 @@ export const createPerformanceEntrySchema = z.object({
   note: z.string().trim().max(300).optional(),
 });
 
+export const filmMetadataSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(1000).optional(),
+  category: z.enum(["GAME", "PRACTICE", "TRAINING", "HIGHLIGHT"]).default("GAME"),
+  opponent: z.string().trim().max(120).optional(),
+  season: z.string().trim().max(40).optional(),
+  visibility: z.enum(["PRIVATE", "TEAM", "PUBLIC"]).default("PRIVATE"),
+  teamId: z.string().optional(),
+  durationSec: z.coerce.number().min(0).optional(),
+});
+
+export const createClipSchema = z.object({
+  startSec: z.coerce.number().min(0),
+  endSec: z.coerce.number().min(0).optional(),
+  label: z.string().trim().min(1).max(120),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const createHighlightSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  clipIds: z.array(z.string().min(1)).min(1).max(50),
+});
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(1).max(120),
   sport: z.string().trim().max(60).optional(),
