@@ -335,3 +335,259 @@ h4 {
   background: var(--surface-2);
   border-radius: 999px;
 }
+
+/* ---------- live gallery: crossfading athlete photos ---------- */
+.live-gallery {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  max-height: 600px;
+  min-height: 280px;
+  overflow: hidden;
+  background: #000;
+  border-radius: var(--r-lg);
+}
+
+.live-gallery .lg-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.05);
+  transition: opacity 1.4s var(--ease), transform 6.5s linear;
+}
+
+.live-gallery .lg-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.live-gallery::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 8, 10, 0.05) 0%, rgba(8, 8, 10, 0.1) 55%, rgba(8, 8, 10, 0.7) 100%);
+}
+
+.live-gallery .lg-meta {
+  position: absolute;
+  left: 28px;
+  bottom: 22px;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.live-gallery .lg-dots {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+
+.live-gallery .lg-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.32);
+  transition: background 0.3s var(--ease), width 0.3s var(--ease);
+}
+
+.live-gallery .lg-dot.active {
+  background: var(--text-1);
+  width: 16px;
+  border-radius: 3px;
+}
+
+@media (max-width: 640px) {
+  .live-gallery {
+    aspect-ratio: 4 / 5;
+    max-height: 520px;
+  }
+  .live-gallery .lg-meta {
+    left: 18px;
+    bottom: 16px;
+  }
+  .live-gallery .lg-dots {
+    right: 18px;
+    bottom: 18px;
+  }
+}
+
+/* hero variant: gallery as the hero's own background, contained + dimmed */
+.live-gallery.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  aspect-ratio: auto;
+  max-height: none;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.live-gallery.hero-bg .lg-slide {
+  transition: opacity 1.8s var(--ease), transform 8s linear;
+}
+
+.live-gallery.hero-bg::after {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 10, 0.5) 0%,
+    rgba(8, 8, 10, 0.28) 30%,
+    rgba(8, 8, 10, 0.3) 65%,
+    rgba(8, 8, 10, 0.62) 100%
+  );
+}
+
+.live-gallery.hero-bg .lg-meta,
+.live-gallery.hero-bg .lg-dots {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-gallery .lg-slide {
+    transition: opacity 0.3s ease;
+    transform: none !important;
+  }
+}
+
+/* ---------- boot flash: one-time premium logo reveal ---------- */
+.logo-intro-mark {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.logo-intro-mark.boot {
+  display: flex;
+}
+
+.logo-intro-mark.fade {
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+
+.logo-intro-mark .intro-glow {
+  position: absolute;
+  width: 46vw;
+  height: 46vw;
+  max-width: 520px;
+  max-height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.09), transparent 72%);
+  opacity: 0;
+  transition: opacity 0.7s ease 0.1s;
+}
+
+.logo-intro-mark.show .intro-glow {
+  opacity: 1;
+}
+
+.intro-logo-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.logo-intro-mark img {
+  height: 90px;
+  width: auto;
+  display: block;
+  position: relative;
+  opacity: 0;
+  filter: blur(16px);
+  transform: scale(0.96);
+  transition: opacity 0.9s var(--ease) 0.2s, filter 0.9s var(--ease) 0.2s,
+    transform 0.9s var(--ease) 0.2s;
+}
+
+.logo-intro-mark.show img {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+.intro-logo-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.85) 50%, transparent 65%);
+  background-size: 300% 100%;
+  background-position: 170% 0;
+  -webkit-mask-image: url(/logo.png);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-image: url(/logo.png);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+
+.logo-intro-mark.show .intro-logo-sheen {
+  animation: introSheen 1s var(--ease) 0.95s 1 both;
+}
+
+@keyframes introSheen {
+  0% {
+    opacity: 0;
+    background-position: 170% 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: -70% 0;
+  }
+}
+
+.logo-intro-mark .intro-slogan {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.7s ease 1.05s, transform 0.7s ease 1.05s;
+}
+
+.logo-intro-mark.show .intro-slogan {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .logo-intro-mark img {
+    height: 60px;
+  }
+  .logo-intro-mark .intro-slogan {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    padding: 0 24px;
+    text-align: center;
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export function MarketingNav() {
@@ -25,8 +26,8 @@ export function MarketingNav() {
         borderBottom: scrolled ? "1px solid var(--border)" : "1px solid transparent",
       }}
     >
-      <Link href="/" className="font-heading font-semibold text-lg tracking-tight">
-        MENTA
+      <Link href="/" className="flex items-center">
+        <Image src="/logo.png" alt="MENTA" width={863} height={194} className="h-7 w-auto" priority />
       </Link>
       <nav className="flex items-center gap-6">
         <Link href="/faq" className="hidden sm:inline text-sm text-text-2 hover:text-text-1 transition-colors">

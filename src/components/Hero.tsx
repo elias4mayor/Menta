@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef } from "react";
+import { LiveGallery, GALLERY_SLIDES } from "@/components/LiveGallery";
 
 export function Hero() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -41,7 +42,8 @@ export function Hero() {
       onMouseLeave={onMouseLeave}
       className="relative px-6 md:px-10 pt-32 md:pt-40 pb-24 overflow-hidden"
     >
-      <div ref={glowRef} className="cursor-glow" />
+      <LiveGallery slides={GALLERY_SLIDES} heroBg />
+      <div ref={glowRef} className="cursor-glow" style={{ zIndex: 1 }} />
       <div className="relative z-10 max-w-4xl">
         <h1 className="text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal">
           Build the future of

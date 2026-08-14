@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -82,8 +83,8 @@ export function AppShell({
         className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6"
         style={{ borderRight: "1px solid var(--border-soft)", background: "rgba(255,255,255,0.012)" }}
       >
-        <Link href="/dashboard" className="font-heading font-semibold text-lg px-2 mb-10 tracking-tight">
-          MENTA
+        <Link href="/dashboard" className="flex items-center px-2 mb-10">
+          <Image src="/logo.png" alt="MENTA" width={863} height={194} className="h-6 w-auto" priority />
         </Link>
         <nav className="flex-1 space-y-7 overflow-y-auto">
           {NAV_SECTIONS.map((section) => (
@@ -138,7 +139,9 @@ export function AppShell({
             backdropFilter: "blur(16px)",
           }}
         >
-          <div className="md:hidden font-heading font-semibold tracking-tight">MENTA</div>
+          <div className="md:hidden">
+            <Image src="/logo.png" alt="MENTA" width={863} height={194} className="h-5 w-auto" priority />
+          </div>
           <div className="hidden md:block" />
           <div className="flex items-center gap-4">
             <Link

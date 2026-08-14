@@ -4,6 +4,7 @@ import { MarketingFooter } from "@/components/MarketingFooter";
 import { Hero } from "@/components/Hero";
 import { WhoSection } from "@/components/WhoSection";
 import { RevealInit } from "@/components/RevealInit";
+import { IntroBoot } from "@/components/IntroBoot";
 
 const PILLARS = [
   { name: "Training", href: "/train", desc: "Workout library and tracking." },
@@ -40,6 +41,7 @@ const TESTIMONIALS = [
 export default function HomePage() {
   return (
     <>
+      <IntroBoot />
       <RevealInit />
       <MarketingNav />
       <main>

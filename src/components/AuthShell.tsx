@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export function AuthShell({
@@ -17,11 +18,8 @@ export function AuthShell({
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-16 bg-bg">
       <div className="w-full max-w-sm">
-        <Link
-          href="/"
-          className="flex items-center gap-2 mb-10 justify-center font-heading font-semibold tracking-tight text-lg"
-        >
-          MENTA
+        <Link href="/" className="flex items-center justify-center mb-10">
+          <Image src="/logo.png" alt="MENTA" width={863} height={194} className="h-7 w-auto" priority />
         </Link>
         <div className="card p-8">
           <div className="mono text-text-3 mb-2">{eyebrow}</div>
