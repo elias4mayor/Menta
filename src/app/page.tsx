@@ -3,6 +3,7 @@ import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { Hero } from "@/components/Hero";
 import { WhoSection } from "@/components/WhoSection";
+import { FounderStory } from "@/components/FounderStory";
 import { RevealInit } from "@/components/RevealInit";
 import { IntroBoot } from "@/components/IntroBoot";
 
@@ -100,6 +101,8 @@ export default function HomePage() {
             opportunity — available to every kid willing to put in the work.
           </p>
         </section>
+
+        <FounderStory />
 
         <section className="px-6 md:px-10 py-24 text-center">
           <h2 className="text-3xl md:text-5xl font-semibold mb-8">Ready to build?</h2>
