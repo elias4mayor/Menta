@@ -336,6 +336,65 @@ h4 {
   border-radius: 999px;
 }
 
+/* ---------- premium nav dropdown (Platform mega-menu) ---------- */
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 60;
+  background: rgba(18, 18, 21, 0.92);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top right;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), visibility 0.2s;
+  pointer-events: none;
+}
+
+.nav-dropdown-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.nav-dropdown-item {
+  transition: background 0.2s var(--ease);
+}
+
+.nav-dropdown-item:hover,
+.nav-dropdown-item:focus-visible {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-dropdown-item:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: -1px;
+}
+
+/* Anchored under a centered trigger (the logo) instead of a right-aligned one. */
+.nav-dropdown-center {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px) scale(0.98);
+  transform-origin: top center;
+}
+
+.nav-dropdown-center.nav-dropdown-open {
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-dropdown {
+    transition: opacity 0.15s ease, visibility 0.15s;
+    transform: none;
+  }
+}
+
 /* ---------- live gallery: crossfading athlete photos ---------- */
 .live-gallery {
   position: relative;
@@ -480,7 +539,7 @@ h4 {
 
 .logo-intro-mark.fade {
   opacity: 0;
-  transition: opacity 0.5s var(--ease);
+  transition: opacity 0.4s var(--ease);
 }
 
 .logo-intro-mark .intro-glow {
@@ -492,7 +551,7 @@ h4 {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.09), transparent 72%);
   opacity: 0;
-  transition: opacity 0.7s ease 0.1s;
+  transition: opacity 0.5s ease 0.05s;
 }
 
 .logo-intro-mark.show .intro-glow {
@@ -511,9 +570,9 @@ h4 {
   position: relative;
   opacity: 0;
   filter: blur(16px);
-  transform: scale(0.96);
-  transition: opacity 0.9s var(--ease) 0.2s, filter 0.9s var(--ease) 0.2s,
-    transform 0.9s var(--ease) 0.2s;
+  transform: scale(0.94);
+  transition: opacity 0.65s var(--ease) 0.1s, filter 0.65s var(--ease) 0.1s,
+    transform 0.65s var(--ease) 0.1s;
 }
 
 .logo-intro-mark.show img {
@@ -541,7 +600,7 @@ h4 {
 }
 
 .logo-intro-mark.show .intro-logo-sheen {
-  animation: introSheen 1s var(--ease) 0.95s 1 both;
+  animation: introSheen 0.65s var(--ease) 0.55s 1 both;
 }
 
 @keyframes introSheen {
@@ -572,7 +631,7 @@ h4 {
   color: var(--text-2);
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 0.7s ease 1.05s, transform 0.7s ease 1.05s;
+  transition: opacity 0.5s ease 0.65s, transform 0.5s ease 0.65s;
 }
 
 .logo-intro-mark.show .intro-slogan {

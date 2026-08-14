@@ -2,11 +2,21 @@
 
 import { useEffect, useRef } from "react";
 
+// Module-scope, not storage: resets on every fresh document load (hard
+// refresh, typing the URL, opening a new tab) so it's trivial to preview
+// during development — just reload. It survives client-side (SPA)
+// navigation within that same page session, so clicking around the app and
+// back to "/" doesn't replay it. sessionStorage/localStorage would get
+// either of those two behaviors right but not both at once.
+let hasPlayedThisPageLoad = false;
+
+const HOLD_MS = 1600;
+const FADE_MS = 400;
+
 /**
- * One-time premium logo reveal on first load of the home page — matches the
- * reference site's boot-flash behavior exactly: once per browser session
- * (sessionStorage), skipped entirely under prefers-reduced-motion, ~2.9s
- * total (2.4s hold + 0.5s fade), body scroll locked while it plays.
+ * One-time-per-page-load premium logo reveal on the home page. ~2s total
+ * (1.6s hold + 0.4s fade), skipped entirely under prefers-reduced-motion,
+ * body scroll locked only while it plays.
  */
 export function IntroBoot() {
   const markRef = useRef<HTMLDivElement>(null);
@@ -15,27 +25,25 @@ export function IntroBoot() {
     const mark = markRef.current;
     if (!mark) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (sessionStorage.getItem("mentaBootPlayed")) return;
-    sessionStorage.setItem("mentaBootPlayed", "1");
+    if (hasPlayedThisPageLoad) return;
+    hasPlayedThisPageLoad = true;
 
     document.body.style.overflow = "hidden";
     mark.classList.add("boot");
 
     const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         mark.classList.add("show");
       });
-      mark.dataset.raf2 = String(raf2);
     });
 
     const fadeTimer = setTimeout(() => {
       mark.classList.add("fade");
-      const removeTimer = setTimeout(() => {
+      setTimeout(() => {
         mark.classList.remove("show", "fade", "boot");
         document.body.style.overflow = "";
-      }, 500);
-      mark.dataset.removeTimer = String(removeTimer);
-    }, 2400);
+      }, FADE_MS);
+    }, HOLD_MS);
 
     return () => {
       cancelAnimationFrame(raf1);
