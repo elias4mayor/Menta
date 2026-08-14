@@ -76,4 +76,8 @@ export const GALLERY_SLIDES: GallerySlide[] = [
   { src: "/gallery/gallery-11.jpg", caption: "Track & Field" },
   { src: "/gallery/gallery-12.jpg", caption: "Football" },
   { src: "/gallery/gallery-13.jpg", caption: "Football" },
+  { src: "/story/lake-travis-snap.jpg", caption: "Football" },
+  { src: "/story/three-point-stance.jpg", caption: "Football" },
+  { src: "/story/stauffacher-jersey.jpg", caption: "Football" },
+  { src: "/story/relay-handoff.jpg", caption: "Track & Field" },
 ];
