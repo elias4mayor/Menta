@@ -155,6 +155,14 @@ export const aiChatSchema = z.object({
   message: z.string().trim().min(1).max(4000),
 });
 
+export const requestGuardianLinkSchema = z.object({
+  athleteEmail: z.string().trim().toLowerCase().email(),
+});
+
+export const updateGuardianLinkSchema = z.object({
+  status: z.enum(["APPROVED", "REVOKED"]),
+});
+
 export const reportSchema = z.object({
   targetUserId: z.string().optional(),
   targetMessageId: z.string().optional(),

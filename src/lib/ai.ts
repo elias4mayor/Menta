@@ -19,18 +19,35 @@ Ground rules, non-negotiable:
 - Be direct and concise. This is an athlete-facing coaching tool, not a generic chatbot.`;
 
 export async function buildAthleteContext(user: SessionUser): Promise<string> {
-  const [profile, goals, upcomingEvents] = await Promise.all([
-    prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
-    prisma.goal.findMany({ where: { userId: user.id, status: "ACTIVE" }, take: 5 }),
-    prisma.calendarEvent.findMany({
-      where: {
-        startsAt: { gte: new Date() },
-        OR: [{ createdById: user.id }, { team: { memberships: { some: { userId: user.id } } } }],
-      },
-      orderBy: { startsAt: "asc" },
-      take: 5,
-    }),
-  ]);
+  const [profile, goals, upcomingEvents, recentWorkouts, recentPerformance, highlights] =
+    await Promise.all([
+      prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
+      prisma.goal.findMany({ where: { userId: user.id, status: "ACTIVE" }, take: 5 }),
+      prisma.calendarEvent.findMany({
+        where: {
+          startsAt: { gte: new Date() },
+          OR: [{ createdById: user.id }, { team: { memberships: { some: { userId: user.id } } } }],
+        },
+        orderBy: { startsAt: "asc" },
+        take: 5,
+      }),
+      prisma.workoutCompletion.findMany({
+        where: { userId: user.id },
+        include: { workout: true },
+        orderBy: { completedAt: "desc" },
+        take: 5,
+      }),
+      prisma.performanceEntry.findMany({
+        where: { userId: user.id },
+        orderBy: { recordedAt: "desc" },
+        take: 5,
+      }),
+      prisma.highlight.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
+    ]);
 
   const lines: string[] = [`Athlete: ${user.name} (role: ${user.role})`];
 
@@ -60,7 +77,29 @@ export async function buildAthleteContext(user: SessionUser): Promise<string> {
   );
 
   lines.push(
-    "Training, film, performance, recovery, recruiting, and academics modules are not yet connected — do not claim to have that data."
+    recentWorkouts.length
+      ? `Recent training: ${recentWorkouts
+          .map((w) => `${w.workout.title}${w.effort ? ` (effort ${w.effort}/10)` : ""}`)
+          .join("; ")}`
+      : "No training logged yet."
+  );
+
+  lines.push(
+    recentPerformance.length
+      ? `Recent performance entries: ${recentPerformance
+          .map((p) => `${p.statName}: ${p.value}${p.unit ?? ""}`)
+          .join("; ")}`
+      : "No performance entries logged yet."
+  );
+
+  lines.push(
+    highlights.length
+      ? `Highlight reels: ${highlights.map((h) => h.title).join("; ")}`
+      : "No highlight reels created yet."
+  );
+
+  lines.push(
+    "Recovery, mental performance, recruiting, academics, and safety modules are not yet built — do not claim to have that data."
   );
 
   return lines.join("\n");

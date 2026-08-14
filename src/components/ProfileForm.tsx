@@ -24,7 +24,7 @@ const VISIBILITY_OPTIONS = [
   { value: "PUBLIC", label: "Public" },
 ];
 
-export function ProfileForm({ initial }: { initial: ProfileData }) {
+export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMinor: boolean }) {
   const [data, setData] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -122,9 +122,16 @@ export function ProfileForm({ initial }: { initial: ProfileData }) {
         <div className="mono text-text-3">Visibility</div>
         <select className="field-select" value={data.visibility} onChange={(e) => update("visibility", e.target.value)}>
           {VISIBILITY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value} disabled={isMinor && opt.value === "PUBLIC"}>
+              {opt.label}
+            </option>
           ))}
         </select>
+        {isMinor && (
+          <p className="text-text-3 text-xs">
+            Because this account is a minor, profile visibility is capped at Recruiting — visible to coaches, never fully public.
+          </p>
+        )}
         <p className="text-text-3 text-xs">
           Sensitive information (medical, emergency contacts, private messages) is never made public, regardless of this setting.
         </p>

@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth-guards";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { SessionsList } from "@/components/SessionsList";
+import { GuardianLinks } from "@/components/GuardianLinks";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -29,6 +30,11 @@ export default async function SettingsPage() {
       <section className="card p-6">
         <div className="mono text-text-3 mb-4">Active sessions</div>
         <SessionsList />
+      </section>
+
+      <section className="card p-6">
+        <div className="mono text-text-3 mb-4">Family & guardians</div>
+        <GuardianLinks role={user.role} />
       </section>
 
       <section className="card p-6">

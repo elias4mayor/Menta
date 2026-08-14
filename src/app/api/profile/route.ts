@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { profileUpdateSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { isMinor } from "@/lib/permissions";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -25,10 +26,24 @@ export async function PATCH(request: Request) {
     );
   }
 
+  const data = { ...parsed.data };
+  if (data.visibility === "PUBLIC") {
+    const account = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { dateOfBirth: true },
+    });
+    if (isMinor(account?.dateOfBirth)) {
+      // Minors can't set an unrestricted-public profile — cap to the
+      // recruiting tier (visible to coaches), which is the legitimate
+      // use case a high-school athlete actually needs.
+      data.visibility = "RECRUITING";
+    }
+  }
+
   const profile = await prisma.athleteProfile.upsert({
     where: { userId: user.id },
-    create: { userId: user.id, ...parsed.data },
-    update: parsed.data,
+    create: { userId: user.id, ...data },
+    update: data,
   });
 
   await logAudit({ actorId: user.id, action: "profile.updated", targetType: "AthleteProfile", targetId: profile.id });
