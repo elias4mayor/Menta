@@ -43,6 +43,9 @@ model User {
   reportsFiled     Report[]              @relation("Reporter")
   blocksMade       Block[]               @relation("Blocker")
   blocksReceived   Block[]               @relation("Blocked")
+  createdWorkouts    Workout[]           @relation("WorkoutCreator")
+  workoutCompletions WorkoutCompletion[]
+  performanceEntries PerformanceEntry[]
 
   @@index([role])
 }
@@ -119,6 +122,7 @@ model Team {
   memberships  TeamMembership[]
   events       CalendarEvent[]
   conversation Conversation?
+  workouts     Workout[]
 
   @@index([organizationId])
 }
@@ -144,13 +148,73 @@ model Goal {
   userId     String
   title      String
   category   String?
+  actionPlan String?
+  progress   Int       @default(0)
   targetDate DateTime?
   status     String    @default("ACTIVE")
   createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Category: STRENGTH, SPEED, AGILITY, CONDITIONING, MOBILITY, SKILL, RECOVERY
+model Workout {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  description String?
+  /// JSON-stringified array of { name, sets?, reps?, notes? } — kept as a
+  /// single field rather than a full Exercise table until a real workout
+  /// builder needs to query into individual exercises.
+  exercises   String?
+  teamId      String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  team        Team?               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("WorkoutCreator", fields: [createdById], references: [id])
+  completions WorkoutCompletion[]
+
+  @@index([teamId])
+  @@index([createdById])
+}
+
+model WorkoutCompletion {
+  id          String   @id @default(cuid())
+  workoutId   String
+  userId      String
+  completedAt DateTime @default(now())
+  effort      Int?
+  notes       String?
+
+  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workoutId])
+  @@index([userId])
+}
+
+/// Freeform stat tracking (statName is user-entered, e.g. "40-yard dash",
+/// "Points", "ERA") — extensible to any sport without a schema change.
+/// A dedicated per-sport stat-definition system (build plan §11/§58) is a
+/// later hardening pass once real usage shows which stats need structure.
+model PerformanceEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  statName   String
+  value      Float
+  unit       String?
+  recordedAt DateTime @default(now())
+  note       String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, statName])
 }
 
 model Conversation {

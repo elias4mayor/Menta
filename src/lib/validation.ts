@@ -51,6 +51,58 @@ export const profileUpdateSchema = z.object({
   visibility: z.enum(["PRIVATE", "TEAM", "ORGANIZATION", "RECRUITING", "PUBLIC"]).optional(),
 });
 
+export const createGoalSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  category: z.string().trim().max(60).optional(),
+  actionPlan: z.string().trim().max(1000).optional(),
+  targetDate: z.string().optional(),
+});
+
+export const updateGoalSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  category: z.string().trim().max(60).optional(),
+  actionPlan: z.string().trim().max(1000).optional(),
+  progress: z.coerce.number().int().min(0).max(100).optional(),
+  status: z.enum(["ACTIVE", "ACHIEVED", "ABANDONED"]).optional(),
+  targetDate: z.string().optional().nullable(),
+});
+
+const exerciseSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  sets: z.string().trim().max(20).optional(),
+  reps: z.string().trim().max(20).optional(),
+  notes: z.string().trim().max(200).optional(),
+});
+
+export const createWorkoutSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  category: z.enum([
+    "STRENGTH",
+    "SPEED",
+    "AGILITY",
+    "CONDITIONING",
+    "MOBILITY",
+    "SKILL",
+    "RECOVERY",
+  ]),
+  description: z.string().trim().max(1000).optional(),
+  exercises: z.array(exerciseSchema).max(30).optional(),
+  teamId: z.string().optional(),
+});
+
+export const logWorkoutCompletionSchema = z.object({
+  effort: z.coerce.number().int().min(1).max(10).optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const createPerformanceEntrySchema = z.object({
+  statName: z.string().trim().min(1).max(80),
+  value: z.coerce.number(),
+  unit: z.string().trim().max(20).optional(),
+  recordedAt: z.string().optional(),
+  note: z.string().trim().max(300).optional(),
+});
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(1).max(120),
   sport: z.string().trim().max(60).optional(),

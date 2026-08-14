@@ -1,18 +1,30 @@
 import { requireUser } from "@/lib/auth-guards";
-import { ComingSoon } from "@/components/ComingSoon";
+import { prisma } from "@/lib/prisma";
+import { PerformanceView } from "@/components/PerformanceView";
 
 export default async function PerformancePage() {
-  await requireUser();
+  const user = await requireUser();
+
+  const entries = await prisma.performanceEntry.findMany({
+    where: { userId: user.id },
+    orderBy: { recordedAt: "desc" },
+    take: 200,
+  });
+
   return (
-    <ComingSoon
-      title="Performance"
-      phase="2"
-      description="Stats, personal records, and trends over time, filterable by season."
-      requires={[
-        "A PerformanceMetric data model tied to sport/position",
-        "Manual entry UI at minimum; wearable/stat-provider integrations later",
-        "Chart components for trend visualization",
-      ]}
-    />
+    <div className="max-w-3xl">
+      <div className="mono text-text-3 mb-2">Performance</div>
+      <h1 className="text-3xl font-semibold mb-8">Stats & trends</h1>
+      <PerformanceView
+        initialEntries={entries.map((e) => ({
+          id: e.id,
+          statName: e.statName,
+          value: e.value,
+          unit: e.unit,
+          recordedAt: e.recordedAt.toISOString(),
+          note: e.note,
+        }))}
+      />
+    </div>
   );
 }
