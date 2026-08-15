@@ -215,6 +215,26 @@ export const recruitingOutreachSchema = z.object({
   purpose: z.string().trim().min(1).max(500),
 });
 
+const wellnessCheckInFields = {
+  sleepHours: z.coerce.number().min(0).max(24).optional(),
+  sleepQuality: z.coerce.number().int().min(1).max(5).optional(),
+  energy: z.coerce.number().int().min(1).max(5).optional(),
+  soreness: z.coerce.number().int().min(1).max(5).optional(),
+  stress: z.coerce.number().int().min(1).max(5).optional(),
+  mood: z.coerce.number().int().min(1).max(5).optional(),
+  readiness: z.coerce.number().int().min(1).max(5).optional(),
+  notes: z.string().trim().max(1000).optional(),
+};
+
+export const createWellnessCheckInSchema = z
+  .object(wellnessCheckInFields)
+  .refine(
+    (data) => Object.values(data).some((v) => v !== undefined && v !== ""),
+    { message: "Add at least one value before saving a check-in." }
+  );
+
+export const updateWellnessCheckInSchema = z.object(wellnessCheckInFields).partial();
+
 export const reportSchema = z.object({
   targetUserId: z.string().optional(),
   targetMessageId: z.string().optional(),

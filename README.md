@@ -129,6 +129,43 @@ but not a distinct summary view), and no team-wide analytics view.
   mitigate but don't fully replace this), dependency/security audit, load
   testing, third-party penetration test.
 
+## Wellness data (Recovery feature)
+
+`WellnessCheckIn` (sleep, energy, soreness, stress, mood, readiness, notes)
+is treated as HIGH-SENSITIVITY, health-adjacent data — stricter handling
+than the rest of the app:
+
+- **Private by default, no exceptions yet.** Only `src/app/api/wellness/*`
+  and `src/app/(app)/recovery` ever read or write this table. It is never
+  joined into, or exposed via, `AthleteProfile`, the `/recruit` pages, team
+  rosters, search, notifications, or messages. There is currently no
+  permission system that grants a coach, teammate, org, or parent access to
+  another user's check-ins — that would need its own explicit, separately
+  designed feature, not an implicit extension of an existing one.
+- **Never sent to an AI provider.** `buildAthleteContext()` in
+  `src/lib/ai.ts` deliberately does not query this table, so it's never
+  included in MENTA AI chat context. The Recovery page's "AI recovery
+  insights" section is hardcoded to an honest "not connected" state
+  regardless of whether `ANTHROPIC_API_KEY` is set — turning it on requires
+  documented data-sharing controls and explicit consent settings that don't
+  exist in this codebase yet, not just an API key.
+- **Never logged.** The API routes only pass record IDs to `logAudit()` for
+  create/update/delete/list actions — never the actual field values. Check
+  server logs after testing this feature if you touch these routes; nothing
+  in `src/app/api/wellness/*` should ever `console.log` a request body.
+- **Encryption at rest: NOT provided by this repo's dev setup.** Local
+  SQLite (`prisma/dev.db`) has no encryption at rest — it's a plain file.
+  This is fine for local development but **this feature must not go live
+  with real users until deployed on a datastore that provides encryption at
+  rest** (e.g. a managed Postgres instance with encryption enabled, which is
+  standard on providers like RDS, Supabase, or Neon). Nothing in this
+  codebase claims otherwise, and nothing should until that swap happens.
+- Standard app-wide protections also apply here: bcrypt-hashed auth,
+  DB-backed revocable sessions, and the same ownership-scoped
+  `{id, userId}` query pattern used by every other per-user model in this
+  schema — verified for `WellnessCheckIn` specifically (a second account
+  gets `404`, never another user's check-in data).
+
 ## Requires legal review before real users
 
 Per `MENTA-MASTER-BUILD-PLAN.md` §4 — none of the following should be treated
