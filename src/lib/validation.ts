@@ -316,3 +316,73 @@ export const studyHelpSchema = z.object({
   conversationId: z.string().optional(),
   message: z.string().trim().min(1).max(4000),
 });
+
+export const createEmergencyContactSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  relationship: z.string().trim().max(80).optional(),
+  phone: z.string().trim().max(40).optional(),
+  email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+  isPrimary: z.boolean().optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateEmergencyContactSchema = createEmergencyContactSchema.partial();
+
+export const updatePersonalSafetyProfileSchema = z.object({
+  allergies: z.string().trim().max(1000).optional(),
+  medicalNotes: z.string().trim().max(2000).optional(),
+  medicationNotes: z.string().trim().max(1000).optional(),
+  emergencyPlanNotes: z.string().trim().max(2000).optional(),
+});
+
+const SAFETY_CHECKLIST_CATEGORIES = [
+  "MEDICAL_INFO",
+  "EMERGENCY_CONTACTS",
+  "VENUE_AWARENESS",
+  "COMMUNICATION_PLAN",
+  "DOCUMENTATION",
+  "OTHER",
+] as const;
+const SAFETY_CHECKLIST_STATUSES = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"] as const;
+
+export const createSafetyChecklistItemSchema = z.object({
+  category: z.enum(SAFETY_CHECKLIST_CATEGORIES),
+  title: z.string().trim().min(1).max(200),
+  status: z.enum(SAFETY_CHECKLIST_STATUSES).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateSafetyChecklistItemSchema = z.object({
+  category: z.enum(SAFETY_CHECKLIST_CATEGORIES).optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  status: z.enum(SAFETY_CHECKLIST_STATUSES).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const createTeamSafetyProtocolSchema = z.object({
+  teamId: z.string().min(1),
+  title: z.string().trim().min(1).max(160),
+  venue: z.string().trim().max(160).optional(),
+  content: z.string().trim().min(1).max(5000),
+});
+
+export const updateTeamSafetyProtocolSchema = z.object({
+  title: z.string().trim().min(1).max(160).optional(),
+  venue: z.string().trim().max(160).optional(),
+  content: z.string().trim().min(1).max(5000).optional(),
+});
+
+export const createTeamSafetyChecklistItemSchema = z.object({
+  teamId: z.string().min(1),
+  category: z.enum(SAFETY_CHECKLIST_CATEGORIES),
+  title: z.string().trim().min(1).max(200),
+  status: z.enum(SAFETY_CHECKLIST_STATUSES).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateTeamSafetyChecklistItemSchema = z.object({
+  category: z.enum(SAFETY_CHECKLIST_CATEGORIES).optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  status: z.enum(SAFETY_CHECKLIST_STATUSES).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});

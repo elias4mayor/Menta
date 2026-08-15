@@ -26,37 +26,42 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  athleteProfile       AthleteProfile?
-  sessions             Session[]
-  resetTokens          PasswordResetToken[]
-  memberships          TeamMembership[]
-  messages             Message[]
-  conversations        ConversationParticipant[]
-  notifications        Notification[]
-  auditLogs            AuditLog[]                 @relation("AuditActor")
-  aiConversations      AIConversation[]
-  createdEvents        CalendarEvent[]            @relation("EventCreator")
-  goals                Goal[]
-  createdTeams         Team[]                     @relation("TeamCreator")
-  guardianOf           GuardianLink[]             @relation("Guardian")
-  athleteGuardians     GuardianLink[]             @relation("AthleteOfGuardian")
-  reportsFiled         Report[]                   @relation("Reporter")
-  blocksMade           Block[]                    @relation("Blocker")
-  blocksReceived       Block[]                    @relation("Blocked")
-  createdWorkouts      Workout[]                  @relation("WorkoutCreator")
-  workoutCompletions   WorkoutCompletion[]
-  performanceEntries   PerformanceEntry[]
-  uploadedFilms        Film[]                     @relation("FilmUploader")
-  clips                Clip[]                     @relation("ClipCreator")
-  highlights           Highlight[]
-  recruitingSchools    RecruitingSchool[]
-  recruitingContacts   RecruitingContact[]
-  recruitingActivities RecruitingActivity[]
-  wellnessCheckIns     WellnessCheckIn[]
-  academicGoals        AcademicGoal[]
-  assignments          Assignment[]
-  academicTerms        AcademicTerm[]
-  eligibilityItems     EligibilityChecklistItem[]
+  athleteProfile             AthleteProfile?
+  sessions                   Session[]
+  resetTokens                PasswordResetToken[]
+  memberships                TeamMembership[]
+  messages                   Message[]
+  conversations              ConversationParticipant[]
+  notifications              Notification[]
+  auditLogs                  AuditLog[]                 @relation("AuditActor")
+  aiConversations            AIConversation[]
+  createdEvents              CalendarEvent[]            @relation("EventCreator")
+  goals                      Goal[]
+  createdTeams               Team[]                     @relation("TeamCreator")
+  guardianOf                 GuardianLink[]             @relation("Guardian")
+  athleteGuardians           GuardianLink[]             @relation("AthleteOfGuardian")
+  reportsFiled               Report[]                   @relation("Reporter")
+  blocksMade                 Block[]                    @relation("Blocker")
+  blocksReceived             Block[]                    @relation("Blocked")
+  createdWorkouts            Workout[]                  @relation("WorkoutCreator")
+  workoutCompletions         WorkoutCompletion[]
+  performanceEntries         PerformanceEntry[]
+  uploadedFilms              Film[]                     @relation("FilmUploader")
+  clips                      Clip[]                     @relation("ClipCreator")
+  highlights                 Highlight[]
+  recruitingSchools          RecruitingSchool[]
+  recruitingContacts         RecruitingContact[]
+  recruitingActivities       RecruitingActivity[]
+  wellnessCheckIns           WellnessCheckIn[]
+  academicGoals              AcademicGoal[]
+  assignments                Assignment[]
+  academicTerms              AcademicTerm[]
+  eligibilityItems           EligibilityChecklistItem[]
+  emergencyContacts          EmergencyContact[]
+  personalSafetyProfile      PersonalSafetyProfile?
+  safetyChecklistItems       SafetyChecklistItem[]
+  createdTeamSafetyProtocols TeamSafetyProtocol[]       @relation("TeamSafetyProtocolCreator")
+  createdTeamSafetyChecklist TeamSafetyChecklistItem[]  @relation("TeamSafetyChecklistCreator")
 
   @@index([role])
 }
@@ -128,13 +133,15 @@ model Team {
   createdById    String
   createdAt      DateTime @default(now())
 
-  organization Organization?    @relation(fields: [organizationId], references: [id])
-  createdBy    User             @relation("TeamCreator", fields: [createdById], references: [id])
-  memberships  TeamMembership[]
-  events       CalendarEvent[]
-  conversation Conversation?
-  workouts     Workout[]
-  films        Film[]
+  organization         Organization?             @relation(fields: [organizationId], references: [id])
+  createdBy            User                      @relation("TeamCreator", fields: [createdById], references: [id])
+  memberships          TeamMembership[]
+  events               CalendarEvent[]
+  conversation         Conversation?
+  workouts             Workout[]
+  films                Film[]
+  safetyProtocols      TeamSafetyProtocol[]
+  safetyChecklistItems TeamSafetyChecklistItem[]
 
   @@index([organizationId])
 }
@@ -674,4 +681,113 @@ model EligibilityChecklistItem {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// MENTA Safety — Phase 2. Preparedness and organization only — this is
+/// NEVER a prediction system. Nothing here claims to predict a cardiac
+/// event, heat illness, or concussion, and nothing claims an athlete is
+/// "medically cleared." See src/components/HeatLightningEducation.tsx and
+/// the disclaimer text on every section of src/app/(app)/safety for the
+/// exact language every surface of this feature carries. Per the
+/// ComingSoon stub this replaces: no live weather/environment API is
+/// connected in this build (static education only), and this has NOT been
+/// reviewed by a qualified safety professional — it must not be presented,
+/// marketed, or relied on as usable in a real emergency until that review
+/// happens. In an actual emergency, call 911 (or the local equivalent).
+///
+/// Individual models (EmergencyContact, PersonalSafetyProfile,
+/// SafetyChecklistItem) are private to the athlete, same ownership pattern
+/// as every other per-user model in this schema. PersonalSafetyProfile
+/// holds medical-adjacent fields (allergies, medical/medication notes) and
+/// is treated as HIGH-SENSITIVITY exactly like WellnessCheckIn — never
+/// logged, never sent to AI, never exposed via profile/recruiting/team/
+/// public surfaces. See README "Wellness data" section's security
+/// assumptions, which apply equally here.
+///
+/// Team models (TeamSafetyProtocol, TeamSafetyChecklistItem) are
+/// coach/admin-authored and visible to every member of that team — same
+/// canManageTeam()-gated write / any-team-member read pattern already used
+/// by CalendarEvent and Workout for team-scoped content.
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  relationship String?
+  phone        String?
+  email        String?
+  isPrimary    Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// HIGH-SENSITIVITY — see the model-group doc comment above.
+model PersonalSafetyProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  allergies          String?
+  medicalNotes       String?
+  medicationNotes    String?
+  emergencyPlanNotes String?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Category: MEDICAL_INFO, EMERGENCY_CONTACTS, VENUE_AWARENESS, COMMUNICATION_PLAN, DOCUMENTATION, OTHER
+/// Status: NOT_STARTED, IN_PROGRESS, COMPLETED
+model SafetyChecklistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String
+  title     String
+  status    String   @default("NOT_STARTED")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model TeamSafetyProtocol {
+  id          String   @id @default(cuid())
+  teamId      String
+  createdById String
+  title       String
+  venue       String?
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation("TeamSafetyProtocolCreator", fields: [createdById], references: [id])
+
+  @@index([teamId])
+}
+
+/// Category: MEDICAL_INFO, EMERGENCY_CONTACTS, VENUE_AWARENESS, COMMUNICATION_PLAN, DOCUMENTATION, OTHER
+/// Status: NOT_STARTED, IN_PROGRESS, COMPLETED
+model TeamSafetyChecklistItem {
+  id          String   @id @default(cuid())
+  teamId      String
+  createdById String
+  category    String
+  title       String
+  status      String   @default("NOT_STARTED")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation("TeamSafetyChecklistCreator", fields: [createdById], references: [id])
+
+  @@index([teamId])
 }
