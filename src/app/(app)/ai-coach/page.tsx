@@ -7,7 +7,7 @@ export default async function AiCoachPage() {
   const user = await requireUser();
 
   const conversation = await prisma.aIConversation.findFirst({
-    where: { userId: user.id },
+    where: { userId: user.id, topic: null },
     orderBy: { createdAt: "desc" },
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });

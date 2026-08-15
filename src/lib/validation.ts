@@ -241,3 +241,78 @@ export const reportSchema = z.object({
   category: z.enum(["SPAM", "HARASSMENT", "SAFETY_CONCERN", "IMPERSONATION", "OTHER"]),
   details: z.string().trim().max(2000).optional(),
 });
+
+const ACADEMIC_TERMS = ["FALL", "SPRING", "SUMMER", "OTHER"] as const;
+
+export const createAcademicTermSchema = z.object({
+  term: z.enum(ACADEMIC_TERMS),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  gpa: z.coerce.number().min(0).max(10).optional(),
+  gpaScale: z.coerce.number().min(1).max(10).optional(),
+  classInfo: z.string().trim().max(500).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateAcademicTermSchema = createAcademicTermSchema.partial();
+
+const ASSIGNMENT_PRIORITIES = ["LOW", "MEDIUM", "HIGH"] as const;
+const ASSIGNMENT_STATUSES = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"] as const;
+
+export const createAssignmentSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  subject: z.string().trim().max(120).optional(),
+  description: z.string().trim().max(2000).optional(),
+  dueDate: z.string().optional(),
+  priority: z.enum(ASSIGNMENT_PRIORITIES).optional(),
+  status: z.enum(ASSIGNMENT_STATUSES).optional(),
+  grade: z.string().trim().max(20).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateAssignmentSchema = createAssignmentSchema.partial().extend({
+  dueDate: z.string().optional().nullable(),
+});
+
+const ACADEMIC_GOAL_STATUSES = ["ACTIVE", "COMPLETED", "PAUSED"] as const;
+
+export const createAcademicGoalSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(1000).optional(),
+  targetDate: z.string().optional(),
+  status: z.enum(ACADEMIC_GOAL_STATUSES).optional(),
+  progress: z.coerce.number().int().min(0).max(100).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateAcademicGoalSchema = createAcademicGoalSchema.partial().extend({
+  targetDate: z.string().optional().nullable(),
+});
+
+const ELIGIBILITY_CATEGORIES = [
+  "ACADEMIC",
+  "GRADUATION",
+  "COURSEWORK",
+  "ELIGIBILITY_REVIEW",
+  "RECRUITING_PAPERWORK",
+  "DOCUMENTATION",
+] as const;
+const ELIGIBILITY_STATUSES = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "NEEDS_VERIFICATION"] as const;
+
+export const createEligibilityItemSchema = z.object({
+  category: z.enum(ELIGIBILITY_CATEGORIES),
+  title: z.string().trim().min(1).max(200),
+  status: z.enum(ELIGIBILITY_STATUSES).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateEligibilityItemSchema = z.object({
+  category: z.enum(ELIGIBILITY_CATEGORIES).optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  status: z.enum(ELIGIBILITY_STATUSES).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const studyHelpSchema = z.object({
+  conversationId: z.string().optional(),
+  message: z.string().trim().min(1).max(4000),
+});

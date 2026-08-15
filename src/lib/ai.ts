@@ -99,7 +99,7 @@ export async function buildAthleteContext(user: SessionUser): Promise<string> {
   );
 
   lines.push(
-    "Recovery, mental performance, academics, and safety modules are not yet built — do not claim to have that data."
+    "Mental performance and safety modules are not yet built — do not claim to have that data. Recovery/wellness check-ins exist but are deliberately never included in this context (health-adjacent data with its own privacy rules — don't claim to have it here). Academic data (assignments, goals, GPA history) exists but is only sent to MENTA AI in the dedicated Study Help tool, not here — don't claim to have it in this conversation."
   );
 
   return lines.join("\n");
@@ -150,6 +150,87 @@ export async function draftRecruitingOutreach(
       },
     ],
   });
+}
+
+const STUDY_HELP_RULES = `You are MENTA AI acting as a study tutor and academic assistant for the athlete described below.
+
+Additional non-negotiable rules for this task, on top of your ground rules above:
+- Prioritize teaching over answering: explain concepts, walk through examples, ask guiding questions, and help the athlete build their own understanding rather than just handing over a finished answer.
+- If the request is clearly asking you to complete graded work on the athlete's behalf — write an essay to submit, complete a quiz/test/exam, do homework problems intended for direct submission — do not do it. Say something like: "I can help you understand the concept, walk through a similar example, or check your reasoning, but I can't complete the graded assignment for you." Then actually offer that help — don't just refuse and stop.
+- Never help bypass plagiarism detection or AI-detection tools, and never produce text intended to be submitted as the athlete's own original work when the request makes clear it's for grading.
+- Never complete quizzes, tests, or exams on the athlete's behalf.
+- Never pretend to be the athlete.
+- Never fabricate citations, sources, quotes, or facts — if you're not sure of something specific, say so rather than inventing it.
+- Use only the academic context given below (assignments, academic goals, GPA/term history, school) — never invent grades, assignments, courses, or teachers the athlete didn't tell you about.
+- This is study help, not an official school record — don't imply anything here is verified or official.`;
+
+/**
+ * Deliberately separate from buildAthleteContext() — only academic-relevant
+ * data (assignments, academic goals, GPA/term history, school/grad year).
+ * Never includes wellness/recovery, recruiting, guardian, team, or message
+ * data, per the explicit "only send what's necessary for study assistance"
+ * requirement this feature was built under.
+ */
+export async function buildAcademicContext(user: SessionUser): Promise<string> {
+  const [profile, upcomingAssignments, activeGoals, recentTerms] = await Promise.all([
+    prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
+    prisma.assignment.findMany({
+      where: { userId: user.id, status: { not: "COMPLETED" } },
+      orderBy: { dueDate: "asc" },
+      take: 10,
+    }),
+    prisma.academicGoal.findMany({
+      where: { userId: user.id, status: "ACTIVE" },
+      take: 5,
+    }),
+    prisma.academicTerm.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    }),
+  ]);
+
+  const lines: string[] = [`Athlete: ${user.name}`];
+
+  if (profile?.schoolName) lines.push(`School: ${profile.schoolName}`);
+  if (profile?.graduationYear) lines.push(`Graduation year: ${profile.graduationYear}`);
+  if (profile?.gpa) lines.push(`Current GPA on profile: ${profile.gpa}`);
+
+  lines.push(
+    upcomingAssignments.length
+      ? `Open assignments: ${upcomingAssignments
+          .map(
+            (a) =>
+              `${a.title}${a.subject ? ` (${a.subject})` : ""}${a.dueDate ? `, due ${a.dueDate.toDateString()}` : ""}, status ${a.status}`
+          )
+          .join("; ")}`
+      : "No open assignments logged."
+  );
+
+  lines.push(
+    activeGoals.length
+      ? `Active academic goals: ${activeGoals.map((g) => `${g.title} (${g.progress}% complete)`).join("; ")}`
+      : "No active academic goals logged."
+  );
+
+  lines.push(
+    recentTerms.length
+      ? `Recent GPA/term history (athlete-entered): ${recentTerms
+          .map((t) => `${t.term}${t.year ? ` ${t.year}` : ""}: GPA ${t.gpa ?? "not set"}${t.classInfo ? `, classes: ${t.classInfo}` : ""}`)
+          .join("; ")}`
+      : "No GPA/term history logged yet."
+  );
+
+  lines.push(
+    "All of the above is entered by the athlete themselves, not an official school record — treat it as self-reported."
+  );
+
+  return lines.join("\n");
+}
+
+export async function buildStudyHelpSystem(user: SessionUser): Promise<string> {
+  const academicContext = await buildAcademicContext(user);
+  return `${STUDY_HELP_RULES}\n\nAcademic context:\n${academicContext}`;
 }
 
 export async function askMentaAi(params: {

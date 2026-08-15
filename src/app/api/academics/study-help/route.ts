@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { aiChatSchema } from "@/lib/validation";
-import { askMentaAi, buildAthleteContext, isAiConfigured } from "@/lib/ai";
+import { studyHelpSchema } from "@/lib/validation";
+import { askMentaAi, buildStudyHelpSystem, isAiConfigured } from "@/lib/ai";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
+
+const TOPIC = "ACADEMICS";
 
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   const conversation = await prisma.aIConversation.findFirst({
-    where: { userId: user.id, topic: null },
+    where: { userId: user.id, topic: TOPIC },
     orderBy: { createdAt: "desc" },
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
-  const limited = rateLimit(clientKey(request, `ai:${user.id}`), {
+  const limited = rateLimit(clientKey(request, `study-help:${user.id}`), {
     limit: 20,
     windowMs: 5 * 60 * 1000,
   });
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Slow down a little — try again in a few minutes." }, { status: 429 });
   }
 
-  const parsed = aiChatSchema.safeParse(await request.json().catch(() => null));
+  const parsed = studyHelpSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Message can't be empty." }, { status: 400 });
   }
@@ -48,13 +50,13 @@ export async function POST(request: Request) {
       })
     : null;
 
-  if (conversation && (conversation.userId !== user.id || conversation.topic !== null)) {
+  if (conversation && (conversation.userId !== user.id || conversation.topic !== TOPIC)) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
   if (!conversation) {
     conversation = await prisma.aIConversation.create({
-      data: { userId: user.id },
+      data: { userId: user.id, topic: TOPIC, title: "Study Help" },
       include: { messages: true },
     });
   }
@@ -68,12 +70,12 @@ export async function POST(request: Request) {
       configured: false,
       conversationId: conversation.id,
       reply:
-        "MENTA AI isn't connected yet — an administrator needs to set ANTHROPIC_API_KEY on the server. This isn't a real answer.",
+        "MENTA AI Study Help isn't connected yet — an administrator needs to set ANTHROPIC_API_KEY on the server. This isn't a real answer.",
     });
   }
 
   try {
-    const context = await buildAthleteContext(user);
+    const system = await buildStudyHelpSystem(user);
     const history = [
       ...conversation.messages.map((m) => ({
         role: m.role as "user" | "assistant",
@@ -82,17 +84,17 @@ export async function POST(request: Request) {
       { role: "user" as const, content: parsed.data.message },
     ].slice(-16);
 
-    const reply = await askMentaAi({ system: context, history });
+    const reply = await askMentaAi({ system, history });
 
     await prisma.aIMessage.create({
       data: { conversationId: conversation.id, role: "assistant", content: reply },
     });
 
-    await logAudit({ actorId: user.id, action: "ai.message_sent", targetType: "AIConversation", targetId: conversation.id });
+    await logAudit({ actorId: user.id, action: "academics.study_help_message_sent", targetType: "AIConversation", targetId: conversation.id });
 
     return NextResponse.json({ configured: true, conversationId: conversation.id, reply });
   } catch (err) {
-    console.error("[ai] request failed", err);
+    console.error("[study-help] request failed", err);
     return NextResponse.json(
       { error: "MENTA AI couldn't respond right now. Try again shortly." },
       { status: 502 }
