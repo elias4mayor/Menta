@@ -163,6 +163,58 @@ export const updateGuardianLinkSchema = z.object({
   status: z.enum(["APPROVED", "REVOKED"]),
 });
 
+const RECRUITING_SCHOOL_STATUSES = [
+  "TARGET",
+  "INTERESTED",
+  "CONTACTED",
+  "RESPONDED",
+  "VISIT",
+  "OFFER",
+  "COMMITTED",
+  "NOT_PURSUING",
+] as const;
+
+export const createRecruitingSchoolSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  division: z.string().trim().max(60).optional(),
+  location: z.string().trim().max(160).optional(),
+  status: z.enum(RECRUITING_SCHOOL_STATUSES).optional(),
+  priority: z.coerce.number().int().min(1).max(5).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+export const updateRecruitingSchoolSchema = createRecruitingSchoolSchema.partial();
+
+const RECRUITING_CONTACT_STATUSES = ["NOT_CONTACTED", "CONTACTED", "RESPONDED"] as const;
+
+export const createRecruitingContactSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  title: z.string().trim().max(120).optional(),
+  email: z.string().trim().toLowerCase().email().optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional(),
+  status: z.enum(RECRUITING_CONTACT_STATUSES).optional(),
+  notes: z.string().trim().max(2000).optional(),
+  lastContactedAt: z.string().optional(),
+});
+
+export const updateRecruitingContactSchema = createRecruitingContactSchema.partial();
+
+const RECRUITING_ACTIVITY_TYPES = ["NOTE", "EMAIL_DRAFT", "CALL", "VISIT", "OTHER"] as const;
+
+export const createRecruitingActivitySchema = z.object({
+  schoolId: z.string().optional(),
+  contactId: z.string().optional(),
+  type: z.enum(RECRUITING_ACTIVITY_TYPES).optional(),
+  subject: z.string().trim().max(200).optional(),
+  body: z.string().trim().max(4000).optional(),
+});
+
+export const recruitingOutreachSchema = z.object({
+  schoolId: z.string().min(1),
+  contactId: z.string().optional(),
+  purpose: z.string().trim().min(1).max(500),
+});
+
 export const reportSchema = z.object({
   targetUserId: z.string().optional(),
   targetMessageId: z.string().optional(),

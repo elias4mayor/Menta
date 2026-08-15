@@ -99,10 +99,57 @@ export async function buildAthleteContext(user: SessionUser): Promise<string> {
   );
 
   lines.push(
-    "Recovery, mental performance, recruiting, academics, and safety modules are not yet built — do not claim to have that data."
+    "Recovery, mental performance, academics, and safety modules are not yet built — do not claim to have that data."
   );
 
   return lines.join("\n");
+}
+
+const RECRUITING_OUTREACH_RULES = `You are drafting a recruiting outreach message on behalf of the athlete described below.
+
+Additional non-negotiable rules for this task, on top of your ground rules above:
+- Use ONLY the athlete data and school/contact data given to you in this context. Never invent statistics, awards, achievements, coach names, email addresses, or any fact not explicitly provided.
+- If a fact you'd want isn't in the context (e.g. no performance stats on file, no coach name given), don't invent one — write around the gap rather than fabricating it.
+- Never claim the athlete has already been contacted, has visited, or has any prior relationship with the school or coach unless that is explicitly stated in the context below.
+- Never guarantee, imply, or suggest a scholarship, offer, admission, or roster spot — those are entirely up to the school and coach, not something MENTA or this message can promise.
+- Never pretend to be the coach, the school, or write as if you are the recipient replying.
+- This is a DRAFT ONLY, for the athlete to review and edit before they decide whether to send it themselves. MENTA does not send messages on the athlete's behalf. Do not write anything implying it has already been sent.
+- Be direct, professional, and specific to the athlete's real data — no generic filler that could apply to any athlete.
+- Output only the message body (a greeting, a few short paragraphs, and a sign-off with the athlete's own name). No subject line, no commentary about the draft itself.`;
+
+export async function draftRecruitingOutreach(
+  user: SessionUser,
+  params: {
+    purpose: string;
+    school: { name: string; division: string | null; location: string | null };
+    contact?: { name: string; title: string | null } | null;
+  }
+): Promise<string> {
+  const athleteContext = await buildAthleteContext(user);
+
+  const recipientLine = params.contact
+    ? `Recipient: ${params.contact.name}${params.contact.title ? ` (${params.contact.title})` : ""} at ${params.school.name}`
+    : `Recipient: the coaching staff at ${params.school.name} (no specific contact name on file — address generally, e.g. "Dear Coach" or "Dear ${params.school.name} Coaching Staff")`;
+
+  const schoolLine = [
+    `School: ${params.school.name}`,
+    params.school.division ? `Division/level: ${params.school.division}` : null,
+    params.school.location ? `Location: ${params.school.location}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const context = `${RECRUITING_OUTREACH_RULES}\n\nAthlete context:\n${athleteContext}\n\n${schoolLine}\n${recipientLine}\n\nPurpose of this message (as stated by the athlete): ${params.purpose}`;
+
+  return askMentaAi({
+    system: context,
+    history: [
+      {
+        role: "user",
+        content: `Draft the recruiting outreach message described above.`,
+      },
+    ],
+  });
 }
 
 export async function askMentaAi(params: {

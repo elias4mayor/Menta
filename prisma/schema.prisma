@@ -26,29 +26,32 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  athleteProfile   AthleteProfile?
-  sessions         Session[]
-  resetTokens      PasswordResetToken[]
-  memberships      TeamMembership[]
-  messages         Message[]
-  conversations    ConversationParticipant[]
-  notifications    Notification[]
-  auditLogs        AuditLog[]            @relation("AuditActor")
-  aiConversations  AIConversation[]
-  createdEvents    CalendarEvent[]       @relation("EventCreator")
-  goals            Goal[]
-  createdTeams     Team[]                @relation("TeamCreator")
-  guardianOf       GuardianLink[]        @relation("Guardian")
-  athleteGuardians GuardianLink[]        @relation("AthleteOfGuardian")
-  reportsFiled     Report[]              @relation("Reporter")
-  blocksMade       Block[]               @relation("Blocker")
-  blocksReceived   Block[]               @relation("Blocked")
-  createdWorkouts    Workout[]           @relation("WorkoutCreator")
-  workoutCompletions WorkoutCompletion[]
-  performanceEntries PerformanceEntry[]
-  uploadedFilms      Film[]              @relation("FilmUploader")
-  clips              Clip[]              @relation("ClipCreator")
-  highlights         Highlight[]
+  athleteProfile       AthleteProfile?
+  sessions             Session[]
+  resetTokens          PasswordResetToken[]
+  memberships          TeamMembership[]
+  messages             Message[]
+  conversations        ConversationParticipant[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]                @relation("AuditActor")
+  aiConversations      AIConversation[]
+  createdEvents        CalendarEvent[]           @relation("EventCreator")
+  goals                Goal[]
+  createdTeams         Team[]                    @relation("TeamCreator")
+  guardianOf           GuardianLink[]            @relation("Guardian")
+  athleteGuardians     GuardianLink[]            @relation("AthleteOfGuardian")
+  reportsFiled         Report[]                  @relation("Reporter")
+  blocksMade           Block[]                   @relation("Blocker")
+  blocksReceived       Block[]                   @relation("Blocked")
+  createdWorkouts      Workout[]                 @relation("WorkoutCreator")
+  workoutCompletions   WorkoutCompletion[]
+  performanceEntries   PerformanceEntry[]
+  uploadedFilms        Film[]                    @relation("FilmUploader")
+  clips                Clip[]                    @relation("ClipCreator")
+  highlights           Highlight[]
+  recruitingSchools    RecruitingSchool[]
+  recruitingContacts   RecruitingContact[]
+  recruitingActivities RecruitingActivity[]
 
   @@index([role])
 }
@@ -228,7 +231,7 @@ model Conversation {
   title     String?
   createdAt DateTime @default(now())
 
-  team         Team?                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team         Team?                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   participants ConversationParticipant[]
   messages     Message[]
 }
@@ -256,7 +259,7 @@ model Message {
   deletedAt      DateTime?
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User          @relation(fields: [senderId], references: [id])
+  sender       User         @relation(fields: [senderId], references: [id])
 
   @@index([conversationId])
 }
@@ -340,14 +343,14 @@ model AuditLog {
 /// Category: SPAM, HARASSMENT, SAFETY_CONCERN, IMPERSONATION, OTHER
 /// Status: OPEN, REVIEWED, DISMISSED, ACTIONED
 model Report {
-  id             String   @id @default(cuid())
-  reporterId     String
-  targetUserId   String?
+  id              String   @id @default(cuid())
+  reporterId      String
+  targetUserId    String?
   targetMessageId String?
-  category       String
-  details        String?
-  status         String   @default("OPEN")
-  createdAt      DateTime @default(now())
+  category        String
+  details         String?
+  status          String   @default("OPEN")
+  createdAt       DateTime @default(now())
 
   reporter User @relation("Reporter", fields: [reporterId], references: [id])
 
@@ -447,4 +450,82 @@ model HighlightItem {
 
   @@unique([highlightId, clipId])
   @@index([highlightId])
+}
+
+/// Recruiting — Phase 2. Deliberately does NOT duplicate AthleteProfile
+/// (sport/position/height/weight/gradYear/school/gpa/city/state/bio/
+/// visibility already live there and are reused as-is; RECRUITING is
+/// already a visibility tier). These models hold only what's genuinely
+/// recruiting-specific: the athlete's own target-school list, the contacts
+/// they've entered for those schools, and a log of outreach/notes —
+/// never a college/coach directory. No external data source is
+/// connected; every row here is athlete-entered or AI-drafted-then-saved,
+/// never fabricated or fetched from a third party.
+
+/// Division: freeform (e.g. "D1", "D2", "D3", "NAIA", "JUCO", "Other")
+/// Status: TARGET, INTERESTED, CONTACTED, RESPONDED, VISIT, OFFER, COMMITTED, NOT_PURSUING
+model RecruitingSchool {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  division  String?
+  location  String?
+  status    String   @default("TARGET")
+  priority  Int?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts   RecruitingContact[]
+  activities RecruitingActivity[]
+
+  @@index([userId])
+}
+
+/// Status: NOT_CONTACTED, CONTACTED, RESPONDED
+model RecruitingContact {
+  id              String    @id @default(cuid())
+  userId          String
+  schoolId        String
+  name            String
+  title           String?
+  email           String?
+  phone           String?
+  status          String    @default("NOT_CONTACTED")
+  notes           String?
+  lastContactedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school     RecruitingSchool     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  activities RecruitingActivity[]
+
+  @@index([userId])
+  @@index([schoolId])
+}
+
+/// Type: NOTE, EMAIL_DRAFT, CALL, VISIT, OTHER — a log entry per school/
+/// contact, including AI-drafted outreach (isDraft: true, always athlete-
+/// reviewed before it's ever sent — MENTA never sends on the athlete's
+/// behalf, there is no send integration here at all).
+model RecruitingActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  schoolId  String?
+  contactId String?
+  type      String   @default("NOTE")
+  subject   String?
+  body      String?
+  isDraft   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school  RecruitingSchool?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  contact RecruitingContact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([schoolId])
+  @@index([contactId])
 }
