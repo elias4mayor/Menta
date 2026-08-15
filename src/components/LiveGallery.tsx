@@ -44,12 +44,15 @@ export function LiveGallery({
       className={`live-gallery${heroBg ? " hero-bg" : ""}`}
       onMouseEnter={stop}
       onMouseLeave={start}
+      role="img"
+      aria-label={slides[index]?.caption ?? "Athlete photo gallery"}
     >
       {slides.map((slide, i) => (
         <div
           key={slide.src}
           className={`lg-slide${i === index ? " active" : ""}`}
           style={{ backgroundImage: `url(${slide.src})` }}
+          aria-hidden="true"
         />
       ))}
       <div className="lg-meta">{slides[index]?.caption}</div>
