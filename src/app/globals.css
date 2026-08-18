@@ -70,6 +70,14 @@ h4 {
   letter-spacing: -0.02em;
 }
 
+/* Logged-in app only (AppShell) — a condensed, bold athletic grotesk for
+   headings, closer to a Nike training-app feel. Marketing/auth pages keep
+   Space Grotesk untouched. Overriding the custom property here cascades
+   into every h1-h4 and .font-heading usage inside the app automatically. */
+.app-shell {
+  --font-heading: var(--font-oswald), "Oswald", sans-serif;
+}
+
 .mono {
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
