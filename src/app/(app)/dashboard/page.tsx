@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { DashboardHero } from "@/components/DashboardHero";
 import { CountUpValue } from "@/components/CountUpValue";
+import { TodaysPriorities } from "@/components/TodaysPriorities";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -22,11 +23,13 @@ export default async function DashboardPage() {
   const now = new Date();
 
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const [
     profile,
     teamMemberships,
     todaysEvents,
+    upcomingEvents,
     goals,
     notifications,
     aiConfigured,
@@ -47,6 +50,17 @@ export default async function DashboardPage() {
         ],
       },
       orderBy: { startsAt: "asc" },
+    }),
+    prisma.calendarEvent.findMany({
+      where: {
+        startsAt: { gt: endOfDay(now), lte: weekAhead },
+        OR: [
+          { createdById: user.id },
+          { team: { memberships: { some: { userId: user.id } } } },
+        ],
+      },
+      orderBy: { startsAt: "asc" },
+      take: 8,
     }),
     prisma.goal.findMany({
       where: { userId: user.id },
@@ -70,6 +84,17 @@ export default async function DashboardPage() {
 
   const firstName = user.name.split(" ")[0];
   const activeGoalsCount = goals.filter((g) => g.status === "ACTIVE").length;
+  const todayEnd = endOfDay(now);
+  const priorityGoals = goals
+    .filter((g) => g.status === "ACTIVE" && g.targetDate && g.targetDate <= todayEnd)
+    .slice(0, 4)
+    .map((g) => ({
+      id: g.id,
+      title: g.title,
+      category: g.category,
+      targetDate: g.targetDate ? g.targetDate.toISOString() : null,
+      overdue: Boolean(g.targetDate && g.targetDate < startOfDay(now)),
+    }));
 
   return (
     <>
@@ -122,7 +147,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="card p-5 md:col-span-2">
+          <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="mono text-text-3">Today</div>
               <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
@@ -149,6 +174,18 @@ export default async function DashboardPage() {
           </div>
 
           <div className="card p-5">
+            <TodaysPriorities goals={priorityGoals} />
+          </div>
+
+          <div
+            className="card p-5"
+            style={{
+              border: "1px solid transparent",
+              backgroundImage: "linear-gradient(var(--surface), var(--surface)), var(--grad-signal)",
+              backgroundOrigin: "border-box",
+              backgroundClip: "padding-box, border-box",
+            }}
+          >
             <div className="mono text-text-3 mb-3">MENTA AI</div>
             {aiConfigured ? (
               <span className="badge badge-live mb-3">Connected</span>
@@ -165,6 +202,31 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {upcomingEvents.length > 0 && (
+          <div className="card p-5 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="mono text-text-3">Coming up</div>
+              <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
+                Full calendar →
+              </Link>
+            </div>
+            <ul className="space-y-3">
+              {upcomingEvents.map((event) => (
+                <li key={event.id} className="flex items-center gap-3 text-sm">
+                  <span className="mono text-text-3 w-24 shrink-0">
+                    {new Date(event.startsAt).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <span>{event.title}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="card p-5">
