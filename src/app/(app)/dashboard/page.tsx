@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { GoalsPanel } from "@/components/GoalsPanel";
+import { DashboardHero } from "@/components/DashboardHero";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -67,160 +68,173 @@ export default async function DashboardPage() {
   ]);
 
   const firstName = user.name.split(" ")[0];
+  const activeGoalsCount = goals.filter((g) => g.status === "ACTIVE").length;
 
   return (
-    <div className="max-w-5xl">
-      <div className="mono text-text-3 mb-2">My MENTA</div>
-      <h1 className="text-3xl font-semibold mb-8">Hey {firstName}.</h1>
+    <>
+      <div className="dashboard-hero-bleed">
+        <DashboardHero greeting={`Hey ${firstName}.`} />
+      </div>
+      <div className="max-w-5xl">
+        <div className="card p-0 mb-8 overflow-hidden">
+          <div className="grid grid-cols-2 md:grid-cols-4">
+            {[
+              {
+                label: "Workouts this week",
+                value: completionsThisWeek,
+                href: "/train",
+              },
+              {
+                label: latestPerformanceEntry?.statName ?? "Latest stat",
+                value: latestPerformanceEntry
+                  ? `${latestPerformanceEntry.value}${latestPerformanceEntry.unit ? ` ${latestPerformanceEntry.unit}` : ""}`
+                  : "—",
+                href: "/performance",
+              },
+              {
+                label: "Active goals",
+                value: activeGoalsCount,
+                href: "/dashboard#goals",
+              },
+              {
+                label: "Teams",
+                value: teamMemberships.length,
+                href: "/team",
+              },
+            ].map((stat, i) => (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                className="p-5"
+                style={{
+                  borderRight: i % 2 === 0 ? "1px solid var(--border-soft)" : undefined,
+                  borderTop: i >= 2 ? "1px solid var(--border-soft)" : undefined,
+                }}
+              >
+                <div className="text-3xl font-heading font-semibold mb-1">{stat.value}</div>
+                <div className="mono text-text-3">{stat.label}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
 
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
-        <div className="card p-5 md:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <div className="mono text-text-3">Today</div>
-            <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
-              Full calendar →
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="card p-5 md:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <div className="mono text-text-3">Today</div>
+              <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
+                Full calendar →
+              </Link>
+            </div>
+            {todaysEvents.length === 0 ? (
+              <p className="text-text-2 text-sm">Nothing on your calendar today.</p>
+            ) : (
+              <ul className="space-y-3">
+                {todaysEvents.map((event) => (
+                  <li key={event.id} className="flex items-center gap-3 text-sm">
+                    <span className="mono text-text-3 w-14 shrink-0">
+                      {new Date(event.startsAt).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span>{event.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="card p-5">
+            <div className="mono text-text-3 mb-3">MENTA AI</div>
+            {aiConfigured ? (
+              <span className="badge badge-live mb-3">Connected</span>
+            ) : (
+              <span className="badge badge-demo mb-3">Not connected</span>
+            )}
+            <p className="text-text-2 text-sm mb-4">
+              {aiConfigured
+                ? "Ask about training, recovery, recruiting, or academics."
+                : "Set ANTHROPIC_API_KEY to turn on the live assistant."}
+            </p>
+            <Link href="/ai-coach" className="btn-secondary w-full justify-center">
+              Open MENTA AI
             </Link>
           </div>
-          {todaysEvents.length === 0 ? (
-            <p className="text-text-2 text-sm">Nothing on your calendar today.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="card p-5">
+            <div className="mono text-text-3 mb-3">Profile</div>
+            {profile ? (
+              <>
+                <p className="text-sm mb-1">{profile.sport || "Sport not set"}</p>
+                <p className="text-text-2 text-sm">{profile.schoolName || "School not set"}</p>
+              </>
+            ) : (
+              <p className="text-text-2 text-sm">Finish onboarding to set up your profile.</p>
+            )}
+            <Link href="/profile" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
+              View profile →
+            </Link>
+          </div>
+
+          <div className="card p-5" id="goals">
+            <GoalsPanel
+              initial={goals.map((g) => ({
+                id: g.id,
+                title: g.title,
+                category: g.category,
+                actionPlan: g.actionPlan,
+                progress: g.progress,
+                status: g.status,
+                targetDate: g.targetDate ? g.targetDate.toISOString() : null,
+              }))}
+            />
+          </div>
+
+          <div className="card p-5">
+            <div className="mono text-text-3 mb-3">Team</div>
+            {teamMemberships.length === 0 ? (
+              <>
+                <p className="text-text-2 text-sm mb-3">You&rsquo;re not on a team yet.</p>
+                <Link href="/team" className="text-xs text-text-2 hover:text-text-1">
+                  Create or join a team →
+                </Link>
+              </>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {teamMemberships.map((m) => (
+                  <li key={m.id}>{m.team.name}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="mono text-text-3">Recent notifications</div>
+            <Link href="/notifications" className="text-xs text-text-2 hover:text-text-1">
+              View all →
+            </Link>
+          </div>
+          {notifications.length === 0 ? (
+            <p className="text-text-2 text-sm">Nothing yet.</p>
           ) : (
-            <ul className="space-y-3">
-              {todaysEvents.map((event) => (
-                <li key={event.id} className="flex items-center gap-3 text-sm">
-                  <span className="mono text-text-3 w-14 shrink-0">
-                    {new Date(event.startsAt).toLocaleTimeString([], {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+            <ul className="space-y-2 text-sm">
+              {notifications.map((n) => (
+                <li key={n.id} className="flex items-center justify-between">
+                  <span className={n.readAt ? "text-text-2" : ""}>{n.title}</span>
+                  <span className="mono text-text-3">
+                    {new Date(n.createdAt).toLocaleDateString()}
                   </span>
-                  <span>{event.title}</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
-
-        <div className="card p-5">
-          <div className="mono text-text-3 mb-3">MENTA AI</div>
-          {aiConfigured ? (
-            <span className="badge badge-live mb-3">Connected</span>
-          ) : (
-            <span className="badge badge-demo mb-3">Not connected</span>
-          )}
-          <p className="text-text-2 text-sm mb-4">
-            {aiConfigured
-              ? "Ask about training, recovery, recruiting, or academics."
-              : "Set ANTHROPIC_API_KEY to turn on the live assistant."}
-          </p>
-          <Link href="/ai-coach" className="btn-secondary w-full justify-center">
-            Open MENTA AI
-          </Link>
         </div>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4 mb-8">
-        <div className="card p-5">
-          <div className="mono text-text-3 mb-3">Profile</div>
-          {profile ? (
-            <>
-              <p className="text-sm mb-1">{profile.sport || "Sport not set"}</p>
-              <p className="text-text-2 text-sm">{profile.schoolName || "School not set"}</p>
-            </>
-          ) : (
-            <p className="text-text-2 text-sm">Finish onboarding to set up your profile.</p>
-          )}
-          <Link href="/profile" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
-            View profile →
-          </Link>
-        </div>
-
-        <div className="card p-5">
-          <GoalsPanel
-            initial={goals.map((g) => ({
-              id: g.id,
-              title: g.title,
-              category: g.category,
-              actionPlan: g.actionPlan,
-              progress: g.progress,
-              status: g.status,
-              targetDate: g.targetDate ? g.targetDate.toISOString() : null,
-            }))}
-          />
-        </div>
-
-        <div className="card p-5">
-          <div className="mono text-text-3 mb-3">Team</div>
-          {teamMemberships.length === 0 ? (
-            <>
-              <p className="text-text-2 text-sm mb-3">You&rsquo;re not on a team yet.</p>
-              <Link href="/team" className="text-xs text-text-2 hover:text-text-1">
-                Create or join a team →
-              </Link>
-            </>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {teamMemberships.map((m) => (
-                <li key={m.id}>{m.team.name}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4 mb-8">
-        <div className="card p-5">
-          <div className="mono text-text-3 mb-3">Training this week</div>
-          <div className="text-2xl font-semibold font-heading mb-1">{completionsThisWeek}</div>
-          <p className="text-text-2 text-sm mb-3">
-            {completionsThisWeek === 0 ? "No workouts logged yet." : "workouts completed"}
-          </p>
-          <Link href="/train" className="text-xs text-text-2 hover:text-text-1">
-            Open training →
-          </Link>
-        </div>
-        <div className="card p-5">
-          <div className="mono text-text-3 mb-3">Latest stat</div>
-          {latestPerformanceEntry ? (
-            <>
-              <div className="text-2xl font-semibold font-heading mb-1">
-                {latestPerformanceEntry.value}
-                {latestPerformanceEntry.unit && (
-                  <span className="text-sm text-text-2 ml-1">{latestPerformanceEntry.unit}</span>
-                )}
-              </div>
-              <p className="text-text-2 text-sm mb-3">{latestPerformanceEntry.statName}</p>
-            </>
-          ) : (
-            <p className="text-text-2 text-sm mb-3">No stats logged yet.</p>
-          )}
-          <Link href="/performance" className="text-xs text-text-2 hover:text-text-1">
-            Open performance →
-          </Link>
-        </div>
-      </div>
-
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="mono text-text-3">Recent notifications</div>
-          <Link href="/notifications" className="text-xs text-text-2 hover:text-text-1">
-            View all →
-          </Link>
-        </div>
-        {notifications.length === 0 ? (
-          <p className="text-text-2 text-sm">Nothing yet.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {notifications.map((n) => (
-              <li key={n.id} className="flex items-center justify-between">
-                <span className={n.readAt ? "text-text-2" : ""}>{n.title}</span>
-                <span className="mono text-text-3">
-                  {new Date(n.createdAt).toLocaleDateString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
