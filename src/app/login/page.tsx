@@ -42,6 +42,7 @@ function LoginForm() {
     <AuthShell
       eyebrow="Welcome back"
       title="Log in"
+      liveBackground
       footer={
         <>
           Don&rsquo;t have an account?{" "}
