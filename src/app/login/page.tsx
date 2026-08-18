@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AuthShell } from "@/components/AuthShell";
+import { SplitAuthShell } from "@/components/SplitAuthShell";
 
 function LoginForm() {
   const router = useRouter();
@@ -39,10 +39,9 @@ function LoginForm() {
   }
 
   return (
-    <AuthShell
+    <SplitAuthShell
       eyebrow="Welcome back"
       title="Log in"
-      liveBackground
       footer={
         <>
           Don&rsquo;t have an account?{" "}
@@ -52,10 +51,10 @@ function LoginForm() {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="field-label" htmlFor="email">Email</label>
-          <input id="email" type="email" className="field-input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input id="email" type="email" className="field-underline" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <div>
           <div className="flex items-center justify-between">
@@ -64,14 +63,14 @@ function LoginForm() {
               Forgot?
             </Link>
           </div>
-          <input id="password" type="password" className="field-input" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input id="password" type="password" className="field-underline" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
         {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
         <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
           {loading ? "Logging in…" : "Log in"}
         </button>
       </form>
-    </AuthShell>
+    </SplitAuthShell>
   );
 }
 

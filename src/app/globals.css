@@ -211,6 +211,31 @@ h4 {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+/* Underline-style field, used only on the split login/signup screens —
+   no box, just a bottom border, for a cleaner minimal look than the
+   boxed .field-input used everywhere else in the app. */
+.field-underline {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  color: var(--text-1);
+  padding: 10px 2px;
+  font-size: 15px;
+  font-family: var(--font-body);
+  transition: border-color 0.25s var(--ease);
+}
+
+.field-underline::placeholder {
+  color: var(--text-3);
+}
+
+.field-underline:focus {
+  outline: none;
+  border-bottom-color: var(--text-1);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
