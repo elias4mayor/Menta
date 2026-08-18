@@ -20,7 +20,7 @@
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
     0 30px 60px -28px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(216, 218, 223, 0.08);
   --ease: cubic-bezier(0.16, 0.8, 0.3, 1);
-  --font-heading: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-heading: var(--font-inter), "Inter", sans-serif;
   --font-body: var(--font-inter), "Inter", sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
   --font-serif: var(--font-fraunces), "Fraunces", serif;
@@ -68,20 +68,6 @@ h3,
 h4 {
   font-family: var(--font-heading);
   letter-spacing: -0.02em;
-}
-
-/* Logged-in app only (AppShell) — a condensed, bold athletic grotesk for
-   headings, closer to a Nike training-app feel. Marketing/auth pages keep
-   Space Grotesk untouched. Overriding the custom property here cascades
-   into every h1-h4 and .font-heading usage inside the app automatically. */
-.app-shell {
-  --font-heading: var(--font-oswald), "Oswald", sans-serif;
-}
-
-/* Split login/signup screens get the same athletic heading font as the
-   logged-in app. */
-.split-auth-shell {
-  --font-heading: var(--font-oswald), "Oswald", sans-serif;
 }
 
 .mono {
