@@ -47,3 +47,4 @@ next-env.d.ts
 
 # local file storage (dev-only fallback — see src/lib/storage.ts)
 /storage/
+prisma/prisma/
