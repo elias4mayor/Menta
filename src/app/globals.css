@@ -78,6 +78,12 @@ h4 {
   --font-heading: var(--font-oswald), "Oswald", sans-serif;
 }
 
+/* Split login/signup screens get the same athletic heading font as the
+   logged-in app. */
+.split-auth-shell {
+  --font-heading: var(--font-oswald), "Oswald", sans-serif;
+}
+
 .mono {
   font-family: var(--font-mono);
   letter-spacing: 0.02em;

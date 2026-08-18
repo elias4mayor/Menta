@@ -23,7 +23,7 @@ export function SplitAuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen flex flex-col md:flex-row bg-bg overflow-hidden">
+    <div className="split-auth-shell relative min-h-screen flex flex-col md:flex-row bg-bg overflow-hidden">
       <div className="absolute inset-0 md:relative md:inset-auto md:w-[46%] lg:w-1/2 overflow-hidden">
         <LiveGallery slides={GALLERY_SLIDES} heroBg />
         <div className="absolute inset-0 z-[1]" style={{ background: "rgba(8,8,10,0.5)" }} />
