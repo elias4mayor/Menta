@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AuthShell } from "@/components/AuthShell";
+import { SplitAuthShell } from "@/components/SplitAuthShell";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -28,12 +28,12 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthShell
+    <SplitAuthShell
       eyebrow="Reset password"
       title="Forgot your password?"
       subtitle="We'll send a reset link to your email."
       footer={
-        <Link href="/login" className="text-text-1 underline">
+        <Link href="/login" className="auth-link">
           Back to log in
         </Link>
       }
@@ -41,16 +41,16 @@ export default function ForgotPasswordPage() {
       {message ? (
         <p className="text-sm text-text-2">{message}</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="field-label" htmlFor="email">Email</label>
-            <input id="email" type="email" className="field-input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input id="email" type="email" className="field-underline" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
             {loading ? "Sending…" : "Send reset link"}
           </button>
         </form>
       )}
-    </AuthShell>
+    </SplitAuthShell>
   );
 }
