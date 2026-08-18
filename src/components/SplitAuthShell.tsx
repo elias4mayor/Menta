@@ -34,7 +34,7 @@ export function SplitAuthShell({
               alt="MENTA"
               width={863}
               height={194}
-              className="h-8 w-auto"
+              className="h-16 w-auto"
               style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.7))" }}
               priority
             />
@@ -63,7 +63,7 @@ export function SplitAuthShell({
               alt="MENTA"
               width={863}
               height={194}
-              className="h-10 w-auto"
+              className="h-16 w-auto"
               priority
             />
           </Link>
