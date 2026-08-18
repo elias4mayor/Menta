@@ -52,6 +52,7 @@ export default function SignupPage() {
       eyebrow="Create account"
       title="Join MENTA"
       subtitle="Free during the beta. Athletes under 18 need a parent or guardian to approve their account."
+      liveBackground
       footer={
         <>
           Already have an account?{" "}
