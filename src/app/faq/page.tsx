@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: "Is my data private?",
-    a: "Film, performance data, and academic records belong to the athlete and family. We don't sell athlete data to third parties. Terms of Service and Privacy Policy are still drafts pending legal review.",
+    a: "Film, performance data, and academic records belong to the athlete and family. We don't sell athlete data to third parties. Wellness check-ins and personal safety/medical info are treated as high-sensitivity data — private by default and never sent to AI or shown to teammates. See our Terms of Service and Privacy Policy — both are published drafts pending legal review.",
   },
   {
     q: "Does MENTA replace my current coach or tutor?",
@@ -24,7 +24,7 @@ const FAQS = [
   },
   {
     q: "What's actually live right now?",
-    a: "Accounts, profiles, teams, messaging, calendar, notifications, and the MENTA AI chat shell are functional. Film analysis, recruiting data, and performance tracking are architected but not yet connected to real data sources — those are clearly labeled wherever they appear.",
+    a: "Accounts, profiles, teams, messaging, calendar, notifications, goals, training, performance, film, highlights, Recruiting, Recovery, Academics, and Safety are all real and functional today. Mindset (mental performance) is the one module still a labeled 'coming soon' placeholder. MENTA AI works when an administrator connects a provider — otherwise the app says so honestly instead of faking a response.",
   },
 ];
 

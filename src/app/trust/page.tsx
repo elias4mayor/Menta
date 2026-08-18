@@ -4,7 +4,7 @@ import { MarketingFooter } from "@/components/MarketingFooter";
 const SECTIONS = [
   {
     title: "Privacy",
-    body: "Athletes and families own their data. We collect only what's needed to run the product — see the data model in our engineering docs. A full Privacy Policy is drafted internally and marked DRAFT — REQUIRES LEGAL REVIEW until an attorney signs off.",
+    body: "Athletes and families own their data. We collect only what's needed to run the product. Our Privacy Policy is published as a draft — marked DRAFT, REQUIRES LEGAL REVIEW — until an attorney signs off.",
   },
   {
     title: "Security",
@@ -28,7 +28,7 @@ const SECTIONS = [
   },
   {
     title: "Legal documents",
-    body: "Terms of Service and Privacy Policy are drafted internally alongside the product but are not yet published or attorney-reviewed. Nothing on this site should be read as a compliance certification for HIPAA, FERPA, COPPA, or NCAA rules.",
+    body: "A draft Terms of Service and Privacy Policy are published — see the links in the footer — but neither has been attorney-reviewed yet. Nothing on this site should be read as a compliance certification for HIPAA, FERPA, COPPA, or NCAA rules.",
   },
   {
     title: "Contact",
