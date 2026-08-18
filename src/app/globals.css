@@ -237,9 +237,58 @@ h4 {
   color: var(--text-3);
 }
 
+.field-underline:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
 .field-underline:focus {
   outline: none;
   border-bottom-color: var(--text-1);
+  box-shadow: 0 1px 14px rgba(255, 255, 255, 0.32);
+  transition: border-color 0.25s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+/* Text link with a smooth glowing underline that sweeps in on hover —
+   used on the split login/signup screens. */
+.auth-link {
+  position: relative;
+  display: inline-block;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color 0.3s var(--ease);
+}
+
+.auth-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -2px;
+  height: 1px;
+  background: var(--text-1);
+  box-shadow: 0 0 8px 1px rgba(255, 255, 255, 0.65);
+  transition: right 0.35s var(--ease);
+}
+
+.auth-link:hover {
+  color: var(--text-1);
+}
+
+.auth-link:hover::after {
+  right: 0;
+}
+
+/* Extra hover glow on the split login/signup screens only — layered on
+   top of the shared .btn-primary/.btn-secondary hover states used
+   everywhere else in the app, so this doesn't change those buttons
+   anywhere but here. */
+.split-auth-shell .btn-primary:hover {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 14px 32px -6px rgba(255, 255, 255, 0.18), 0 0 44px -8px rgba(255, 255, 255, 0.55);
+}
+
+.split-auth-shell .btn-secondary:hover {
+  box-shadow: 0 0 30px -8px rgba(255, 255, 255, 0.4);
 }
 
 .badge {

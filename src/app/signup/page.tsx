@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SplitAuthShell } from "@/components/SplitAuthShell";
+import { OAuthButtons } from "@/components/OAuthButtons";
 
 const ROLES = [
   { value: "ATHLETE", label: "Athlete" },
@@ -55,7 +56,7 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="text-text-1 underline">
+          <Link href="/login" className="auth-link">
             Log in
           </Link>
         </>
@@ -97,11 +98,11 @@ export default function SignupPage() {
           />
           <span>
             I agree to the{" "}
-            <Link href="/terms" target="_blank" className="text-text-1 underline">
+            <Link href="/terms" target="_blank" className="auth-link">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" target="_blank" className="text-text-1 underline">
+            <Link href="/privacy" target="_blank" className="auth-link">
               Privacy Policy
             </Link>{" "}
             (published drafts, pending legal review).
@@ -112,6 +113,7 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
+      <OAuthButtons />
     </SplitAuthShell>
   );
 }

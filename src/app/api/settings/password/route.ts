@@ -18,6 +18,12 @@ export async function POST(request: Request) {
   }
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: sessionUser.id } });
+  if (!user.passwordHash) {
+    return NextResponse.json(
+      { error: "This account signed in with Google or Facebook and has no password yet. Use \"Forgot password\" to set one." },
+      { status: 400 }
+    );
+  }
   const valid = await verifyPassword(parsed.data.currentPassword, user.passwordHash);
   if (!valid) {
     return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
