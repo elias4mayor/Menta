@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
-import { Hero } from "@/components/Hero";
+import { PortalHero } from "@/components/PortalHero";
 import { WhoSection } from "@/components/WhoSection";
 import { FounderStory } from "@/components/FounderStory";
 import { RevealInit } from "@/components/RevealInit";
@@ -46,7 +46,7 @@ export default function HomePage() {
       <RevealInit />
       <MarketingNav />
       <main>
-        <Hero />
+        <PortalHero />
 
         <WhoSection />
 

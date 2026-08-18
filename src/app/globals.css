@@ -678,6 +678,175 @@ h4 {
   }
 }
 
+/* ---------- portal hero: scroll-driven panel reveal + wordmark growth ----------
+   Everything reads off the --p custom property (0 = closed/start, 1 =
+   open/finished), set on .portal-hero by PortalHero's scroll listener —
+   never a timer, so it reverses cleanly on scroll-up.
+
+   Accessibility: every rule below uses a fallback of the FINISHED value
+   (panels open, wordmark at rest, CTAs visible) so that with no
+   .portal-active class — i.e. prefers-reduced-motion, or no JS at all —
+   the section already renders as the finished page, nothing stays
+   hidden behind an animation that can't run. */
+.portal-hero {
+  position: relative;
+  height: 240vh;
+}
+
+.portal-hero-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+.portal-hero-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(calc(1 + (1 - var(--p, 1)) * 0.15));
+}
+
+.portal-hero-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(120% 100% at 50% 50%, rgba(8, 8, 10, 0) 30%, rgba(8, 8, 10, 0.6) 100%);
+  opacity: calc(0.4 + var(--p, 1) * 0.3);
+}
+
+.portal-hero-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-1);
+  box-shadow: 0 0 12px 2px rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.portal-active .portal-hero-dot {
+  opacity: var(--p, 0);
+}
+
+.portal-hero-dot-a {
+  transform: translate(calc(-50% - var(--p, 0) * 42vw), calc(-50% - var(--p, 0) * 30vh));
+}
+
+.portal-hero-dot-b {
+  transform: translate(calc(-50% + var(--p, 0) * 42vw), calc(-50% + var(--p, 0) * 30vh));
+}
+
+.portal-hero-meta {
+  position: absolute;
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
+  opacity: var(--p, 1);
+}
+
+.portal-hero-meta-top {
+  top: 24px;
+  left: 24px;
+}
+
+.portal-hero-meta-bottom {
+  bottom: 24px;
+  right: 24px;
+}
+
+.portal-hero-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 52%;
+  background: var(--bg);
+  z-index: 2;
+}
+
+.portal-hero-panel-left {
+  left: 0;
+  transform: translateX(calc(-1 * var(--p, 1) * 100%));
+}
+
+.portal-hero-panel-right {
+  right: 0;
+  transform: translateX(calc(var(--p, 1) * 100%));
+}
+
+.portal-hero-title {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-1);
+  font-size: clamp(48px, 9vw, 140px);
+  letter-spacing: calc(-0.02em - var(--p, 0) * 0.03em);
+  transform: scale(calc(1 + var(--p, 0) * 0.35));
+  text-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.portal-hero-title-a,
+.portal-hero-title-b {
+  display: inline-block;
+}
+
+.portal-hero-title-a {
+  transform: translateX(calc(var(--p, 0) * -0.5em));
+}
+
+.portal-hero-title-b {
+  transform: translateX(calc(var(--p, 0) * 0.5em));
+}
+
+.portal-hero-cta {
+  position: absolute;
+  z-index: 4;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  opacity: var(--p, 1);
+}
+
+@media (max-width: 640px) {
+  .portal-hero {
+    height: 180vh;
+  }
+  .portal-hero-cta {
+    bottom: 40px;
+    flex-direction: column;
+    width: calc(100% - 48px);
+  }
+  .portal-hero-meta {
+    font-size: 9.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-hero {
+    height: auto;
+  }
+  .portal-hero-stage {
+    position: relative;
+  }
+}
+
 /* ---------- boot flash: one-time premium logo reveal ---------- */
 .logo-intro-mark {
   position: fixed;
