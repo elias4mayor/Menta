@@ -31,7 +31,10 @@ export async function POST(request: Request) {
   );
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
+  if (!user || !user.passwordHash) {
+    // No account, or an OAuth-only account with no password set yet — same
+    // generic response either way, matching the no-enumeration convention
+    // used by forgot-password.
     await logAudit({ action: "auth.login_failed", metadata: { email } });
     return genericError;
   }

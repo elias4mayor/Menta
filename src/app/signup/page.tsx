@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AuthShell } from "@/components/AuthShell";
+import { SplitAuthShell } from "@/components/SplitAuthShell";
+import { OAuthButtons } from "@/components/OAuthButtons";
 
 const ROLES = [
   { value: "ATHLETE", label: "Athlete" },
@@ -48,40 +49,40 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthShell
+    <SplitAuthShell
       eyebrow="Create account"
       title="Join MENTA"
       subtitle="Free during the beta. Athletes under 18 need a parent or guardian to approve their account."
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="text-text-1 underline">
+          <Link href="/login" className="auth-link">
             Log in
           </Link>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="field-label" htmlFor="name">Full name</label>
-          <input id="name" className="field-input" value={name} onChange={(e) => setName(e.target.value)} required />
+          <input id="name" className="field-underline" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div>
           <label className="field-label" htmlFor="email">Email</label>
-          <input id="email" type="email" className="field-input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input id="email" type="email" className="field-underline" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <div>
           <label className="field-label" htmlFor="password">Password</label>
-          <input id="password" type="password" className="field-input" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={10} />
+          <input id="password" type="password" className="field-underline" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={10} />
           <p className="text-text-3 text-xs mt-1">At least 10 characters.</p>
         </div>
         <div>
           <label className="field-label" htmlFor="dob">Date of birth</label>
-          <input id="dob" type="date" className="field-input" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+          <input id="dob" type="date" className="field-underline" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
         </div>
         <div>
           <label className="field-label" htmlFor="role">I am a...</label>
-          <select id="role" className="field-select" value={role} onChange={(e) => setRole(e.target.value)}>
+          <select id="role" className="field-underline" value={role} onChange={(e) => setRole(e.target.value)}>
             {ROLES.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>
             ))}
@@ -97,11 +98,11 @@ export default function SignupPage() {
           />
           <span>
             I agree to the{" "}
-            <Link href="/terms" target="_blank" className="text-text-1 underline">
+            <Link href="/terms" target="_blank" className="auth-link">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" target="_blank" className="text-text-1 underline">
+            <Link href="/privacy" target="_blank" className="auth-link">
               Privacy Policy
             </Link>{" "}
             (published drafts, pending legal review).
@@ -112,6 +113,7 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
-    </AuthShell>
+      <OAuthButtons />
+    </SplitAuthShell>
   );
 }

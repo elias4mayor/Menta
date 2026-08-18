@@ -70,6 +70,20 @@ h4 {
   letter-spacing: -0.02em;
 }
 
+/* Logged-in app only (AppShell) — a condensed, bold athletic grotesk for
+   headings, closer to a Nike training-app feel. Marketing/auth pages keep
+   Space Grotesk untouched. Overriding the custom property here cascades
+   into every h1-h4 and .font-heading usage inside the app automatically. */
+.app-shell {
+  --font-heading: var(--font-oswald), "Oswald", sans-serif;
+}
+
+/* Split login/signup screens get the same athletic heading font as the
+   logged-in app. */
+.split-auth-shell {
+  --font-heading: var(--font-oswald), "Oswald", sans-serif;
+}
+
 .mono {
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
@@ -201,6 +215,80 @@ h4 {
 .field-textarea:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Underline-style field, used only on the split login/signup screens —
+   no box, just a bottom border, for a cleaner minimal look than the
+   boxed .field-input used everywhere else in the app. */
+.field-underline {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  color: var(--text-1);
+  padding: 10px 2px;
+  font-size: 15px;
+  font-family: var(--font-body);
+  transition: border-color 0.25s var(--ease);
+}
+
+.field-underline::placeholder {
+  color: var(--text-3);
+}
+
+.field-underline:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+.field-underline:focus {
+  outline: none;
+  border-bottom-color: var(--text-1);
+  box-shadow: 0 1px 14px rgba(255, 255, 255, 0.32);
+  transition: border-color 0.25s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+/* Text link with a smooth glowing underline that sweeps in on hover —
+   used on the split login/signup screens. */
+.auth-link {
+  position: relative;
+  display: inline-block;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color 0.3s var(--ease);
+}
+
+.auth-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -2px;
+  height: 1px;
+  background: var(--text-1);
+  box-shadow: 0 0 8px 1px rgba(255, 255, 255, 0.65);
+  transition: right 0.35s var(--ease);
+}
+
+.auth-link:hover {
+  color: var(--text-1);
+}
+
+.auth-link:hover::after {
+  right: 0;
+}
+
+/* Extra hover glow on the split login/signup screens only — layered on
+   top of the shared .btn-primary/.btn-secondary hover states used
+   everywhere else in the app, so this doesn't change those buttons
+   anywhere but here. */
+.split-auth-shell .btn-primary:hover {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 14px 32px -6px rgba(255, 255, 255, 0.18), 0 0 44px -8px rgba(255, 255, 255, 0.55);
+}
+
+.split-auth-shell .btn-secondary:hover {
+  box-shadow: 0 0 30px -8px rgba(255, 255, 255, 0.4);
 }
 
 .badge {

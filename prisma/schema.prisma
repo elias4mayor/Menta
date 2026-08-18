@@ -18,11 +18,18 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  passwordHash  String
+  // Nullable: OAuth-only accounts (Google/Facebook) have no password until
+  // the user sets one via the forgot-password flow. Every call site that
+  // reads this must handle null explicitly instead of assuming it's set.
+  passwordHash  String?
   name          String
   role          String    @default("ATHLETE")
   dateOfBirth   DateTime?
   emailVerified DateTime?
+  // Set the first time a user signs in with that provider. Nullable/unique
+  // so at most one account can be linked to a given provider identity.
+  googleId      String?   @unique
+  facebookId    String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

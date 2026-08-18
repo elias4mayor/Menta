@@ -78,7 +78,7 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen flex bg-bg">
+    <div className="app-shell min-h-screen flex bg-bg">
       <aside
         className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6"
         style={{ borderRight: "1px solid var(--border-soft)", background: "rgba(255,255,255,0.012)" }}

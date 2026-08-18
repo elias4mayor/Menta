@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter, IBM_Plex_Mono, Fraunces } from "next/font/google";
+import { Space_Grotesk, Inter, IBM_Plex_Mono, Fraunces, Oswald } from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -27,6 +27,15 @@ const fraunces = Fraunces({
   weight: ["400", "500"],
 });
 
+// Condensed, bold athletic grotesk — used for headings inside the logged-in
+// app only (see .app-shell in globals.css), for a training-app feel closer
+// to what Nike's own apps use. Marketing pages keep Space Grotesk.
+const oswald = Oswald({
+  variable: "--font-oswald",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 const TITLE = "MENTA — Build the Athlete. Build the Mind.";
 const DESCRIPTION =
   "MENTA is the AI-powered Athlete Operating System — one platform for film, training, recruiting, academics, and more.";
@@ -51,7 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} ${fraunces.variable} h-full`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${plexMono.variable} ${fraunces.variable} ${oswald.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-bg text-text-1">
         {children}
