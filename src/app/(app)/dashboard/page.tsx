@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { DashboardHero } from "@/components/DashboardHero";
+import { CountUpValue } from "@/components/CountUpValue";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -111,7 +112,9 @@ export default async function DashboardPage() {
                   borderTop: i >= 2 ? "1px solid var(--border-soft)" : undefined,
                 }}
               >
-                <div className="text-3xl font-heading font-semibold mb-1">{stat.value}</div>
+                <div className="text-3xl font-heading font-semibold mb-1">
+                  {typeof stat.value === "number" ? <CountUpValue value={stat.value} /> : stat.value}
+                </div>
                 <div className="mono text-text-3">{stat.label}</div>
               </Link>
             ))}
