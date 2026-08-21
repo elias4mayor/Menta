@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { WORKOUT_CATEGORIES } from "@/lib/sports";
 
 type Exercise = { name: string; sets?: string; reps?: string; notes?: string };
 
@@ -12,11 +13,12 @@ type WorkoutItem = {
   description: string | null;
   exercises: Exercise[];
   teamName: string | null;
+  isPlanWorkout: boolean;
   yourCompletions: number;
   lastCompletedAt: string | null;
 };
 
-const CATEGORIES = ["STRENGTH", "SPEED", "AGILITY", "CONDITIONING", "MOBILITY", "SKILL", "RECOVERY"];
+const CATEGORIES = WORKOUT_CATEGORIES;
 
 export function TrainingView({
   initialWorkouts,
@@ -105,6 +107,7 @@ export function TrainingView({
                   <div className="flex gap-2 mt-1">
                     <span className="badge">{w.category}</span>
                     {w.teamName && <span className="badge">{w.teamName}</span>}
+                    {w.isPlanWorkout && <span className="badge badge-live">Your plan</span>}
                   </div>
                 </div>
                 <button onClick={() => logCompletion(w.id)} className="btn-secondary shrink-0">
@@ -198,6 +201,7 @@ function WorkoutForm({
         description: data.workout.description,
         exercises,
         teamName: manageableTeams.find((t) => t.id === teamId)?.name ?? null,
+        isPlanWorkout: false,
         yourCompletions: 0,
         lastCompletedAt: null,
       });
@@ -210,7 +214,7 @@ function WorkoutForm({
     <form onSubmit={submit} className="card p-5 space-y-3 mb-6">
       <input className="field-input" placeholder="Workout title" value={title} onChange={(e) => setTitle(e.target.value)} required />
       <div className="grid grid-cols-2 gap-3">
-        <select className="field-select" value={category} onChange={(e) => setCategory(e.target.value)}>
+        <select className="field-select" value={category} onChange={(e) => setCategory(e.target.value as typeof CATEGORIES[number])}>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}

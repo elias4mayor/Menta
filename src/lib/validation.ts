@@ -34,6 +34,7 @@ export const onboardingSchema = z.object({
   schoolName: z.string().trim().max(160).optional().or(z.literal("")),
   city: z.string().trim().max(120).optional().or(z.literal("")),
   state: z.string().trim().max(60).optional().or(z.literal("")),
+  trainingDaysPerWeek: z.coerce.number().int().min(1).max(7).optional(),
   goals: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
 });
 

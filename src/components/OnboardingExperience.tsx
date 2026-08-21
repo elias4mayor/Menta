@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Select } from "@/components/Select";
 import { GlowWaveText } from "@/components/GlowWaveText";
-import { SPORTS, rolesForSport, roleLabel } from "@/lib/sports";
+import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { pickMotivationalMessages } from "@/lib/motivational-messages";
 
 type Step = "welcome" | "hello" | "sport" | "school" | "goals" | "review" | "building" | "reveal";
@@ -44,6 +44,7 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [state, setState] = useState("");
   const [goalInput, setGoalInput] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
+  const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => () => {
@@ -91,6 +92,7 @@ export function OnboardingExperience({ name }: { name: string }) {
             schoolName: schoolName || undefined,
             city: city || undefined,
             state: state || undefined,
+            trainingDaysPerWeek: trainingDaysPerWeek ? Number(trainingDaysPerWeek) : undefined,
             goals,
           }),
         });
@@ -277,6 +279,16 @@ export function OnboardingExperience({ name }: { name: string }) {
                   ))}
                   {goals.length === 0 && <p className="text-text-3 text-sm">No goals added yet — optional.</p>}
                 </ul>
+                <div>
+                  <label className="field-label" htmlFor="onb-training-days">Training days per week</label>
+                  <Select
+                    id="onb-training-days"
+                    value={trainingDaysPerWeek}
+                    onChange={setTrainingDaysPerWeek}
+                    placeholder="How many days can you train?"
+                    options={[1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} day${n > 1 ? "s" : ""}/week` }))}
+                  />
+                </div>
               </div>
               <StepNav onBack={() => goTo("school")} onNext={() => goTo("review")} />
             </>
@@ -294,6 +306,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                 <ReviewRow label="School" value={schoolName || "—"} />
                 <ReviewRow label="Location" value={[city, state].filter(Boolean).join(", ") || "—"} />
                 <ReviewRow label="Goals" value={goals.length ? goals.join(", ") : "—"} />
+                <ReviewRow label="Training days" value={trainingDaysPerWeek ? `${trainingDaysPerWeek}/week` : "—"} />
               </div>
               {error && <p className="text-sm mt-4" style={{ color: "var(--danger)" }}>{error}</p>}
               <StepNav onBack={() => goTo("goals")} onNext={() => goTo("building")} nextLabel="Build my MENTA" />
@@ -314,6 +327,14 @@ export function OnboardingExperience({ name }: { name: string }) {
                   {goals.join(" · ")}
                 </div>
               )}
+              {sport && (
+                <div className="onb-reveal-row" style={{ marginTop: 12 }}>
+                  Priority: {demandsFor(sport, position || undefined).developmentAreas.join(" · ")}
+                </div>
+              )}
+              <p className="onb-micro" style={{ marginTop: 16 }}>
+                A starter training plan for {sport} is ready in your Training library.
+              </p>
               <div className="onb-actions">
                 <button type="button" className="btn-primary" onClick={enterDashboard}>
                   Enter MENTA

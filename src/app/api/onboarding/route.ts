@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { buildStarterWorkouts, ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { sport, position, graduationYear, schoolName, city, state, goals } = parsed.data;
+  const { sport, position, graduationYear, schoolName, city, state, trainingDaysPerWeek, goals } = parsed.data;
 
   await prisma.athleteProfile.upsert({
     where: { userId: user.id },
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
       schoolName: schoolName || undefined,
       city: city || undefined,
       state: state || undefined,
+      trainingDaysPerWeek,
       onboardingCompletedAt: new Date(),
     },
     update: {
@@ -38,6 +40,7 @@ export async function POST(request: Request) {
       schoolName: schoolName || undefined,
       city: city || undefined,
       state: state || undefined,
+      trainingDaysPerWeek,
       onboardingCompletedAt: new Date(),
     },
   });
@@ -45,6 +48,28 @@ export async function POST(request: Request) {
   if (goals && goals.length > 0) {
     await prisma.goal.createMany({
       data: goals.map((title) => ({ userId: user.id, title, category: "ONBOARDING" })),
+    });
+  }
+
+  // Real starter plan: deterministic workouts derived from the athlete's
+  // actual sport/position via src/lib/sports.ts's demand config — see
+  // src/lib/generate-plan.ts. Only generated once; re-running onboarding
+  // (e.g. editing answers before finishing) shouldn't pile up duplicates.
+  const alreadyHasPlan = await prisma.workout.findFirst({
+    where: { createdById: user.id, planTag: ONBOARDING_PLAN_TAG },
+    select: { id: true },
+  });
+  if (!alreadyHasPlan) {
+    const starterWorkouts = buildStarterWorkouts(sport, position || undefined);
+    await prisma.workout.createMany({
+      data: starterWorkouts.map((w) => ({
+        title: w.title,
+        category: w.category,
+        description: w.description,
+        exercises: JSON.stringify(w.exercises),
+        planTag: ONBOARDING_PLAN_TAG,
+        createdById: user.id,
+      })),
     });
   }
 

@@ -38,6 +38,7 @@ export default async function TrainPage() {
           description: w.description,
           exercises: w.exercises ? JSON.parse(w.exercises) : [],
           teamName: w.team?.name ?? null,
+          isPlanWorkout: w.planTag != null,
           yourCompletions: w.completions.length,
           lastCompletedAt: w.completions[0]?.completedAt.toISOString() ?? null,
         }))}

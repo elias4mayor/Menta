@@ -110,6 +110,16 @@ h4 {
   --nav-hover-bg: rgba(0, 0, 0, 0.045);
   --sidebar-tint: rgba(0, 0, 0, 0.012);
   --on-signal: #ffffff;
+  /* Explicit, not just the custom-property overrides above: <body> sets
+     `color: var(--text-1)` and resolves it using the ROOT (dark-theme)
+     --text-1, since body is an ancestor of .app-shell, not a descendant —
+     .app-shell redefining the custom property doesn't change what body
+     already computed. Every element below that doesn't set its own color
+     would otherwise inherit that stale value (invisible/wrong on this
+     light theme) instead of re-reading --text-1 locally. Declaring color
+     here, directly on .app-shell, is what actually breaks that stale
+     inheritance chain for the whole authenticated app in one place. */
+  color: var(--text-1);
   /* Darker, heavier text throughout the authenticated app — an
      Apple/WHOOP/Nike feel over the lighter-weight marketing/auth type. */
   font-weight: 500;

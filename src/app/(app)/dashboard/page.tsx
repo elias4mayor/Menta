@@ -5,6 +5,9 @@ import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
 import { GlowWaveText } from "@/components/GlowWaveText";
+import { PlanCard } from "@/components/PlanCard";
+import { demandsFor } from "@/lib/sports";
+import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -35,6 +38,7 @@ export default async function DashboardPage() {
     aiConfigured,
     completionsThisWeek,
     latestPerformanceEntry,
+    planWorkouts,
   ] = await Promise.all([
     prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
     prisma.teamMembership.findMany({
@@ -80,6 +84,11 @@ export default async function DashboardPage() {
       where: { userId: user.id },
       orderBy: { recordedAt: "desc" },
     }),
+    prisma.workout.findMany({
+      where: { createdById: user.id, planTag: ONBOARDING_PLAN_TAG },
+      include: { completions: { where: { userId: user.id }, orderBy: { completedAt: "desc" } } },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const activeGoalsCount = goals.filter((g) => g.status === "ACTIVE").length;
@@ -94,6 +103,8 @@ export default async function DashboardPage() {
       targetDate: g.targetDate ? g.targetDate.toISOString() : null,
       overdue: Boolean(g.targetDate && g.targetDate < startOfDay(now)),
     }));
+
+  const demands = profile?.sport ? demandsFor(profile.sport, profile.position) : null;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -140,6 +151,22 @@ export default async function DashboardPage() {
             ))}
           </div>
         </div>
+
+        <PlanCard
+          sport={profile?.sport ?? null}
+          trainingDaysPerWeek={profile?.trainingDaysPerWeek ?? null}
+          developmentAreas={demands?.developmentAreas ?? []}
+          trainingNote={demands?.trainingNote ?? ""}
+          workouts={planWorkouts.map((w) => ({
+            id: w.id,
+            title: w.title,
+            category: w.category,
+            description: w.description,
+            exercises: w.exercises ? JSON.parse(w.exercises) : [],
+            yourCompletions: w.completions.length,
+            lastCompletedAt: w.completions[0]?.completedAt.toISOString() ?? null,
+          }))}
+        />
 
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="card p-5">
