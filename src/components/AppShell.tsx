@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
 import { GlowWaveText } from "@/components/GlowWaveText";
@@ -59,6 +59,25 @@ const MOBILE_ITEMS = [
   { href: "/profile", label: "You" },
 ];
 
+// Computed client-side only (useEffect, not during render) so the server-
+// rendered HTML and the client's first render always match — Date().getHours()
+// reads whichever timezone the code runs in, so doing this during render
+// would use the server's timezone on first paint and the visitor's real
+// timezone after hydration, a guaranteed mismatch for anyone not in the
+// server's timezone. Starts as the timezone-agnostic "Hey" and swaps to a
+// time-aware greeting once mounted client-side.
+function useTimeOfDayGreeting(): string {
+  const [greeting, setGreeting] = useState("Hey");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const hour = new Date().getHours();
+      setGreeting(hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+  return greeting;
+}
+
 export function AppShell({
   user,
   unreadCount,
@@ -71,6 +90,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const greeting = useTimeOfDayGreeting();
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -193,7 +213,7 @@ export function AppShell({
             {/* Rendered once here (not per-page) so navigating between dashboard
                 pages doesn't remount it — the gallery keeps rotating in the same
                 order instead of restarting on every click. */}
-            <DashboardHero greeting={`Hey ${user.name.split(" ")[0]}.`} />
+            <DashboardHero greeting={`${greeting}, ${user.name.split(" ")[0]}.`} />
             {children}
           </div>
         </main>

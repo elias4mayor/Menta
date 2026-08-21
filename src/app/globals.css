@@ -1157,3 +1157,344 @@ h4 {
     text-align: center;
   }
 }
+
+/* ---------- onboarding: first-launch experience ----------
+   Full-screen, dark, quiet — one question at a time inside a single
+   persistent environment (logo + ambient glow never unmount; only the
+   content between them swaps). See OnboardingExperience.tsx. */
+.onb-root {
+  position: relative;
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
+  padding: max(32px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
+}
+
+.onb-ambient {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 640px;
+  max-height: 640px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%);
+  pointer-events: none;
+  animation: onbAmbientBreathe 9s ease-in-out infinite;
+}
+
+@keyframes onbAmbientBreathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+.onb-logo {
+  position: relative;
+  z-index: 1;
+  height: 44px;
+  width: auto;
+  margin-bottom: 40px;
+  animation: onbLogoBreathe 6s ease-in-out infinite;
+}
+
+@keyframes onbLogoBreathe {
+  0%,
+  100% {
+    opacity: 0.92;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.onb-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.onb-content {
+  width: 100%;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.onb-content.onb-exit {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.26s var(--ease), transform 0.26s var(--ease);
+}
+
+.onb-content.onb-enter {
+  animation: onbEnter 0.5s var(--ease) both;
+}
+
+@keyframes onbEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onb-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  opacity: 0;
+  animation: onbFadeIn 0.7s var(--ease) 0.05s both;
+}
+
+.onb-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(28px, 5.4vw, 42px);
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  margin: 10px 0 12px;
+  opacity: 0;
+  animation: onbFadeIn 0.8s var(--ease) 0.15s both;
+}
+
+.onb-subtitle {
+  color: var(--text-2);
+  font-size: 16px;
+  max-width: 40ch;
+  margin: 0 auto;
+  opacity: 0;
+  animation: onbFadeIn 0.8s var(--ease) 0.45s both;
+}
+
+.onb-micro {
+  color: var(--text-3);
+  font-size: 13px;
+  margin-top: 8px;
+  opacity: 0;
+  animation: onbFadeIn 0.7s var(--ease) 0.2s both;
+}
+
+.onb-actions {
+  margin-top: 36px;
+  opacity: 0;
+  animation: onbFadeIn 0.8s var(--ease) 0.85s both;
+}
+
+@keyframes onbFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onb-fields {
+  width: 100%;
+  margin-top: 32px;
+  text-align: left;
+  opacity: 0;
+  animation: onbFadeIn 0.7s var(--ease) 0.3s both;
+}
+
+.onb-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+  opacity: 0;
+  animation: onbFadeIn 0.7s var(--ease) 0.55s both;
+}
+
+.onb-progress-track {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(220px, 60vw);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.onb-progress-fill {
+  height: 100%;
+  background: var(--grad-signal);
+  border-radius: 2px;
+  transition: width 0.5s var(--ease);
+}
+
+.onb-progress-count {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  z-index: 1;
+}
+
+.onb-goal-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+}
+
+.onb-status {
+  position: relative;
+  z-index: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onb-status-line {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  animation: onbStatusCycle 1.8s var(--ease) both;
+}
+
+@keyframes onbStatusCycle {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  15%,
+  75% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.onb-motivation {
+  position: relative;
+  z-index: 1;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.onb-motivation-line {
+  position: absolute;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(18px, 3.4vw, 24px);
+  letter-spacing: -0.005em;
+  max-width: 34ch;
+  animation: onbMotivationCycle 3.4s var(--ease) both;
+}
+
+@keyframes onbMotivationCycle {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.onb-reveal-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.onb-reveal-row b {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-ambient,
+  .onb-logo {
+    animation: none;
+  }
+  .onb-logo {
+    opacity: 1;
+  }
+  .onb-content.onb-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .onb-content.onb-exit {
+    transition: none;
+  }
+  .onb-eyebrow,
+  .onb-title,
+  .onb-subtitle,
+  .onb-micro,
+  .onb-actions,
+  .onb-fields,
+  .onb-nav {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .onb-status-line,
+  .onb-motivation-line {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .onb-title {
+    font-size: clamp(24px, 7vw, 32px);
+  }
+}
