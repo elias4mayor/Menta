@@ -100,8 +100,8 @@ h4 {
   --border-soft: rgba(0, 0, 0, 0.05);
   --border-strong: rgba(0, 0, 0, 0.14);
   --text-1: #1d1d1f;
-  --text-2: #6e6e73;
-  --text-3: #86868b;
+  --text-2: #45454a;
+  --text-3: #6b6b70;
   --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.14),
     0 6px 16px -10px rgba(0, 0, 0, 0.07);
@@ -110,6 +110,10 @@ h4 {
   --nav-hover-bg: rgba(0, 0, 0, 0.045);
   --sidebar-tint: rgba(0, 0, 0, 0.012);
   --on-signal: #ffffff;
+  /* Darker, heavier text throughout the authenticated app — an
+     Apple/WHOOP/Nike feel over the lighter-weight marketing/auth type. */
+  font-weight: 500;
+  letter-spacing: -0.011em;
 }
 
 /* Card section labels ("TODAY", "PRIORITIES", "MENTA AI"...): a clean
@@ -120,6 +124,16 @@ h4 {
   font-weight: 700;
   letter-spacing: 0.06em;
   font-size: 11px;
+}
+
+/* Field micro-labels (SPORT, POSITION, HEIGHT (CM)...) get the same
+   bold-sans treatment as card section labels, instead of staying in the
+   technical monospace font used elsewhere on the site. */
+.app-shell .field-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
 }
 
 /* Marketing-page section eyebrow: a small dash-prefixed mono label. */
@@ -262,6 +276,9 @@ h4 {
   gap: 8px;
   text-align: left;
   cursor: pointer;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-1);
 }
 
 .select-trigger:hover {
@@ -302,6 +319,8 @@ h4 {
   padding: 9px 10px;
   border-radius: calc(var(--r-sm) - 4px);
   font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--text-1);
   cursor: pointer;
 }
