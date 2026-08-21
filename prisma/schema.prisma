@@ -60,6 +60,7 @@ model User {
   recruitingContacts         RecruitingContact[]
   recruitingActivities       RecruitingActivity[]
   wellnessCheckIns           WellnessCheckIn[]
+  mindCheckIns               MindCheckIn[]
   academicGoals              AcademicGoal[]
   assignments                Assignment[]
   academicTerms              AcademicTerm[]
@@ -592,6 +593,46 @@ model WellnessCheckIn {
   notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+/// Mental performance check-in — pressure, confidence, focus, and a
+/// self-set goal for the day/competition. Deliberately separate from
+/// WellnessCheckIn: physical recovery (sleep/soreness) and mental
+/// performance (pressure/confidence/focus) are different signals and get
+/// different framing in the UI (Recovery vs Mindset), even though the
+/// data-sensitivity handling is identical. See RecoveryCheckIn's model doc
+/// comment above for the pattern this follows — same rules apply here:
+///
+/// HIGH-SENSITIVITY DATA. Security assumptions:
+/// - Private by default. Never joined into, or exposed via, AthleteProfile,
+///   the /recruit pages, team rosters, search, notifications, or messages.
+///   Only src/app/api/mind/* and src/app/(app)/mind touch this model.
+/// - Not sent to any AI provider. src/lib/ai.ts's buildAthleteContext()
+///   deliberately does NOT query this table, for the same reason wellness
+///   data is excluded — no documented consent/privacy controls yet for
+///   sending health-adjacent data to a third-party model provider.
+/// - Field VALUES are never passed to logAudit()/console — only the fact
+///   that a create/update/delete/list happened.
+/// - This is a performance-journaling tool, not mental-health treatment or
+///   a diagnostic instrument — every surface says so, and nothing here
+///   claims to detect or treat anything clinical.
+model MindCheckIn {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime @default(now())
+  pressure   Int?
+  confidence Int?
+  focus      Int?
+  readiness  Int?
+  todayGoal  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -235,6 +235,24 @@ export const createWellnessCheckInSchema = z
 
 export const updateWellnessCheckInSchema = z.object(wellnessCheckInFields).partial();
 
+const mindCheckInFields = {
+  pressure: z.coerce.number().int().min(1).max(5).optional(),
+  confidence: z.coerce.number().int().min(1).max(5).optional(),
+  focus: z.coerce.number().int().min(1).max(5).optional(),
+  readiness: z.coerce.number().int().min(1).max(5).optional(),
+  todayGoal: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(1000).optional(),
+};
+
+export const createMindCheckInSchema = z
+  .object(mindCheckInFields)
+  .refine(
+    (data) => Object.values(data).some((v) => v !== undefined && v !== ""),
+    { message: "Add at least one value before saving a check-in." }
+  );
+
+export const updateMindCheckInSchema = z.object(mindCheckInFields).partial();
+
 export const reportSchema = z.object({
   targetUserId: z.string().optional(),
   targetMessageId: z.string().optional(),

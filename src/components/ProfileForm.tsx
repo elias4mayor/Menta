@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Select } from "@/components/Select";
+import { SPORTS as SPORT_CONFIGS, rolesForSport, roleLabel } from "@/lib/sports";
 
 type ProfileData = {
   sport: string;
@@ -27,57 +28,10 @@ const WEIGHT_MAX = 300;
 const GPA_MIN = 0;
 const GPA_MAX = 5;
 
-const SPORTS = [
-  "Football",
-  "Basketball",
-  "Baseball",
-  "Soccer",
-  "Track & Field",
-  "Volleyball",
-  "Swimming",
-  "Wrestling",
-  "Tennis",
-  "Golf",
-  "Lacrosse",
-  "Hockey",
-  "Softball",
-  "Gymnastics",
-  "Other",
-];
-
-const POSITIONS_BY_SPORT: Record<string, string[]> = {
-  Football: [
-    "Quarterback",
-    "Running Back",
-    "Wide Receiver",
-    "Tight End",
-    "Offensive Line",
-    "Defensive Line",
-    "Linebacker",
-    "Cornerback",
-    "Safety",
-    "Kicker",
-    "Punter",
-    "Long Snapper",
-  ],
-  Basketball: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"],
-  Baseball: [
-    "Pitcher",
-    "Catcher",
-    "First Base",
-    "Second Base",
-    "Shortstop",
-    "Third Base",
-    "Outfield",
-    "Designated Hitter",
-  ],
-  Soccer: ["Goalkeeper", "Defender", "Midfielder", "Forward"],
-  Volleyball: ["Setter", "Outside Hitter", "Opposite", "Middle Blocker", "Libero", "Defensive Specialist"],
-};
-
-function positionsForSport(sport: string): string[] {
-  return POSITIONS_BY_SPORT[sport] ?? ["Other"];
-}
+// Sport, position/event lists, and role/competition vocabulary now live in
+// src/lib/sports.ts — the single sport-agnostic config every part of the
+// app reads from, instead of a football-shaped list duplicated per form.
+const SPORTS = SPORT_CONFIGS.map((s) => s.name);
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
@@ -132,8 +86,8 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
     // longer matches the new sport's list — only reset it when the current
     // position genuinely doesn't apply to the newly selected sport.
     setData((d) => {
-      const nextPositions = positionsForSport(sport);
-      const positionStillValid = !d.position || nextPositions.includes(d.position);
+      const nextPositions = rolesForSport(sport);
+      const positionStillValid = !d.position || nextPositions.length === 0 || nextPositions.includes(d.position);
       return { ...d, sport, position: positionStillValid ? d.position : "" };
     });
     setSaved(false);
@@ -192,7 +146,9 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
   }
 
   const sportOptions = withCurrentValue(SPORTS, data.sport);
-  const positionOptions = withCurrentValue(positionsForSport(data.sport), data.position);
+  const sportHasFixedRoles = rolesForSport(data.sport).length > 0;
+  const roleOptions = withCurrentValue(rolesForSport(data.sport), data.position);
+  const currentRoleLabel = roleLabel(data.sport);
   const stateOptions = withCurrentValue(US_STATES, data.state);
   const graduationYearOptions = withCurrentYear(GRADUATION_YEARS, data.graduationYear);
 
@@ -212,14 +168,24 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
             />
           </div>
           <div>
-            <label className="field-label" htmlFor="position">Position</label>
-            <Select
-              id="position"
-              value={data.position}
-              onChange={(v) => update("position", v)}
-              placeholder="Select a position"
-              options={positionOptions.map((p) => ({ value: p, label: p }))}
-            />
+            <label className="field-label" htmlFor="position">{currentRoleLabel}</label>
+            {sportHasFixedRoles ? (
+              <Select
+                id="position"
+                value={data.position}
+                onChange={(v) => update("position", v)}
+                placeholder={`Select a ${currentRoleLabel.toLowerCase()}`}
+                options={roleOptions.map((p) => ({ value: p, label: p }))}
+              />
+            ) : (
+              <input
+                id="position"
+                className="field-input"
+                placeholder={data.sport === "Wrestling" ? "e.g. 138 lbs" : `Enter your ${currentRoleLabel.toLowerCase()}`}
+                value={data.position}
+                onChange={(e) => update("position", e.target.value)}
+              />
+            )}
           </div>
           <div>
             <label className="field-label" htmlFor="heightCm">Height (cm)</label>
