@@ -147,18 +147,17 @@ export function AppShell({
             backdropFilter: "blur(16px)",
           }}
         >
-          <div className="md:hidden">
+          <Link href="/dashboard" className="flex items-center">
             <Image
               src="/logo.png"
               alt="MENTA"
               width={863}
               height={194}
-              className="h-5 w-auto"
+              className="h-5 md:h-6 w-auto"
               style={{ filter: "invert(1)" }}
               priority
             />
-          </div>
-          <div className="hidden md:block" />
+          </Link>
           <div className="flex items-center gap-4">
             <Link
               href="/notifications"
