@@ -1159,9 +1159,12 @@ h4 {
 }
 
 /* ---------- onboarding: first-launch experience ----------
-   Full-screen, dark, quiet — one question at a time inside a single
-   persistent environment (logo + ambient glow never unmount; only the
-   content between them swaps). See OnboardingExperience.tsx. */
+   Full-screen, quiet, white — one question at a time inside a single
+   persistent environment (the ambient glow never unmounts; only the
+   content swaps). See OnboardingExperience.tsx. Scoped light-theme
+   tokens, same mechanism as .app-shell: every .onb-* rule below reads
+   color through var(--text-1)/var(--text-2)/etc., so overriding them
+   here re-themes the whole experience without touching each rule. */
 .onb-root {
   position: relative;
   min-height: 100dvh;
@@ -1173,6 +1176,18 @@ h4 {
   overflow: hidden;
   background: var(--bg);
   padding: max(32px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
+
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --surface-2: #eeeef0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --text-1: #0a0a0c;
+  --text-2: #45454a;
+  --text-3: #6b6b70;
+  --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
+  --glow-wave-color: rgba(0, 0, 0, 0.28);
 }
 
 .onb-ambient {
@@ -1182,7 +1197,7 @@ h4 {
   max-width: 640px;
   max-height: 640px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.05), transparent 70%);
   pointer-events: none;
   animation: onbAmbientBreathe 9s ease-in-out infinite;
 }
@@ -1196,27 +1211,6 @@ h4 {
   50% {
     opacity: 1;
     transform: scale(1.04);
-  }
-}
-
-.onb-logo {
-  position: relative;
-  z-index: 1;
-  height: 44px;
-  width: auto;
-  margin-bottom: 40px;
-  animation: onbLogoBreathe 6s ease-in-out infinite;
-}
-
-@keyframes onbLogoBreathe {
-  0%,
-  100% {
-    opacity: 0.92;
-    transform: translateY(0);
-  }
-  50% {
-    opacity: 1;
-    transform: translateY(-3px);
   }
 }
 
@@ -1275,6 +1269,7 @@ h4 {
   letter-spacing: -0.01em;
   line-height: 1.12;
   margin: 10px 0 12px;
+  color: var(--text-1);
   opacity: 0;
   animation: onbFadeIn 0.8s var(--ease) 0.15s both;
 }
@@ -1368,6 +1363,7 @@ h4 {
   justify-content: space-between;
   gap: 8px;
   font-size: 14px;
+  color: var(--text-1);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
@@ -1426,6 +1422,7 @@ h4 {
   font-size: clamp(18px, 3.4vw, 24px);
   letter-spacing: -0.005em;
   max-width: 34ch;
+  color: var(--text-1);
   animation: onbMotivationCycle 3.4s var(--ease) both;
 }
 
@@ -1461,12 +1458,8 @@ h4 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .onb-ambient,
-  .onb-logo {
+  .onb-ambient {
     animation: none;
-  }
-  .onb-logo {
-    opacity: 1;
   }
   .onb-content.onb-enter {
     animation: none;

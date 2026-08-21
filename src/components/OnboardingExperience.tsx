@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Select } from "@/components/Select";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel } from "@/lib/sports";
@@ -145,8 +144,6 @@ export function OnboardingExperience({ name }: { name: string }) {
           </div>
         </>
       )}
-
-      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo" priority />
 
       <div className="onb-stage">
         <div key={step} className={`onb-content ${phase === "exit" ? "onb-exit" : "onb-enter"}`}>
