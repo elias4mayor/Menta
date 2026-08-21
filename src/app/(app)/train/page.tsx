@@ -6,7 +6,7 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 export default async function TrainPage() {
   const user = await requireUser();
 
-  const [workouts, manageableTeams] = await Promise.all([
+  const [workouts, manageableTeams, profile] = await Promise.all([
     prisma.workout.findMany({
       where: {
         OR: [
@@ -24,6 +24,7 @@ export default async function TrainPage() {
       where: { userId: user.id, teamRole: { in: ["COACH", "ADMIN"] } },
       include: { team: true },
     }),
+    prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
   ]);
 
   return (
@@ -43,6 +44,9 @@ export default async function TrainPage() {
           lastCompletedAt: w.completions[0]?.completedAt.toISOString() ?? null,
         }))}
         manageableTeams={manageableTeams.map((m) => ({ id: m.team.id, name: m.team.name }))}
+        defaultSport={profile?.sport ?? null}
+        defaultPosition={profile?.position ?? null}
+        defaultTrainingDaysPerWeek={profile?.trainingDaysPerWeek ?? null}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Select } from "@/components/Select";
+import { SchoolCombobox } from "@/components/SchoolCombobox";
 import { SPORTS as SPORT_CONFIGS, rolesForSport, roleLabel } from "@/lib/sports";
 
 type ProfileData = {
@@ -225,14 +226,10 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label" htmlFor="schoolName">School</label>
-            <input
+            <SchoolCombobox
               id="schoolName"
-              className="field-input"
-              maxLength={SCHOOL_MAX_LENGTH}
               value={data.schoolName}
-              onChange={(e) => update("schoolName", e.target.value)}
-              aria-invalid={Boolean(fieldErrors.schoolName)}
-              aria-describedby={fieldErrors.schoolName ? "schoolName-error" : undefined}
+              onChange={(v) => update("schoolName", v)}
             />
             {fieldErrors.schoolName && <p id="schoolName-error" className="text-xs mt-1" style={{ color: "var(--danger)" }}>{fieldErrors.schoolName}</p>}
           </div>

@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Select } from "@/components/Select";
+import { SchoolCombobox } from "@/components/SchoolCombobox";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { pickMotivationalMessages } from "@/lib/motivational-messages";
 
-type Step = "welcome" | "hello" | "sport" | "school" | "goals" | "review" | "building" | "reveal";
+type Step = "boot" | "welcome" | "hello" | "sport" | "school" | "goals" | "review" | "building" | "reveal";
 
 const QUESTION_STEPS: Step[] = ["sport", "school", "goals", "review"];
 
@@ -18,6 +19,13 @@ const TRANSITION_MS = 260;
 const BUILD_MIN_MS = 3400;
 const STATUS_INTERVAL_MS = 1500;
 const MOTIVATION_INTERVAL_MS = 3200;
+// Boot phase: logo entrance (~800ms, see @keyframes onbLogoBoot in
+// globals.css) + a brief hold (~500ms) where it sits perfectly still
+// before the welcome content starts crossfading in. Skipped entirely
+// under prefers-reduced-motion so the interface is immediately usable
+// rather than making anyone wait out an animation they've asked not to
+// see.
+const BOOT_MS = 1300;
 
 /**
  * The full first-launch onboarding experience: one dark, continuous
@@ -32,7 +40,7 @@ export function OnboardingExperience({ name }: { name: string }) {
   const router = useRouter();
   const firstName = name.split(" ")[0];
 
-  const [step, setStep] = useState<Step>("welcome");
+  const [step, setStep] = useState<Step>("boot");
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,6 +66,16 @@ export function OnboardingExperience({ name }: { name: string }) {
       setPhase("enter");
     }, TRANSITION_MS);
   }
+
+  // The boot phase (logo alone, no content) advances to "welcome"
+  // automatically — under reduced motion it advances immediately instead
+  // of holding for the full boot duration, since there's no entrance
+  // animation to wait out.
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = setTimeout(() => goTo("welcome"), reduceMotion ? 0 : BOOT_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   function addGoal() {
     const trimmed = goalInput.trim();
@@ -223,12 +241,11 @@ export function OnboardingExperience({ name }: { name: string }) {
               <div className="onb-fields space-y-4">
                 <div>
                   <label className="field-label" htmlFor="onb-school">School</label>
-                  <input
+                  <SchoolCombobox
                     id="onb-school"
-                    className="field-input"
                     value={schoolName}
-                    onChange={(e) => setSchoolName(e.target.value)}
-                    placeholder="Ridgeview High School"
+                    onChange={setSchoolName}
+                    placeholder="Start typing your school's name…"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -383,7 +400,10 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const WELCOME_TITLE_HOLD_MS = 2000;
+// Kept brief — "holds alone" should read as a deliberate beat, not a
+// pause. Total first-entry time (boot + this hold + crossfade + the
+// staggered subtitle/button reveal) targets ~2.2-3.0s end to end.
+const WELCOME_TITLE_HOLD_MS = 700;
 
 /**
  * "Welcome to MENTA." holds alone on screen, then fades out and gives way
@@ -395,8 +415,12 @@ function WelcomeStep({ onBegin }: { onBegin: () => void }) {
   const [titlePhase, setTitlePhase] = useState<"enter" | "exit">("enter");
 
   useEffect(() => {
-    const exitTimer = setTimeout(() => setTitlePhase("exit"), WELCOME_TITLE_HOLD_MS);
-    const switchTimer = setTimeout(() => setAct("rest"), WELCOME_TITLE_HOLD_MS + TRANSITION_MS);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const exitTimer = setTimeout(() => setTitlePhase("exit"), reduceMotion ? 0 : WELCOME_TITLE_HOLD_MS);
+    const switchTimer = setTimeout(
+      () => setAct("rest"),
+      reduceMotion ? 0 : WELCOME_TITLE_HOLD_MS + TRANSITION_MS
+    );
     return () => {
       clearTimeout(exitTimer);
       clearTimeout(switchTimer);

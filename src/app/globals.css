@@ -1227,7 +1227,13 @@ h4 {
 /* Header logo — top-center, small, gently floating/breathing. Separate
    from the big centered welcome/reveal headlines; this is a persistent
    header mark, present on every step, not part of the content that
-   fades between steps. */
+   fades between steps.
+
+   Entrance: a one-time boot animation (opacity + scale, ease-out, no
+   bounce, ~0.8s) plays once on mount, then the continuous breathing
+   loop picks up after the boot+hold window (1.3s — matches BOOT_MS in
+   OnboardingExperience.tsx) so the logo sits perfectly still during the
+   "hold" phase instead of already drifting. */
 .onb-logo {
   position: absolute;
   top: max(20px, env(safe-area-inset-top));
@@ -1236,7 +1242,20 @@ h4 {
   width: auto;
   z-index: 2;
   filter: invert(1);
-  animation: onbLogoFloat 6s ease-in-out infinite;
+  animation:
+    onbLogoBoot 0.8s var(--ease) both,
+    onbLogoFloat 6s ease-in-out 1.3s infinite;
+}
+
+@keyframes onbLogoBoot {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.94);
+  }
+  to {
+    opacity: 0.92;
+    transform: translateX(-50%) scale(1);
+  }
 }
 
 @keyframes onbLogoFloat {
@@ -1275,20 +1294,24 @@ h4 {
 }
 
 .onb-content.onb-enter {
-  animation: onbEnter 0.5s var(--ease) both;
+  animation: onbEnter 0.42s var(--ease) both;
 }
 
 @keyframes onbEnter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
+/* Content reveal: headline, then subtitle, then the rest — staggered but
+   deliberately subtle (a 0–0.18s spread, not the ~0.05–0.85s spread this
+   used to be) so the whole reveal lands inside the ~500–700ms budget
+   instead of making the user wait for each field to arrive in turn. */
 .onb-eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -1296,7 +1319,7 @@ h4 {
   text-transform: uppercase;
   color: var(--text-3);
   opacity: 0;
-  animation: onbFadeIn 0.7s var(--ease) 0.05s both;
+  animation: onbFadeIn 0.4s var(--ease) both;
 }
 
 .onb-title {
@@ -1308,7 +1331,7 @@ h4 {
   margin: 10px 0 12px;
   color: var(--text-1);
   opacity: 0;
-  animation: onbFadeIn 0.8s var(--ease) 0.15s both;
+  animation: onbFadeIn 0.42s var(--ease) 0.03s both;
 }
 
 .onb-subtitle {
@@ -1317,7 +1340,7 @@ h4 {
   max-width: 40ch;
   margin: 0 auto;
   opacity: 0;
-  animation: onbFadeIn 0.8s var(--ease) 0.45s both;
+  animation: onbFadeIn 0.42s var(--ease) 0.08s both;
 }
 
 .onb-micro {
@@ -1325,13 +1348,13 @@ h4 {
   font-size: 13px;
   margin-top: 8px;
   opacity: 0;
-  animation: onbFadeIn 0.7s var(--ease) 0.2s both;
+  animation: onbFadeIn 0.4s var(--ease) 0.06s both;
 }
 
 .onb-actions {
   margin-top: 36px;
   opacity: 0;
-  animation: onbFadeIn 0.8s var(--ease) 0.85s both;
+  animation: onbFadeIn 0.4s var(--ease) 0.18s both;
 }
 
 @keyframes onbFadeIn {
@@ -1350,7 +1373,7 @@ h4 {
   margin-top: 32px;
   text-align: left;
   opacity: 0;
-  animation: onbFadeIn 0.7s var(--ease) 0.3s both;
+  animation: onbFadeIn 0.4s var(--ease) 0.1s both;
 }
 
 .onb-nav {
@@ -1360,7 +1383,7 @@ h4 {
   gap: 12px;
   margin-top: 32px;
   opacity: 0;
-  animation: onbFadeIn 0.7s var(--ease) 0.55s both;
+  animation: onbFadeIn 0.4s var(--ease) 0.16s both;
 }
 
 .onb-progress-track {

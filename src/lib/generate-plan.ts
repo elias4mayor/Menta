@@ -17,7 +17,7 @@ export type GeneratedWorkout = {
   exercises: PlanExercise[];
 };
 
-const CATEGORY_TITLES: Record<WorkoutCategory, string> = {
+export const CATEGORY_TITLES: Record<WorkoutCategory, string> = {
   STRENGTH: "Strength Foundation",
   SPEED: "Speed Development",
   AGILITY: "Agility & Change of Direction",

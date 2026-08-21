@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { WORKOUT_CATEGORIES } from "@/lib/sports";
+import { WorkoutGenerator } from "@/components/WorkoutGenerator";
 
 type Exercise = { name: string; sets?: string; reps?: string; notes?: string };
 
@@ -23,14 +24,20 @@ const CATEGORIES = WORKOUT_CATEGORIES;
 export function TrainingView({
   initialWorkouts,
   manageableTeams,
+  defaultSport,
+  defaultPosition,
+  defaultTrainingDaysPerWeek,
 }: {
   initialWorkouts: WorkoutItem[];
   manageableTeams: { id: string; name: string }[];
+  defaultSport?: string | null;
+  defaultPosition?: string | null;
+  defaultTrainingDaysPerWeek?: number | null;
 }) {
   const router = useRouter();
   const [workouts, setWorkouts] = useState(initialWorkouts);
   const [filter, setFilter] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [mode, setMode] = useState<"none" | "generator" | "manual">("none");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const filtered = filter ? workouts.filter((w) => w.category === filter) : workouts;
@@ -75,17 +82,33 @@ export function TrainingView({
             </button>
           ))}
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancel" : "Add workout"}
+        <button className="btn-primary" onClick={() => setMode(mode === "none" ? "generator" : "none")}>
+          {mode === "none" ? "Add workout" : "Cancel"}
         </button>
       </div>
 
-      {showForm && (
-        <WorkoutForm
+      {mode === "generator" && (
+        <WorkoutGenerator
+          defaultSport={defaultSport}
+          defaultPosition={defaultPosition}
+          defaultTrainingDaysPerWeek={defaultTrainingDaysPerWeek}
           manageableTeams={manageableTeams}
+          onSwitchToManual={() => setMode("manual")}
           onCreated={(w) => {
             setWorkouts((ws) => [w, ...ws]);
-            setShowForm(false);
+            setMode("none");
+            router.refresh();
+          }}
+        />
+      )}
+
+      {mode === "manual" && (
+        <WorkoutForm
+          manageableTeams={manageableTeams}
+          onSwitchToGenerator={() => setMode("generator")}
+          onCreated={(w) => {
+            setWorkouts((ws) => [w, ...ws]);
+            setMode("none");
             router.refresh();
           }}
         />
@@ -150,9 +173,11 @@ export function TrainingView({
 function WorkoutForm({
   manageableTeams,
   onCreated,
+  onSwitchToGenerator,
 }: {
   manageableTeams: { id: string; name: string }[];
   onCreated: (w: WorkoutItem) => void;
+  onSwitchToGenerator?: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -212,6 +237,11 @@ function WorkoutForm({
 
   return (
     <form onSubmit={submit} className="card p-5 space-y-3 mb-6">
+      {onSwitchToGenerator && (
+        <button type="button" onClick={onSwitchToGenerator} className="text-xs text-text-2 hover:text-text-1">
+          ← Use the workout generator instead
+        </button>
+      )}
       <input className="field-input" placeholder="Workout title" value={title} onChange={(e) => setTitle(e.target.value)} required />
       <div className="grid grid-cols-2 gap-3">
         <select className="field-select" value={category} onChange={(e) => setCategory(e.target.value as typeof CATEGORIES[number])}>
