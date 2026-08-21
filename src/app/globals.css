@@ -1214,6 +1214,33 @@ h4 {
   }
 }
 
+/* Header logo — top-center, small, gently floating/breathing. Separate
+   from the big centered welcome/reveal headlines; this is a persistent
+   header mark, present on every step, not part of the content that
+   fades between steps. */
+.onb-logo {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  left: 50%;
+  height: 22px;
+  width: auto;
+  z-index: 2;
+  filter: invert(1);
+  animation: onbLogoFloat 6s ease-in-out infinite;
+}
+
+@keyframes onbLogoFloat {
+  0%,
+  100% {
+    opacity: 0.92;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-3px);
+  }
+}
+
 .onb-stage {
   position: relative;
   z-index: 1;
@@ -1458,8 +1485,13 @@ h4 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .onb-ambient {
+  .onb-ambient,
+  .onb-logo {
     animation: none;
+  }
+  .onb-logo {
+    opacity: 1;
+    transform: translateX(-50%);
   }
   .onb-content.onb-enter {
     animation: none;

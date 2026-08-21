@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Select } from "@/components/Select";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel } from "@/lib/sports";
@@ -131,6 +132,8 @@ export function OnboardingExperience({ name }: { name: string }) {
     <div className="onb-root">
       <div className="onb-ambient" aria-hidden="true" />
 
+      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo" priority />
+
       {showProgress && (
         <>
           <div className="onb-progress-track" aria-hidden="true">
@@ -147,25 +150,7 @@ export function OnboardingExperience({ name }: { name: string }) {
 
       <div className="onb-stage">
         <div key={step} className={`onb-content ${phase === "exit" ? "onb-exit" : "onb-enter"}`}>
-          {step === "welcome" && (
-            <>
-              <div className="onb-eyebrow">Athlete Operating System</div>
-              <h1 className="onb-title">
-                <GlowWaveText intensity="strong" speedMs={4200}>
-                  Welcome to MENTA.
-                </GlowWaveText>
-              </h1>
-              <p className="onb-subtitle">Let&rsquo;s build the athlete you want to become.</p>
-              <div className="onb-actions">
-                <button type="button" className="btn-primary" onClick={() => goTo("hello")}>
-                  Let&rsquo;s begin
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M5 12h14M13 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </>
-          )}
+          {step === "welcome" && <WelcomeStep onBegin={() => goTo("hello")} />}
 
           {step === "hello" && <HelloStep firstName={firstName} onDone={() => goTo("sport")} />}
 
@@ -373,6 +358,56 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between text-sm" style={{ borderBottom: "1px solid var(--border-soft)", paddingBottom: 8 }}>
       <span className="text-text-3">{label}</span>
       <span className="text-text-1">{value}</span>
+    </div>
+  );
+}
+
+const WELCOME_TITLE_HOLD_MS = 2000;
+
+/**
+ * "Welcome to MENTA." holds alone on screen, then fades out and gives way
+ * to the subtitle + begin button — a title card, not everything appearing
+ * at once.
+ */
+function WelcomeStep({ onBegin }: { onBegin: () => void }) {
+  const [act, setAct] = useState<"title" | "rest">("title");
+  const [titlePhase, setTitlePhase] = useState<"enter" | "exit">("enter");
+
+  useEffect(() => {
+    const exitTimer = setTimeout(() => setTitlePhase("exit"), WELCOME_TITLE_HOLD_MS);
+    const switchTimer = setTimeout(() => setAct("rest"), WELCOME_TITLE_HOLD_MS + TRANSITION_MS);
+    return () => {
+      clearTimeout(exitTimer);
+      clearTimeout(switchTimer);
+    };
+  }, []);
+
+  if (act === "title") {
+    return (
+      <div className={`onb-content ${titlePhase === "exit" ? "onb-exit" : "onb-enter"}`}>
+        <h1 className="onb-title">
+          <GlowWaveText intensity="strong" speedMs={4200}>
+            Welcome to MENTA.
+          </GlowWaveText>
+        </h1>
+      </div>
+    );
+  }
+
+  return (
+    <div className="onb-content onb-enter">
+      <div className="onb-eyebrow">Athlete Operating System</div>
+      <p className="onb-subtitle" style={{ marginTop: 12 }}>
+        Let&rsquo;s build the athlete you want to become.
+      </p>
+      <div className="onb-actions">
+        <button type="button" className="btn-primary" onClick={onBegin}>
+          Let&rsquo;s begin
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M5 12h14M13 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
