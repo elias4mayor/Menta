@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { DashboardHero } from "@/components/DashboardHero";
 
 const NAV_SECTIONS: { label: string; items: { href: string; label: string }[] }[] = [
   {
@@ -181,7 +182,13 @@ export function AppShell({
           </div>
         </header>
         <main className="flex-1 px-6 py-8 pb-24 md:pb-8 flex justify-center">
-          <div className="w-full max-w-6xl">{children}</div>
+          <div className="w-full max-w-6xl">
+            {/* Rendered once here (not per-page) so navigating between dashboard
+                pages doesn't remount it — the gallery keeps rotating in the same
+                order instead of restarting on every click. */}
+            <DashboardHero greeting={`Hey ${user.name.split(" ")[0]}.`} />
+            {children}
+          </div>
         </main>
       </div>
 

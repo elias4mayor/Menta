@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { GoalsPanel } from "@/components/GoalsPanel";
-import { DashboardHero } from "@/components/DashboardHero";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
 
@@ -82,7 +81,6 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const firstName = user.name.split(" ")[0];
   const activeGoalsCount = goals.filter((g) => g.status === "ACTIVE").length;
   const todayEnd = endOfDay(now);
   const priorityGoals = goals
@@ -98,7 +96,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <DashboardHero greeting={`Hey ${firstName}.`} />
       <div className="card p-0 mb-8 overflow-hidden">
           <div className="grid grid-cols-2 md:grid-cols-4">
             {[
