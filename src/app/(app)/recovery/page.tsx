@@ -4,6 +4,7 @@ import { RecoveryCheckIn } from "@/components/RecoveryCheckIn";
 import { RecoveryTrends } from "@/components/RecoveryTrends";
 import { RecoveryGuidance } from "@/components/RecoveryGuidance";
 import { WellnessIntegrations } from "@/components/WellnessIntegrations";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -53,7 +54,7 @@ export default async function RecoveryPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mono text-text-3 mb-2">Recovery</div>
-      <h1 className="text-3xl font-semibold mb-2">Recovery & wellness</h1>
+      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Recovery &amp; wellness</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-1 max-w-2xl">
         A wellness tracker for sleep, energy, soreness, stress, and readiness — general guidance based on
         your own data, never a medical evaluation or a diagnosis.

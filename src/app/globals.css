@@ -136,6 +136,70 @@ h4 {
   color: var(--text-2);
 }
 
+/* ---------- GlowWaveText: letter-by-letter light wave ----------
+   Dashboard-only, opt-in per element (see GlowWaveText.tsx) — never
+   applied globally, never touches the logo. Each letter is its own span
+   running the same keyframes on a staggered delay, so the "glow" sweeps
+   across the word instead of every letter flashing in unison. Only
+   opacity/filter/text-shadow are animated — nothing that affects layout
+   or position. --glow-wave-color defaults to a soft light glow (for
+   white text on the dark marketing/auth pages) and flips to a soft dark
+   "ink" glow inside .app-shell, since the dashboard is a light theme —
+   a white glow would be invisible on a white card. */
+:root {
+  --glow-wave-color: rgba(255, 255, 255, 0.55);
+}
+.app-shell {
+  --glow-wave-color: rgba(0, 0, 0, 0.28);
+}
+
+.glow-wave-letter {
+  animation-name: glowWave;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes glowWave {
+  0% {
+    opacity: var(--glow-wave-rest-opacity);
+    text-shadow: none;
+    filter: brightness(1);
+  }
+  4% {
+    opacity: calc((var(--glow-wave-rest-opacity) + var(--glow-wave-peak-opacity)) / 2);
+    text-shadow: none;
+    filter: brightness(1);
+  }
+  9% {
+    opacity: var(--glow-wave-peak-opacity);
+    text-shadow: var(--glow-wave-shadow);
+    filter: brightness(var(--glow-wave-brightness));
+  }
+  14% {
+    opacity: calc((var(--glow-wave-rest-opacity) + var(--glow-wave-peak-opacity)) / 2);
+    text-shadow: none;
+    filter: brightness(1);
+  }
+  18%,
+  100% {
+    opacity: var(--glow-wave-rest-opacity);
+    text-shadow: none;
+    filter: brightness(1);
+  }
+}
+
+.glow-wave-hover:hover .glow-wave-letter {
+  --glow-wave-peak-opacity: 1;
+  --glow-wave-rest-opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-wave-letter {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Marketing-page section eyebrow: a small dash-prefixed mono label. */
 .eyebrow {
   font-family: var(--font-mono);

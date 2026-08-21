@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth-guards";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { SessionsList } from "@/components/SessionsList";
 import { GuardianLinks } from "@/components/GuardianLinks";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -10,7 +11,7 @@ export default async function SettingsPage() {
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
         <div className="mono text-text-3 mb-2">Settings</div>
-        <h1 className="text-3xl font-semibold">Account</h1>
+        <h1 className="text-3xl font-semibold"><GlowWaveText intensity="strong">Account</GlowWaveText></h1>
       </div>
 
       <section className="card p-6">

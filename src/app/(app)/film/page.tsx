@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { FilmLibrary } from "@/components/FilmLibrary";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 export default async function FilmPage() {
   const user = await requireUser();
@@ -23,7 +24,7 @@ export default async function FilmPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mono text-text-3 mb-2">Film</div>
-      <h1 className="text-3xl font-semibold mb-8">Film library</h1>
+      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Film library</GlowWaveText></h1>
       <FilmLibrary
         initialFilms={films.map((f) => ({
           id: f.id,

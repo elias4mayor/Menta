@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -143,7 +144,7 @@ export default async function DashboardPage() {
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <div className="mono text-text-3">Today</div>
+              <div className="mono text-text-3"><GlowWaveText intensity="subtle">Today</GlowWaveText></div>
               <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
                 Full calendar →
               </Link>
@@ -180,7 +181,7 @@ export default async function DashboardPage() {
               backgroundClip: "padding-box, border-box",
             }}
           >
-            <div className="mono text-text-3 mb-3">MENTA AI</div>
+            <div className="mono text-text-3 mb-3"><GlowWaveText intensity="strong">MENTA AI</GlowWaveText></div>
             {aiConfigured ? (
               <span className="badge badge-live mb-3">Connected</span>
             ) : (

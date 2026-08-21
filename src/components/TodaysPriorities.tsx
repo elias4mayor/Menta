@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 export type PriorityGoal = {
   id: string;
@@ -41,7 +42,7 @@ export function TodaysPriorities({ goals }: { goals: PriorityGoal[] }) {
 
   return (
     <div>
-      <div className="mono text-text-3 mb-3">Priorities</div>
+      <div className="mono text-text-3 mb-3"><GlowWaveText intensity="subtle">Priorities</GlowWaveText></div>
       {items.length === 0 ? (
         <p className="text-text-2 text-sm">
           Nothing urgent today — good time to review last week&rsquo;s film.

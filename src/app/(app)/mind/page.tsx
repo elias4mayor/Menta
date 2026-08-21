@@ -4,6 +4,7 @@ import { MindCheckIn } from "@/components/MindCheckIn";
 import { MindTrends } from "@/components/MindTrends";
 import { MindGuidance } from "@/components/MindGuidance";
 import { competitionLabel } from "@/lib/sports";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -57,7 +58,7 @@ export default async function MindPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mono text-text-3 mb-2">Mindset</div>
-      <h1 className="text-3xl font-semibold mb-2">Mental performance</h1>
+      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Mental performance</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-1 max-w-2xl">
         What you need to handle today, not a history report. Pressure, confidence, and focus — logged in the
         moment, not scored into a single number.

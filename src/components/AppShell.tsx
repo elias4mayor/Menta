@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 const NAV_SECTIONS: { label: string; items: { href: string; label: string }[] }[] = [
   {
@@ -118,7 +119,13 @@ export function AppShell({
                           style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
                         />
                       )}
-                      {item.label}
+                      {active ? (
+                        <GlowWaveText intensity="subtle" hoverBoost={false}>
+                          {item.label}
+                        </GlowWaveText>
+                      ) : (
+                        item.label
+                      )}
                     </Link>
                   );
                 })}

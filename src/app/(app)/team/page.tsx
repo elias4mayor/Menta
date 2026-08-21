@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { TeamActions } from "@/components/TeamActions";
 import { MessageButton } from "@/components/MessageButton";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 export default async function TeamPage() {
   const user = await requireUser();
@@ -20,7 +21,7 @@ export default async function TeamPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mono text-text-3 mb-2">Team</div>
-      <h1 className="text-3xl font-semibold mb-8">Your teams</h1>
+      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Your teams</GlowWaveText></h1>
 
       {memberships.length === 0 ? (
         <div className="card p-6 mb-8">
