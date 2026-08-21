@@ -1,37 +1,18 @@
-"use client";
-
-import { useEffect, useRef } from "react";
 import Image from "next/image";
+import { LiveGallery, GALLERY_SLIDES } from "@/components/LiveGallery";
 
 /**
- * Contained video entrance card shown at the top of the dashboard — a
- * centered logo floating over autoplay video inside a rounded card, sized
- * and placed like the rest of the dashboard content instead of breaking
- * out to full-bleed. Respects prefers-reduced-motion by pausing playback
- * instead of ignoring the setting.
+ * Contained entrance card at the top of the dashboard — the same live,
+ * crossfading athlete-photo gallery used on login/signup, with a centered
+ * floating logo over it, sized and placed like the rest of the dashboard
+ * content instead of breaking out to full-bleed. LiveGallery itself
+ * already respects prefers-reduced-motion (no rotation, first photo just
+ * stays put) — nothing extra needed here for that.
  */
 export function DashboardHero({ greeting }: { greeting: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) {
-      videoRef.current?.pause();
-    }
-  }, []);
-
   return (
     <div className="dashboard-hero">
-      <video
-        ref={videoRef}
-        className="dashboard-hero-video"
-        src="/media/dashboard-hero.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        aria-hidden="true"
-      />
+      <LiveGallery slides={GALLERY_SLIDES} heroBg />
       <div className="dashboard-hero-scrim" />
       <div className="dashboard-hero-content">
         <Image
@@ -40,6 +21,7 @@ export function DashboardHero({ greeting }: { greeting: string }) {
           width={863}
           height={194}
           className="dashboard-hero-logo"
+          style={{ filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.75))" }}
           priority
         />
         <h1 className="dashboard-hero-title">{greeting}</h1>
