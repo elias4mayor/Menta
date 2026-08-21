@@ -81,10 +81,18 @@ export function AppShell({
     <div className="app-shell min-h-screen flex bg-bg">
       <aside
         className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6"
-        style={{ borderRight: "1px solid var(--border-soft)", background: "rgba(255,255,255,0.012)" }}
+        style={{ borderRight: "1px solid var(--border-soft)", background: "var(--sidebar-tint)" }}
       >
         <Link href="/dashboard" className="flex items-center px-2 mb-10">
-          <Image src="/logo.png" alt="MENTA" width={863} height={194} className="h-6 w-auto" priority />
+          <Image
+            src="/logo.png"
+            alt="MENTA"
+            width={863}
+            height={194}
+            className="h-6 w-auto"
+            style={{ filter: "invert(1)" }}
+            priority
+          />
         </Link>
         <nav className="flex-1 space-y-7 overflow-y-auto">
           {NAV_SECTIONS.map((section) => (
@@ -100,7 +108,7 @@ export function AppShell({
                       className="relative block px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300"
                       style={{
                         color: active ? "var(--text-1)" : "var(--text-2)",
-                        background: active ? "rgba(255,255,255,0.055)" : "transparent",
+                        background: active ? "var(--nav-hover-bg)" : "transparent",
                       }}
                     >
                       {active && (
@@ -135,12 +143,20 @@ export function AppShell({
           className="sticky top-0 z-30 flex items-center justify-between px-6 py-4"
           style={{
             borderBottom: "1px solid var(--border-soft)",
-            background: "rgba(8,8,10,0.72)",
+            background: "var(--topbar-bg)",
             backdropFilter: "blur(16px)",
           }}
         >
           <div className="md:hidden">
-            <Image src="/logo.png" alt="MENTA" width={863} height={194} className="h-5 w-auto" priority />
+            <Image
+              src="/logo.png"
+              alt="MENTA"
+              width={863}
+              height={194}
+              className="h-5 w-auto"
+              style={{ filter: "invert(1)" }}
+              priority
+            />
           </div>
           <div className="hidden md:block" />
           <div className="flex items-center gap-4">
@@ -156,7 +172,7 @@ export function AppShell({
               {unreadCount > 0 && (
                 <span
                   className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[10px] font-semibold"
-                  style={{ background: "var(--grad-signal)", color: "#08080a", minWidth: 16, height: 16, padding: "0 4px" }}
+                  style={{ background: "var(--grad-signal)", color: "var(--on-signal)", minWidth: 16, height: 16, padding: "0 4px" }}
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
@@ -165,14 +181,16 @@ export function AppShell({
             <div className="md:hidden text-sm text-text-2">{user.name.split(" ")[0]}</div>
           </div>
         </header>
-        <main className="flex-1 px-6 py-8 pb-24 md:pb-8">{children}</main>
+        <main className="flex-1 px-6 py-8 pb-24 md:pb-8 flex justify-center">
+          <div className="w-full max-w-6xl">{children}</div>
+        </main>
       </div>
 
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2"
         style={{
           borderTop: "1px solid var(--border-soft)",
-          background: "rgba(8,8,10,0.9)",
+          background: "var(--bottomnav-bg)",
           backdropFilter: "blur(16px)",
         }}
       >

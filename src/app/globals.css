@@ -24,6 +24,16 @@
   --font-body: var(--font-inter), "Inter", sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
   --font-serif: var(--font-fraunces), "Fraunces", serif;
+
+  /* Semantic tokens for chrome that needs a different value per theme
+     (translucent bars, text sitting on top of --grad-signal fills) —
+     kept separate from the base tokens above so AppShell's sticky
+     bars/badges stay correct whichever theme wraps them. */
+  --topbar-bg: rgba(8, 8, 10, 0.72);
+  --bottomnav-bg: rgba(8, 8, 10, 0.9);
+  --nav-hover-bg: rgba(255, 255, 255, 0.055);
+  --sidebar-tint: rgba(255, 255, 255, 0.012);
+  --on-signal: #08080a;
 }
 
 @theme inline {
@@ -74,6 +84,41 @@ h4 {
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* ---------- logged-in app theme: white/off-white, not matte black ----------
+   Scoped to .app-shell only -- the marketing site and auth pages are
+   untouched. Every component already reads color through the tokens
+   above, so overriding them here re-themes the whole authenticated app
+   from one place instead of touching each page. */
+.app-shell {
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --surface-2: #eeeef0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --text-1: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #86868b;
+  --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.14),
+    0 6px 16px -10px rgba(0, 0, 0, 0.07);
+  --topbar-bg: rgba(255, 255, 255, 0.75);
+  --bottomnav-bg: rgba(255, 255, 255, 0.9);
+  --nav-hover-bg: rgba(0, 0, 0, 0.045);
+  --sidebar-tint: rgba(0, 0, 0, 0.012);
+  --on-signal: #ffffff;
+}
+
+/* Card section labels ("TODAY", "PRIORITIES", "MENTA AI"...): a clean
+   bold sans instead of the monospace/technical look used elsewhere on
+   the site, closer to how a native app labels a card section. */
+.app-shell .mono {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.06em;
   font-size: 11px;
 }
 
@@ -132,7 +177,7 @@ h4 {
   align-items: center;
   gap: 8px;
   background: var(--text-1);
-  color: #08080a;
+  color: var(--bg);
   font-weight: 600;
   padding: 11px 20px;
   border-radius: 999px;
@@ -201,6 +246,77 @@ h4 {
 .field-textarea:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Custom listbox replacing native <select> — the browser popup can't be
+   restyled, so the trigger reuses .field-select's look and the open panel
+   matches the rest of the design system. */
+.select-root {
+  position: relative;
+}
+
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.select-trigger:hover {
+  border-color: var(--border-strong);
+}
+
+.select-chevron {
+  flex-shrink: 0;
+  color: var(--text-3);
+  transition: transform 0.2s var(--ease);
+}
+
+.select-trigger[aria-expanded="true"] .select-chevron {
+  transform: rotate(180deg);
+}
+
+.select-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-card);
+  padding: 6px;
+  list-style: none;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: calc(var(--r-sm) - 4px);
+  font-size: 14px;
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.select-option[data-highlighted="true"] {
+  background: var(--nav-hover-bg);
+}
+
+.select-option[data-disabled="true"] {
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.select-option svg {
+  color: var(--text-1);
 }
 
 /* Underline-style field, used only on the split login/signup screens —
@@ -592,25 +708,19 @@ h4 {
   }
 }
 
-/* ---------- dashboard hero: full-bleed, full-viewport video entrance ----------
-   A cinematic moment, not a widget: edge-to-edge (the page breaks it out of
-   the normal content padding — see .dashboard-hero-bleed), tall, with a huge
-   centered logo over autoplay video. Minimal supporting type on purpose. */
+/* ---------- dashboard hero: contained video entrance card ----------
+   A cinematic moment, but scoped like every other dashboard card: rounded,
+   bounded width, sits in the centered content column. Huge centered logo
+   over autoplay video, minimal supporting type on purpose. */
 .dashboard-hero {
   position: relative;
   width: 100%;
-  height: min(82vh, 820px);
-  min-height: 480px;
+  height: min(46vh, 380px);
+  min-height: 260px;
   overflow: hidden;
   background: #000;
-}
-
-.dashboard-hero-bleed {
-  margin-left: -24px;
-  margin-right: -24px;
-  margin-top: -32px;
+  border-radius: var(--r-lg, 20px);
   margin-bottom: 32px;
-  width: calc(100% + 48px);
 }
 
 .dashboard-hero-video {
@@ -647,7 +757,7 @@ h4 {
 }
 
 .dashboard-hero-logo {
-  width: clamp(240px, 32vw, 600px);
+  width: clamp(140px, 20vw, 280px);
   height: auto;
   filter: drop-shadow(0 8px 40px rgba(0, 0, 0, 0.75));
 }
@@ -664,17 +774,11 @@ h4 {
 
 @media (max-width: 640px) {
   .dashboard-hero {
-    height: 68vh;
-    min-height: 420px;
-  }
-  .dashboard-hero-bleed {
-    margin-left: -24px;
-    margin-right: -24px;
-    margin-top: -32px;
-    width: calc(100% + 48px);
+    height: 34vh;
+    min-height: 220px;
   }
   .dashboard-hero-logo {
-    width: 68vw;
+    width: 46vw;
   }
 }
 

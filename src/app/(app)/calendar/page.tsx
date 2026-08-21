@@ -23,7 +23,7 @@ export default async function CalendarPage() {
   ]);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <div className="mono text-text-3 mb-2">Calendar</div>
       <h1 className="text-3xl font-semibold mb-8">Schedule</h1>
       <CalendarView

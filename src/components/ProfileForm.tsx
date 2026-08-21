@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Select } from "@/components/Select";
 
 type ProfileData = {
   sport: string;
@@ -202,21 +203,23 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label" htmlFor="sport">Sport</label>
-            <select id="sport" className="field-select" value={data.sport} onChange={(e) => updateSport(e.target.value)}>
-              <option value="">Select a sport</option>
-              {sportOptions.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id="sport"
+              value={data.sport}
+              onChange={updateSport}
+              placeholder="Select a sport"
+              options={sportOptions.map((s) => ({ value: s, label: s }))}
+            />
           </div>
           <div>
             <label className="field-label" htmlFor="position">Position</label>
-            <select id="position" className="field-select" value={data.position} onChange={(e) => update("position", e.target.value)}>
-              <option value="">Select a position</option>
-              {positionOptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+            <Select
+              id="position"
+              value={data.position}
+              onChange={(v) => update("position", v)}
+              placeholder="Select a position"
+              options={positionOptions.map((p) => ({ value: p, label: p }))}
+            />
           </div>
           <div>
             <label className="field-label" htmlFor="heightCm">Height (cm)</label>
@@ -269,17 +272,13 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
           </div>
           <div>
             <label className="field-label" htmlFor="graduationYear">Graduation year</label>
-            <select
+            <Select
               id="graduationYear"
-              className="field-select"
-              value={data.graduationYear ?? ""}
-              onChange={(e) => update("graduationYear", e.target.value ? Number(e.target.value) : undefined)}
-            >
-              <option value="">Select a year</option>
-              {graduationYearOptions.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+              value={data.graduationYear !== undefined ? String(data.graduationYear) : ""}
+              onChange={(v) => update("graduationYear", v ? Number(v) : undefined)}
+              placeholder="Select a year"
+              options={graduationYearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+            />
           </div>
           <div>
             <label className="field-label" htmlFor="gpa">GPA</label>
@@ -318,12 +317,13 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
           </div>
           <div>
             <label className="field-label" htmlFor="state">State</label>
-            <select id="state" className="field-select" value={data.state} onChange={(e) => update("state", e.target.value)}>
-              <option value="">Select a state</option>
-              {stateOptions.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id="state"
+              value={data.state}
+              onChange={(v) => update("state", v)}
+              placeholder="Select a state"
+              options={stateOptions.map((s) => ({ value: s, label: s }))}
+            />
           </div>
         </div>
         <div>
@@ -349,13 +349,16 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
 
       <section className="space-y-2">
         <label className="field-label" htmlFor="visibility">Visibility</label>
-        <select id="visibility" className="field-select" value={data.visibility} onChange={(e) => update("visibility", e.target.value)}>
-          {VISIBILITY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value} disabled={isMinor && opt.value === "PUBLIC"}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="visibility"
+          value={data.visibility}
+          onChange={(v) => update("visibility", v)}
+          options={VISIBILITY_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+            disabled: isMinor && opt.value === "PUBLIC",
+          }))}
+        />
         {isMinor && (
           <p className="text-text-3 text-xs">
             Because this account is a minor, profile visibility is capped at Recruiting — visible to coaches, never fully public.

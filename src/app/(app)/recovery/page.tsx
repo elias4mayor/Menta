@@ -51,7 +51,7 @@ export default async function RecoveryPage() {
     : null;
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto">
       <div className="mono text-text-3 mb-2">Recovery</div>
       <h1 className="text-3xl font-semibold mb-2">Recovery & wellness</h1>
       <p className="text-text-2 text-sm mb-1 max-w-2xl">

@@ -12,7 +12,7 @@ export default async function PerformancePage() {
   });
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <div className="mono text-text-3 mb-2">Performance</div>
       <h1 className="text-3xl font-semibold mb-8">Stats & trends</h1>
       <PerformanceView

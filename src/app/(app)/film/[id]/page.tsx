@@ -24,7 +24,7 @@ export default async function FilmDetailPage({
   if (!film || !(await canViewFilm(user, film))) notFound();
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <div className="mono text-text-3 mb-2">Film</div>
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <h1 className="text-2xl font-semibold">{film.title}</h1>

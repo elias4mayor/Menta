@@ -14,7 +14,7 @@ export default async function HighlightsPage() {
   });
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <div className="mono text-text-3 mb-2">Film</div>
       <h1 className="text-3xl font-semibold mb-8">Highlight reels</h1>
       <HighlightsView

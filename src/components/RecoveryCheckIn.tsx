@@ -73,7 +73,7 @@ function ScaleButtons({
             style={{
               border: value === n ? "1px solid var(--border-strong)" : "1px solid var(--border)",
               background: value === n ? "var(--text-1)" : "var(--surface-2)",
-              color: value === n ? "#08080a" : "var(--text-2)",
+              color: value === n ? "var(--bg)" : "var(--text-2)",
             }}
           >
             {n}

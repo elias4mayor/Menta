@@ -18,7 +18,7 @@ export default async function TeamPage() {
   });
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <div className="mono text-text-3 mb-2">Team</div>
       <h1 className="text-3xl font-semibold mb-8">Your teams</h1>
 

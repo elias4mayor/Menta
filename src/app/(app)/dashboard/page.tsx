@@ -97,12 +97,9 @@ export default async function DashboardPage() {
     }));
 
   return (
-    <>
-      <div className="dashboard-hero-bleed">
-        <DashboardHero greeting={`Hey ${firstName}.`} />
-      </div>
-      <div className="max-w-5xl">
-        <div className="card p-0 mb-8 overflow-hidden">
+    <div className="max-w-5xl mx-auto">
+      <DashboardHero greeting={`Hey ${firstName}.`} />
+      <div className="card p-0 mb-8 overflow-hidden">
           <div className="grid grid-cols-2 md:grid-cols-4">
             {[
               {
@@ -298,8 +295,7 @@ export default async function DashboardPage() {
               ))}
             </ul>
           )}
-        </div>
-        </div>
-    </>
+      </div>
+    </div>
   );
 }

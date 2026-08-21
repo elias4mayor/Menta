@@ -4,12 +4,11 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 
 /**
- * Full-bleed, full-viewport-height video moment shown when you land on
- * MENTA after logging in — a huge centered logo floating over autoplay
- * video, restrained type underneath. Deliberately minimal (no card
- * chrome, no badges) so it reads as a cinematic entrance rather than
- * another dashboard widget. Respects prefers-reduced-motion by pausing
- * playback instead of ignoring the setting.
+ * Contained video entrance card shown at the top of the dashboard — a
+ * centered logo floating over autoplay video inside a rounded card, sized
+ * and placed like the rest of the dashboard content instead of breaking
+ * out to full-bleed. Respects prefers-reduced-motion by pausing playback
+ * instead of ignoring the setting.
  */
 export function DashboardHero({ greeting }: { greeting: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
