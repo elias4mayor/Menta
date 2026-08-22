@@ -107,7 +107,7 @@ h4 {
     0 6px 16px -10px rgba(0, 0, 0, 0.07);
   --topbar-bg: rgba(255, 255, 255, 0.75);
   --bottomnav-bg: rgba(255, 255, 255, 0.9);
-  --nav-hover-bg: rgba(0, 0, 0, 0.045);
+  --nav-hover-bg: rgba(0, 0, 0, 0.08);
   --sidebar-tint: rgba(0, 0, 0, 0.012);
   --on-signal: #ffffff;
   /* Explicit, not just the custom-property overrides above: <body> sets
@@ -397,8 +397,10 @@ h4 {
   letter-spacing: -0.015em;
   color: var(--text-1);
   cursor: pointer;
+  transition: background-color 0.12s var(--ease);
 }
 
+.select-option:hover,
 .select-option[data-highlighted="true"] {
   background: var(--nav-hover-bg);
 }
@@ -1198,6 +1200,10 @@ h4 {
   --text-3: #6b6b70;
   --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
   --glow-wave-color: rgba(0, 0, 0, 0.28);
+  /* Was missing entirely, so .select-option's hover/highlight background
+     fell through to the root (dark-theme) value — a near-invisible white
+     tint on this white background instead of a visible dark one. */
+  --nav-hover-bg: rgba(0, 0, 0, 0.08);
 }
 
 .onb-ambient {
