@@ -65,6 +65,13 @@ function navSectionsForRole(role: string): NavSection[] {
         ],
       },
       {
+        label: "Clients",
+        items: [
+          { href: "/team", label: "Groups" },
+          { href: "/train", label: "Training" },
+        ],
+      },
+      {
         label: "Communication",
         items: [
           { href: "/messages", label: "Messages" },
@@ -165,7 +172,16 @@ function mobileItemsForRole(role: string): { href: string; label: string }[] {
       { href: "/profile", label: "You" },
     ];
   }
-  if (role === "TRAINER" || role === "PARENT") {
+  if (role === "TRAINER") {
+    return [
+      { href: "/dashboard", label: "Home" },
+      { href: "/team", label: "Groups" },
+      { href: "/ai-coach", label: "AI" },
+      { href: "/messages", label: "Msgs" },
+      { href: "/profile", label: "You" },
+    ];
+  }
+  if (role === "PARENT") {
     return [
       { href: "/dashboard", label: "Home" },
       { href: "/ai-coach", label: "AI" },

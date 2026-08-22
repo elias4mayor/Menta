@@ -29,7 +29,8 @@ export async function POST(request: Request) {
     inviteCode = generateInviteCode();
   }
 
-  const teamRole = user.role === "COACH" || user.role === "TRAINER" ? "COACH" : "ADMIN";
+  const teamRole =
+    user.role === "COACH" ? "COACH" : user.role === "TRAINER" ? "TRAINER" : user.role === "PARENT" ? "PARENT" : "ADMIN";
 
   const team = await prisma.team.create({
     data: {
