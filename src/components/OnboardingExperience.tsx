@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Select } from "@/components/Select";
 import { SchoolCombobox } from "@/components/SchoolCombobox";
+import { CountrySelect } from "@/components/CountrySelect";
+import { StateField } from "@/components/StateField";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { pickMotivationalMessages } from "@/lib/motivational-messages";
@@ -53,6 +55,7 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [schoolName, setSchoolName] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+  const [country, setCountry] = useState("United States");
   const [goalInput, setGoalInput] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
@@ -113,6 +116,7 @@ export function OnboardingExperience({ name }: { name: string }) {
             schoolName: schoolName || undefined,
             city: city || undefined,
             state: state || undefined,
+            country: country || undefined,
             trainingDaysPerWeek: trainingDaysPerWeek ? Number(trainingDaysPerWeek) : undefined,
             goals,
           }),
@@ -251,6 +255,10 @@ export function OnboardingExperience({ name }: { name: string }) {
                     placeholder="Start typing your school's name…"
                   />
                 </div>
+                <div>
+                  <label className="field-label" htmlFor="onb-country">Country</label>
+                  <CountrySelect id="onb-country" value={country} onChange={setCountry} />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="field-label" htmlFor="onb-city">City</label>
@@ -258,7 +266,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                   </div>
                   <div>
                     <label className="field-label" htmlFor="onb-state">State</label>
-                    <input id="onb-state" className="field-input" value={state} onChange={(e) => setState(e.target.value)} />
+                    <StateField id="onb-state" country={country} value={state} onChange={setState} />
                   </div>
                 </div>
               </div>

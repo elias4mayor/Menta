@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { sport, position, graduationYear, schoolName, city, state, trainingDaysPerWeek, goals } = parsed.data;
+  const { sport, position, graduationYear, schoolName, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
 
   await prisma.athleteProfile.upsert({
     where: { userId: user.id },
@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       schoolName: schoolName || undefined,
       city: city || undefined,
       state: state || undefined,
+      country: country || undefined,
       trainingDaysPerWeek,
       onboardingCompletedAt: new Date(),
     },
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
       schoolName: schoolName || undefined,
       city: city || undefined,
       state: state || undefined,
+      country: country || undefined,
       trainingDaysPerWeek,
       onboardingCompletedAt: new Date(),
     },

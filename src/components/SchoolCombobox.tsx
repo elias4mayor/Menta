@@ -2,9 +2,15 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import US_HIGH_SCHOOLS from "@/lib/data/us-high-schools.json";
+import US_COLLEGES from "@/lib/data/us-colleges.json";
 
-type SchoolEntry = { name: string; state: string };
-const SCHOOLS = US_HIGH_SCHOOLS as SchoolEntry[];
+type SchoolType = "High School" | "College";
+type SchoolEntry = { name: string; state: string; type: SchoolType };
+
+const SCHOOLS: SchoolEntry[] = [
+  ...(US_HIGH_SCHOOLS as { name: string; state: string }[]).map((s) => ({ ...s, type: "High School" as const })),
+  ...(US_COLLEGES as { name: string; state: string }[]).map((s) => ({ ...s, type: "College" as const })),
+];
 
 const MAX_RESULTS = 8;
 
@@ -17,18 +23,19 @@ function matchesFor(query: string): SchoolEntry[] {
     const name = school.name.toLowerCase();
     if (name.startsWith(q)) startsWith.push(school);
     else if (name.includes(q)) includes.push(school);
-    if (startsWith.length >= MAX_RESULTS) break;
   }
   return [...startsWith, ...includes].slice(0, MAX_RESULTS);
 }
 
 /**
- * Free-text school field with search-as-you-type suggestions from a real
- * directory of named U.S. high schools — not every school in the country
- * (that dataset isn't reliably obtainable here), so this stays a plain
- * text input underneath: typing narrows the suggestion list, but any
- * value the athlete types is accepted as-is whether or not it matches
- * something in the directory.
+ * Free-text school field with search-as-you-type suggestions from two
+ * real directories — named U.S. high schools and colleges/universities —
+ * not every school in the country (that dataset isn't reliably
+ * obtainable here), so this stays a plain text input underneath: typing
+ * narrows the suggestion list, but any value the athlete types is
+ * accepted as-is whether or not it matches something in either
+ * directory. No city data is available in either source, so results show
+ * state + type rather than a fabricated city.
  */
 export function SchoolCombobox({
   id,
@@ -99,7 +106,7 @@ export function SchoolCombobox({
         <ul id={listboxId} role="listbox" className="select-panel">
           {matches.map((school, i) => (
             <li
-              key={`${school.name}-${school.state}`}
+              key={`${school.name}-${school.state}-${school.type}`}
               role="option"
               aria-selected={i === highlighted}
               className="select-option"
@@ -112,13 +119,14 @@ export function SchoolCombobox({
               }}
             >
               <span>{school.name}</span>
-              <span className="text-text-3 text-xs">{school.state}</span>
+              <span className="text-text-3 text-xs">{school.state} · {school.type}</span>
             </li>
           ))}
         </ul>
       )}
       <p className="text-text-3 text-xs mt-1">
-        Suggestions from a directory of named U.S. high schools — don&rsquo;t see yours? Keep typing; whatever you enter is saved.
+        Suggestions from a directory of named U.S. high schools and colleges — don&rsquo;t see yours? Keep typing;
+        whatever you enter is saved.
       </p>
     </div>
   );

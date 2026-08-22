@@ -116,6 +116,10 @@ model AthleteProfile {
   schoolName            String?
   city                  String?
   state                 String?
+  /// Free-text; the onboarding UI defaults it to "United States" via
+  /// CountrySelect but doesn't require it, so older rows without a value
+  /// aren't treated as broken.
+  country               String?
   bio                   String?
   gpa                   Float?
   /// Real answer from onboarding ("how many days can you train"), not a
