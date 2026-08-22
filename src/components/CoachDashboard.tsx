@@ -23,6 +23,10 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
       include: {
         memberships: true,
         events: { where: { startsAt: { gte: now } }, orderBy: { startsAt: "asc" }, take: 3 },
+        workouts: { select: { id: true } },
+        films: { select: { id: true } },
+        safetyChecklistItems: { select: { status: true } },
+        conversation: { select: { id: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -69,18 +73,36 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
             to start managing your roster.
           </p>
         ) : (
-          <ul className="space-y-3">
-            {teams.map((t) => (
-              <li key={t.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-medium">{t.name}</span>
-                  {t.sport && <span className="text-text-3"> · {t.sport}</span>}
-                </div>
-                <span className="mono text-text-3 text-xs">
-                  {t.memberships.filter((m) => m.teamRole === "ATHLETE").length} athletes
-                </span>
-              </li>
-            ))}
+          <ul className="space-y-4">
+            {teams.map((t) => {
+              const safetyDone = t.safetyChecklistItems.filter((i) => i.status === "COMPLETED").length;
+              const safetyTotal = t.safetyChecklistItems.length;
+              return (
+                <li key={t.id} className="pb-4" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <div>
+                      <span className="font-medium">{t.name}</span>
+                      {t.sport && <span className="text-text-3"> · {t.sport}</span>}
+                    </div>
+                    <span className="mono text-text-3 text-xs">
+                      {t.memberships.filter((m) => m.teamRole === "ATHLETE").length} athletes
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href="/train" className="badge">{t.workouts.length} workouts</Link>
+                    <Link href="/film" className="badge">{t.films.length} film</Link>
+                    <Link href="/safety" className="badge">
+                      Safety {safetyTotal > 0 ? `${safetyDone}/${safetyTotal}` : "not started"}
+                    </Link>
+                    {t.conversation && (
+                      <Link href={`/messages/${t.conversation.id}`} className="badge">
+                        Message team
+                      </Link>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

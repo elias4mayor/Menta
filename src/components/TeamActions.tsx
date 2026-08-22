@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function TeamActions({ compact = false }: { compact?: boolean }) {
+export function TeamActions({ compact = false, onDone }: { compact?: boolean; onDone?: () => void }) {
   const router = useRouter();
   const [mode, setMode] = useState<"create" | "join">(compact ? "join" : "create");
   const [name, setName] = useState("");
@@ -28,6 +28,7 @@ export function TeamActions({ compact = false }: { compact?: boolean }) {
         return;
       }
       router.refresh();
+      onDone?.();
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -52,6 +53,7 @@ export function TeamActions({ compact = false }: { compact?: boolean }) {
       }
       setInviteCode("");
       router.refresh();
+      onDone?.();
     } catch {
       setError("Network error. Try again.");
     } finally {
