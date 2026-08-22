@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <AppShell user={{ name: user.name, role: user.role }} unreadCount={unreadCount}>
+    <AppShell user={{ id: user.id, name: user.name, role: user.role }} unreadCount={unreadCount}>
       {children}
     </AppShell>
   );

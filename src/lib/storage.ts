@@ -59,6 +59,12 @@ export async function deleteFile(key: string): Promise<void> {
   await fsp.rm(filePath, { force: true });
 }
 
+/** Reads a whole file into memory — for small files (avatars, documents) where range/seek support isn't needed. */
+export async function readFile(key: string): Promise<Buffer> {
+  const filePath = resolveKeyPath(key);
+  return fsp.readFile(filePath);
+}
+
 export type ByteRange = { start: number; end: number };
 
 /** Opens a read stream for the file, optionally for a byte range (HTTP Range requests / video seeking). */

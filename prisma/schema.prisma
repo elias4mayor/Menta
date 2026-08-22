@@ -30,6 +30,12 @@ model User {
   // so at most one account can be linked to a given provider identity.
   googleId      String?   @unique
   facebookId    String?   @unique
+  /// Set together — a real uploaded profile photo via the local/object
+  /// storage abstraction (src/lib/storage.ts). Null means "no photo",
+  /// not "unknown" — the UI falls back to a computed initials avatar,
+  /// never a stock photo.
+  avatarKey     String?
+  avatarMime    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

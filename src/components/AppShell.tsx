@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
 import { GlowWaveText } from "@/components/GlowWaveText";
+import { Avatar } from "@/components/Avatar";
 
 type NavSection = { label: string; items: { href: string; label: string }[] };
 
@@ -227,7 +228,7 @@ export function AppShell({
   unreadCount,
   children,
 }: {
-  user: { name: string; role: string };
+  user: { id: string; name: string; role: string };
   unreadCount: number;
   children: ReactNode;
 }) {
@@ -300,8 +301,13 @@ export function AppShell({
           ))}
         </nav>
         <div className="pt-4 mt-4" style={{ borderTop: "1px solid var(--border-soft)" }}>
-          <div className="px-2 text-sm">{user.name}</div>
-          <div className="px-2 mono text-text-3 mb-2">{user.role}</div>
+          <div className="flex items-center gap-2 px-2 mb-2">
+            <Avatar userId={user.id} name={user.name} size={28} />
+            <div>
+              <div className="text-sm">{user.name}</div>
+              <div className="mono text-text-3">{user.role}</div>
+            </div>
+          </div>
           <button
             onClick={handleLogout}
             disabled={loggingOut}
