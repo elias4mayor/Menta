@@ -44,7 +44,7 @@ export function Hero() {
     >
       <LiveGallery slides={GALLERY_SLIDES} heroBg />
       <div ref={glowRef} className="cursor-glow" style={{ zIndex: 1 }} />
-      <div className="relative z-10 max-w-4xl">
+      <div className="relative z-10 max-w-4xl hero-on-dark">
         <h1 className="text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal">
           Build the future of
           <br />

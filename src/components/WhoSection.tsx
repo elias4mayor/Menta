@@ -41,7 +41,7 @@ export function WhoSection() {
             className="text-sm font-medium rounded-full px-5 py-2.5 border transition-all duration-300"
             style={
               active === r.role
-                ? { background: "var(--grad-signal)", color: "#08080a", borderColor: "transparent", fontWeight: 600 }
+                ? { background: "var(--grad-signal)", color: "var(--on-signal)", borderColor: "transparent", fontWeight: 600 }
                 : { background: "var(--surface)", color: "var(--text-2)", borderColor: "var(--border)" }
             }
           >

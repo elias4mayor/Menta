@@ -55,7 +55,7 @@ export function SplitAuthShell({
         </div>
       </div>
 
-      <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 md:py-10">
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 md:py-10 bg-bg md:bg-transparent">
         <div className="w-full max-w-sm">
           <Link href="/" className="flex items-center justify-center mb-10">
             <Image
@@ -64,6 +64,7 @@ export function SplitAuthShell({
               width={863}
               height={194}
               className="h-16 w-auto"
+              style={{ filter: "invert(1)" }}
               priority
             />
           </Link>

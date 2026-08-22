@@ -1,9 +1,21 @@
 import COUNTRIES from "@/lib/data/countries.json";
 
-export type Country = { name: string; code: string };
+export type Country = { name: string; code: string; dial: string };
 
-/** Real ISO-3166-1 country list (196 entries). */
+/**
+ * Real ISO-3166-1 country list (196 entries), each with its real
+ * international calling code (sourced from mledoze/countries' `idd`
+ * data — root + suffix combined, e.g. GB's root "+4" + suffix "4" ->
+ * "+44"). NANP members (US, Canada, and the Caribbean nations that share
+ * the +1 country code) all report "+1" rather than a member-specific area
+ * code, matching how phone-country pickers conventionally display it.
+ */
 export const ALL_COUNTRIES: Country[] = COUNTRIES;
+
+/** Look up a country's dial code by its exact name, e.g. "Mexico" -> "+52". */
+export function dialCodeForCountry(name: string): string | undefined {
+  return ALL_COUNTRIES.find((c) => c.name === name)?.dial;
+}
 
 /**
  * A flag emoji from a 2-letter country code — computed, not an image

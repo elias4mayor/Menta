@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Phase = "black" | "mark" | "hello" | "welcome" | "role" | "categories" | "build" | "reveal";
+type Phase = "empty" | "mark" | "hello" | "welcome" | "role" | "categories" | "build" | "reveal";
 
 const ROLE_COPY: Record<string, { message: string; categories: string }> = {
   ATHLETE: {
@@ -24,7 +24,7 @@ const ROLE_COPY: Record<string, { message: string; categories: string }> = {
 };
 
 // Absolute offsets (ms) from mount — see the phase-by-phase breakdown this
-// mirrors in the "MENTA — Premium First-Launch Experience" spec: black
+// mirrors in the "MENTA — Premium First-Launch Experience" spec: an empty
 // hold, logo mark, HELLO / Welcome to MENTA, role-personalized line, "one
 // place for what's next" + category words, logo-shrink + build line, then
 // the fade that hands off to the real onboarding content underneath.
@@ -44,10 +44,13 @@ const REVEAL_MS = 900;
  * and nothing sends a returning user there), so no separate "have I seen
  * this" flag is needed — it plays because this is, structurally, always
  * the first visit. Identical visuals for every role; only the two
- * role-personalized lines (role message + category words) change. Ends by
- * fading its own black background to white and calling onDone, at which
- * point the parent swaps in the real (unchanged, already-built) onboarding
- * content, whose own entrance animation continues the motion seamlessly.
+ * role-personalized lines (role message + category words) change. White
+ * throughout (same tokens .onb-root reads), so it ends with a plain
+ * opacity fade of the whole overlay and calls onDone, at which point the
+ * parent swaps in the real (unchanged, already-built) onboarding content
+ * underneath — already the same white, with the same small logo mark
+ * already sitting in the same spot, so the handoff has nothing left to
+ * visually reconcile.
  */
 export function MentaIntro({
   role,
@@ -58,7 +61,7 @@ export function MentaIntro({
   firstName: string;
   onDone: () => void;
 }) {
-  const [phase, setPhase] = useState<Phase>("black");
+  const [phase, setPhase] = useState<Phase>("empty");
   const doneRef = useRef(onDone);
   useEffect(() => {
     doneRef.current = onDone;
@@ -91,7 +94,7 @@ export function MentaIntro({
   const logoOn = phase === "mark" || phase === "build" || phase === "reveal";
   const logoSmall = phase === "build" || phase === "reveal";
   const revealing = phase === "reveal";
-  const glowOn = phase !== "black" && phase !== "reveal";
+  const glowOn = phase !== "empty" && phase !== "reveal";
 
   return (
     <div className={`mi-root${revealing ? " mi-revealing" : ""}`} aria-hidden="true">

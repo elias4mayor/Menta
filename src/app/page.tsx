@@ -44,7 +44,7 @@ export default function HomePage() {
     <>
       <IntroBoot />
       <RevealInit />
-      <MarketingNav />
+      <MarketingNav overHero />
       <main>
         <Hero />
 

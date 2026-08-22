@@ -1,24 +1,33 @@
 @import "tailwindcss";
 
+/* ---------- MENTA visual direction: white, Apple-inspired ----------
+   :root is the single default theme for the whole product — marketing
+   site, login/signup, onboarding, and the authenticated app all read
+   through these same tokens now. (.app-shell and .onb-root redefine an
+   identical white palette of their own below; that's pre-existing,
+   harmless duplication from when they were the only white-themed scopes
+   in an otherwise dark app — left in place rather than touched, since
+   removing it isn't necessary to get a consistent white product and
+   this file already has enough surface area changing at once.) */
 :root {
-  --bg: #08080a;
-  --surface: #121215;
-  --surface-2: #17171b;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-soft: rgba(255, 255, 255, 0.05);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text-1: #f5f6f8;
-  --text-2: #8b8c94;
-  --text-3: #797a7f;
-  --grad-signal: linear-gradient(90deg, #d8dadf, #ffffff);
+  --bg: #ffffff;
+  --surface: #f5f5f7;
+  --surface-2: #eeeef0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --text-1: #1d1d1f;
+  --text-2: #45454a;
+  --text-3: #6b6b70;
+  --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
   --danger: #ff6b6b;
   --success: #7ed9a0;
   --warning: #e8c468;
   --r-sm: 10px;
   --r-md: 14px;
   --r-lg: 20px;
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 30px 60px -28px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(216, 218, 223, 0.08);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.14),
+    0 6px 16px -10px rgba(0, 0, 0, 0.07);
   --ease: cubic-bezier(0.16, 0.8, 0.3, 1);
   --font-heading: var(--font-inter), "Inter", sans-serif;
   --font-body: var(--font-inter), "Inter", sans-serif;
@@ -29,11 +38,11 @@
      (translucent bars, text sitting on top of --grad-signal fills) —
      kept separate from the base tokens above so AppShell's sticky
      bars/badges stay correct whichever theme wraps them. */
-  --topbar-bg: rgba(8, 8, 10, 0.72);
-  --bottomnav-bg: rgba(8, 8, 10, 0.9);
-  --nav-hover-bg: rgba(255, 255, 255, 0.055);
-  --sidebar-tint: rgba(255, 255, 255, 0.012);
-  --on-signal: #08080a;
+  --topbar-bg: rgba(255, 255, 255, 0.75);
+  --bottomnav-bg: rgba(255, 255, 255, 0.9);
+  --nav-hover-bg: rgba(0, 0, 0, 0.08);
+  --sidebar-tint: rgba(0, 0, 0, 0.012);
+  --on-signal: #ffffff;
 }
 
 @theme inline {
@@ -61,7 +70,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   scroll-behavior: smooth;
 }
 
@@ -152,14 +161,10 @@ h4 {
    running the same keyframes on a staggered delay, so the "glow" sweeps
    across the word instead of every letter flashing in unison. Only
    opacity/filter/text-shadow are animated — nothing that affects layout
-   or position. --glow-wave-color defaults to a soft light glow (for
-   white text on the dark marketing/auth pages) and flips to a soft dark
-   "ink" glow inside .app-shell, since the dashboard is a light theme —
-   a white glow would be invisible on a white card. */
+   or position. A soft dark "ink" glow, since every scope is a light
+   theme now — a white glow would be invisible against a white/light
+   background everywhere it's used. */
 :root {
-  --glow-wave-color: rgba(255, 255, 255, 0.55);
-}
-.app-shell {
   --glow-wave-color: rgba(0, 0, 0, 0.28);
 }
 
@@ -277,7 +282,7 @@ h4 {
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 14px 32px -6px rgba(255, 255, 255, 0.18);
+    0 14px 32px -6px rgba(0, 0, 0, 0.22);
 }
 
 .btn-primary:disabled {
@@ -290,7 +295,7 @@ h4 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.02);
   color: var(--text-1);
   border: 1px solid var(--border-strong);
   padding: 10px 19px;
@@ -300,8 +305,8 @@ h4 {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.045);
+  border-color: rgba(0, 0, 0, 0.22);
   transform: translateY(-2px);
 }
 
@@ -333,7 +338,7 @@ h4 {
 .field-select:focus,
 .field-textarea:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(0, 0, 0, 0.35);
 }
 
 /* Custom listbox replacing native <select> — the browser popup can't be
@@ -444,13 +449,13 @@ h4 {
 }
 
 .field-underline:hover {
-  border-bottom-color: rgba(255, 255, 255, 0.5);
+  border-bottom-color: rgba(0, 0, 0, 0.35);
 }
 
 .field-underline:focus {
   outline: none;
   border-bottom-color: var(--text-1);
-  box-shadow: 0 1px 14px rgba(255, 255, 255, 0.32);
+  box-shadow: 0 1px 14px rgba(0, 0, 0, 0.18);
   transition: border-color 0.25s var(--ease), box-shadow 0.3s var(--ease);
 }
 
@@ -472,7 +477,7 @@ h4 {
   bottom: -2px;
   height: 1px;
   background: var(--text-1);
-  box-shadow: 0 0 8px 1px rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 8px 1px rgba(0, 0, 0, 0.3);
   transition: right 0.35s var(--ease);
 }
 
@@ -490,11 +495,11 @@ h4 {
    anywhere but here. */
 .split-auth-shell .btn-primary:hover {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 14px 32px -6px rgba(255, 255, 255, 0.18), 0 0 44px -8px rgba(255, 255, 255, 0.55);
+    0 14px 32px -6px rgba(0, 0, 0, 0.22), 0 0 44px -8px rgba(0, 0, 0, 0.28);
 }
 
 .split-auth-shell .btn-secondary:hover {
-  box-shadow: 0 0 30px -8px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 30px -8px rgba(0, 0, 0, 0.22);
 }
 
 .badge {
@@ -556,8 +561,8 @@ h4 {
   z-index: 1;
   background: radial-gradient(
     circle,
-    rgba(216, 218, 223, 0.09),
-    rgba(255, 255, 255, 0.04) 45%,
+    rgba(0, 0, 0, 0.07),
+    rgba(0, 0, 0, 0.025) 45%,
     transparent 72%
   );
   transform: translate(-50%, -50%);
@@ -613,7 +618,7 @@ h4 {
 }
 
 ::selection {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.14);
 }
 
 ::-webkit-scrollbar {
@@ -630,13 +635,64 @@ h4 {
   border-radius: 999px;
 }
 
+/* MarketingNav floating over Hero's dark-scrimmed photo background (top
+   of the homepage, unscrolled): the hero photo panel is a deliberate
+   dark accent kept as-is (see .live-gallery.hero-bg::after) even though
+   the rest of the site is white now, so the nav's own text needs to stay
+   light while it's transparently overlapping that panel — everywhere
+   else (scrolled past the hero, or on a page with no hero at all) it
+   reads through the normal light-page tokens instead. Same
+   scoped-custom-property mechanism as .app-shell/.onb-root, just applied
+   conditionally by MarketingNav.tsx instead of statically. */
+.marketing-nav-on-hero {
+  --text-1: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.78);
+  --text-3: rgba(255, 255, 255, 0.6);
+}
+
+/* Hero's own heading/subtitle/secondary-button text sits directly on
+   that same dark hero photo (not inside an opaque card), so it needs the
+   same light override — except the floating dashboard-mockup .card
+   nested inside it, which has its own opaque light surface and should
+   read with the normal dark-on-light text every other card uses. */
+.hero-on-dark {
+  /* --bg is overridden too, purely because .btn-primary is defined as
+     background: var(--text-1); color: var(--bg) — i.e. "whatever the
+     page isn't" — so Join Beta renders as the same white pill with dark
+     text it always has here, instead of white-on-white. */
+  --bg: #08080a;
+  --text-1: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.78);
+  --text-3: rgba(255, 255, 255, 0.6);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-soft: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.28);
+}
+
+.hero-on-dark .card {
+  --text-1: #1d1d1f;
+  --text-2: #45454a;
+  --text-3: #6b6b70;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.14);
+}
+
+.hero-on-dark .shiny-text {
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.55) 30%, #ffffff 50%, rgba(255, 255, 255, 0.55) 70%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /* ---------- premium nav dropdown (Platform mega-menu) ---------- */
 .nav-dropdown {
   position: absolute;
   top: calc(100% + 14px);
   right: 0;
   z-index: 60;
-  background: rgba(18, 18, 21, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
@@ -662,7 +718,7 @@ h4 {
 
 .nav-dropdown-item:hover,
 .nav-dropdown-item:focus-visible {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.055);
 }
 
 .nav-dropdown-item:focus-visible {
@@ -1077,7 +1133,7 @@ h4 {
   max-width: 520px;
   max-height: 520px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.09), transparent 72%);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.06), transparent 72%);
   opacity: 0;
   transition: opacity 0.5s ease 0.05s;
 }
@@ -1097,7 +1153,11 @@ h4 {
   display: block;
   position: relative;
   opacity: 0;
-  filter: blur(16px);
+  /* The raw asset is light-colored (built to sit on the old dark
+     background without inversion); every scope is white now, so it
+     needs the same filter: invert(1) the app already applies to this
+     logo everywhere else it sits on a light background. */
+  filter: blur(16px) invert(1);
   transform: scale(0.94);
   transition: opacity 0.65s var(--ease) 0.1s, filter 0.65s var(--ease) 0.1s,
     transform 0.65s var(--ease) 0.1s;
@@ -1105,7 +1165,7 @@ h4 {
 
 .logo-intro-mark.show img {
   opacity: 1;
-  filter: blur(0);
+  filter: blur(0) invert(1);
   transform: scale(1);
 }
 
@@ -1631,9 +1691,10 @@ h4 {
 
 /* ---------- MENTA cinematic first-launch intro ----------
    Plays once, immediately after signup, before the role's onboarding
-   questions — see MentaIntro.tsx. Fixed full-screen overlay, independent
-   of .onb-root's light theme (it starts black and fades to white as its
-   last act), so it composites cleanly on top of whichever onboarding
+   questions — see MentaIntro.tsx. Fixed full-screen overlay, white like
+   every other scope in the product now (no more black->white crossfade
+   needed — it just reads the same :root tokens .onb-root also mirrors),
+   so it composites with zero visible seam on top of whichever onboarding
    root is mounted underneath it. Same fade grammar as .onb-content
    (.mi-enter/.mi-exit mirror .onb-enter/.onb-exit) so the motion reads
    as the same product, not a different animation system bolted on. */
@@ -1646,12 +1707,18 @@ h4 {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #000;
-  transition: background-color 0.9s var(--ease);
+  background: var(--bg);
+  opacity: 1;
+  transition: opacity 0.6s var(--ease);
 }
 
+/* Both this overlay and the .onb-root it hands off to are already the
+   same white, with the same small logo mark in the same spot by this
+   point — nothing left to crossfade colors for. This is just a final,
+   graceful fade of the overlay itself so the handoff to the mounting
+   onboarding content never reads as an abrupt cut, down to the pixel. */
 .mi-root.mi-revealing {
-  background: #fff;
+  opacity: 0;
 }
 
 .mi-glow {
@@ -1661,14 +1728,10 @@ h4 {
   max-width: 600px;
   max-height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.07), transparent 72%);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.05), transparent 72%);
   opacity: 0;
   transition: opacity 1.2s ease;
   pointer-events: none;
-}
-
-.mi-root.mi-revealing .mi-glow {
-  opacity: 0;
 }
 
 .mi-glow.mi-glow-on {
@@ -1684,24 +1747,21 @@ h4 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.96);
-  filter: none;
+  /* Raw asset is light-colored, built for the old dark background — same
+     invert(1) this logo gets everywhere else it sits on white. */
+  filter: invert(1);
   transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), top 0.9s var(--ease),
-    height 0.9s var(--ease), filter 0.9s var(--ease);
+    height 0.9s var(--ease);
 }
 
 .mi-logo.mi-logo-on {
-  opacity: 0.95;
+  opacity: 0.92;
 }
 
 .mi-logo.mi-logo-small {
   top: max(20px, env(safe-area-inset-top));
   height: 22px;
   transform: translate(-50%, 0) scale(1);
-}
-
-.mi-root.mi-revealing .mi-logo {
-  filter: invert(1);
-  opacity: 0.92;
 }
 
 .mi-stage {
@@ -1756,7 +1816,7 @@ h4 {
   font-size: clamp(30px, 6vw, 52px);
   letter-spacing: -0.01em;
   line-height: 1.15;
-  color: #fff;
+  color: var(--text-1);
 }
 
 .mi-line-sub {
@@ -1765,7 +1825,7 @@ h4 {
   font-weight: 700;
   font-size: clamp(13px, 2vw, 15px);
   letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-3);
 }
 
 .mi-categories {

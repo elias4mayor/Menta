@@ -7,8 +7,15 @@ import { PlatformDropdown } from "@/components/PlatformMenu";
 
 const CLOSE_DELAY_MS = 180;
 
-export function MarketingNav() {
+export function MarketingNav({ overHero = false }: { overHero?: boolean } = {}) {
   const [scrolled, setScrolled] = useState(false);
+  // Only the homepage passes overHero=true, for the stretch while it's
+  // floating transparently over Hero's dark photo panel — everywhere else
+  // (scrolled past it, or a page with no hero at all) the nav sits on the
+  // normal white page and should read through the ordinary dark-on-light
+  // tokens from the start, not wait for a scroll event that may never
+  // come on a short page.
+  const onHero = overHero && !scrolled;
   const [platformOpen, setPlatformOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const logoWrapRef = useRef<HTMLDivElement>(null);
@@ -123,10 +130,10 @@ export function MarketingNav() {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-end px-6 md:px-10 transition-[padding,background-color,border-color] duration-300"
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-end px-6 md:px-10 transition-[padding,background-color,border-color] duration-300${onHero ? " marketing-nav-on-hero" : ""}`}
         style={{
           padding: scrolled ? "14px 24px" : "22px 24px",
-          background: scrolled ? "rgba(8,8,10,0.78)" : "rgba(8,8,10,0.4)",
+          background: onHero ? "rgba(8,8,10,0.4)" : "rgba(255,255,255,0.78)",
           backdropFilter: "blur(20px) saturate(140%)",
           borderBottom: scrolled ? "1px solid var(--border)" : "1px solid transparent",
         }}
@@ -147,6 +154,7 @@ export function MarketingNav() {
                 width={863}
                 height={194}
                 className="h-9 w-auto"
+                style={{ filter: onHero ? "none" : "invert(1)" }}
                 priority
               />
             </Link>
@@ -216,7 +224,7 @@ export function MarketingNav() {
         <div
           id="mobile-menu"
           className="md:hidden fixed inset-0 z-40 pt-20 overflow-y-auto"
-          style={{ background: "rgba(8,8,10,0.98)", backdropFilter: "blur(20px)" }}
+          style={{ background: "rgba(255,255,255,0.98)", backdropFilter: "blur(20px)" }}
         >
           <div className="px-6 py-6 space-y-1">
             <Link href="/faq" onClick={closeAll} className="block py-3 text-base text-text-1">
