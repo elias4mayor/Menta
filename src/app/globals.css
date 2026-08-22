@@ -1294,7 +1294,7 @@ h4 {
 }
 
 .onb-content.onb-enter {
-  animation: onbEnter 0.42s var(--ease) both;
+  animation: onbEnter 0.55s var(--ease) both;
 }
 
 @keyframes onbEnter {
@@ -1304,57 +1304,72 @@ h4 {
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    /* Not translateY(0)/scale(1) — any non-"none" transform value (even an
+       identity one) creates a new stacking context that persists for as
+       long as the "both"-fill animation holds this end state, i.e.
+       forever. That trapped the Select dropdown (rendered inside a later
+       sibling here, .onb-fields) underneath .onb-nav, which got its own
+       identical stacking context and simply painted after it. */
+    transform: none;
   }
 }
 
-/* Content reveal: headline, then subtitle, then the rest — staggered but
-   deliberately subtle (a 0–0.18s spread, not the ~0.05–0.85s spread this
-   used to be) so the whole reveal lands inside the ~500–700ms budget
-   instead of making the user wait for each field to arrive in turn. */
+/* Content reveal: headline, then subtitle, then the rest — a subtle
+   stagger (a 0–0.18s spread) so the reveal doesn't make the user wait for
+   each field to arrive in turn, but each element's own fade-in (and the
+   hold time before the next step) runs long enough to read comfortably —
+   see BOOT_MS/WELCOME_TITLE_HOLD_MS/STATUS_INTERVAL_MS/MOTIVATION_INTERVAL_MS
+   in OnboardingExperience.tsx for the matching JS-side dwell times.
+
+   All onboarding text is Inter (--font-heading/--font-body) — the same
+   font used everywhere else in the app as the closest free equivalent to
+   Apple's system sans — and sized up from the shared app-wide defaults,
+   scoped here and in the .onb-root overrides below so nothing outside
+   onboarding is affected. */
 .onb-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
   opacity: 0;
-  animation: onbFadeIn 0.4s var(--ease) both;
+  animation: onbFadeIn 0.55s var(--ease) both;
 }
 
 .onb-title {
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: clamp(28px, 5.4vw, 42px);
+  font-size: clamp(30px, 5.6vw, 44px);
   letter-spacing: -0.01em;
   line-height: 1.12;
   margin: 10px 0 12px;
   color: var(--text-1);
   opacity: 0;
-  animation: onbFadeIn 0.42s var(--ease) 0.03s both;
+  animation: onbFadeIn 0.55s var(--ease) 0.03s both;
 }
 
 .onb-subtitle {
   color: var(--text-2);
-  font-size: 16px;
+  font-size: 19px;
   max-width: 40ch;
   margin: 0 auto;
   opacity: 0;
-  animation: onbFadeIn 0.42s var(--ease) 0.08s both;
+  animation: onbFadeIn 0.55s var(--ease) 0.08s both;
 }
 
 .onb-micro {
   color: var(--text-3);
-  font-size: 13px;
+  font-size: 16px;
   margin-top: 8px;
   opacity: 0;
-  animation: onbFadeIn 0.4s var(--ease) 0.06s both;
+  animation: onbFadeIn 0.55s var(--ease) 0.06s both;
 }
 
 .onb-actions {
   margin-top: 36px;
   opacity: 0;
-  animation: onbFadeIn 0.4s var(--ease) 0.18s both;
+  animation: onbFadeIn 0.55s var(--ease) 0.18s both;
 }
 
 @keyframes onbFadeIn {
@@ -1364,7 +1379,8 @@ h4 {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    /* See the comment on @keyframes onbEnter above — same fix, same reason. */
+    transform: none;
   }
 }
 
@@ -1373,7 +1389,7 @@ h4 {
   margin-top: 32px;
   text-align: left;
   opacity: 0;
-  animation: onbFadeIn 0.4s var(--ease) 0.1s both;
+  animation: onbFadeIn 0.55s var(--ease) 0.1s both;
 }
 
 .onb-nav {
@@ -1383,7 +1399,35 @@ h4 {
   gap: 12px;
   margin-top: 32px;
   opacity: 0;
-  animation: onbFadeIn 0.4s var(--ease) 0.16s both;
+  animation: onbFadeIn 0.55s var(--ease) 0.16s both;
+}
+
+/* Onboarding-scoped text scale-up for the shared field/select/button
+   classes used everywhere else in the app at their smaller default sizes
+   — bigger here on purpose, without touching those global defaults. */
+.onb-root .field-label {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  text-transform: none;
+}
+
+.onb-root .field-input,
+.onb-root .select-trigger {
+  font-size: 19px;
+  padding: 15px 18px;
+}
+
+.onb-root .select-option {
+  font-size: 18px;
+  padding: 13px 14px;
+}
+
+.onb-root .btn-primary,
+.onb-root .btn-secondary {
+  font-size: 17px;
+  padding: 14px 26px;
 }
 
 .onb-progress-track {
@@ -1410,9 +1454,10 @@ h4 {
   position: absolute;
   top: max(20px, env(safe-area-inset-top));
   right: max(20px, env(safe-area-inset-right));
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
   color: var(--text-3);
   z-index: 1;
 }
@@ -1422,12 +1467,12 @@ h4 {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-1);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 9px 12px;
+  padding: 11px 14px;
 }
 
 .onb-status {
@@ -1441,12 +1486,13 @@ h4 {
 
 .onb-status-line {
   position: absolute;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-3);
-  animation: onbStatusCycle 1.8s var(--ease) both;
+  animation: onbStatusCycle 2.2s var(--ease) both;
 }
 
 @keyframes onbStatusCycle {
@@ -1483,7 +1529,7 @@ h4 {
   letter-spacing: -0.005em;
   max-width: 34ch;
   color: var(--text-1);
-  animation: onbMotivationCycle 3.4s var(--ease) both;
+  animation: onbMotivationCycle 4.4s var(--ease) both;
 }
 
 @keyframes onbMotivationCycle {

@@ -17,8 +17,11 @@ const STATUS_LINES = ["SAVING YOUR PROFILE", "SETTING YOUR GOALS", "PREPARING YO
 
 const TRANSITION_MS = 260;
 const BUILD_MIN_MS = 3400;
-const STATUS_INTERVAL_MS = 1500;
-const MOTIVATION_INTERVAL_MS = 3200;
+// Matches the @keyframes onbStatusCycle / onbMotivationCycle durations in
+// globals.css — kept in sync so each line's fade-out lines up with the
+// next one's arrival instead of overlapping or leaving a gap.
+const STATUS_INTERVAL_MS = 2200;
+const MOTIVATION_INTERVAL_MS = 4400;
 // Boot phase: logo entrance (~800ms, see @keyframes onbLogoBoot in
 // globals.css) + a brief hold (~500ms) where it sits perfectly still
 // before the welcome content starts crossfading in. Skipped entirely
@@ -393,17 +396,15 @@ function StepNav({
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between text-sm" style={{ borderBottom: "1px solid var(--border-soft)", paddingBottom: 8 }}>
+    <div className="flex items-center justify-between text-base" style={{ borderBottom: "1px solid var(--border-soft)", paddingBottom: 10 }}>
       <span className="text-text-3">{label}</span>
-      <span className="text-text-1">{value}</span>
+      <span className="text-text-1 font-semibold">{value}</span>
     </div>
   );
 }
 
-// Kept brief — "holds alone" should read as a deliberate beat, not a
-// pause. Total first-entry time (boot + this hold + crossfade + the
-// staggered subtitle/button reveal) targets ~2.2-3.0s end to end.
-const WELCOME_TITLE_HOLD_MS = 700;
+// "Holds alone" long enough to actually be read, not just glimpsed.
+const WELCOME_TITLE_HOLD_MS = 1800;
 
 /**
  * "Welcome to MENTA." holds alone on screen, then fades out and gives way
@@ -464,7 +465,7 @@ function HelloStep({ firstName, onDone }: { firstName: string; onDone: () => voi
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => doneRef.current(), 2600);
+    const timer = setTimeout(() => doneRef.current(), 3400);
     return () => clearTimeout(timer);
   }, []);
 
@@ -475,7 +476,7 @@ function HelloStep({ firstName, onDone }: { firstName: string; onDone: () => voi
       </h1>
       <p className="onb-subtitle">We&rsquo;re going to build your MENTA around you.</p>
       <div className="onb-actions">
-        <button type="button" className="text-sm text-text-2 hover:text-text-1 transition-colors" onClick={onDone}>
+        <button type="button" className="text-base text-text-2 hover:text-text-1 transition-colors" onClick={onDone}>
           Continue
         </button>
       </div>

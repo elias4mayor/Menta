@@ -208,7 +208,7 @@ export default async function DashboardPage() {
               backgroundClip: "padding-box, border-box",
             }}
           >
-            <div className="mono text-text-3 mb-3"><GlowWaveText intensity="strong">MENTA AI</GlowWaveText></div>
+            <div className="text-base font-bold text-text-1 mb-3"><GlowWaveText intensity="strong">MENTA AI</GlowWaveText></div>
             {aiConfigured ? (
               <span className="badge badge-live mb-3">Connected</span>
             ) : (
