@@ -142,6 +142,49 @@ export const filmMetadataSchema = z.object({
   durationSec: z.coerce.number().min(0).optional(),
 });
 
+export const DOCUMENT_CATEGORIES = [
+  "PHYSICAL",
+  "MEDICAL_CLEARANCE",
+  "INJURY",
+  "INSURANCE",
+  "EMERGENCY_INFO",
+  "ACADEMIC",
+  "RECRUITING",
+  "CAMP",
+  "CERTIFICATION",
+  "CREDENTIALS",
+  "BACKGROUND_CHECK",
+  "TEAM_PHYSICALS",
+  "ROSTER",
+  "SAFETY_PROTOCOL",
+  "EMERGENCY_PLAN",
+  "WAIVER",
+  "OTHER",
+] as const;
+
+export const documentMetadataSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  category: z.enum(DOCUMENT_CATEGORIES).default("OTHER"),
+  expiresAt: z.string().optional(),
+  notes: z.string().trim().max(500).optional(),
+  ownerId: z.string().optional(),
+  teamId: z.string().optional(),
+});
+
+export const documentUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(160).optional(),
+  category: z.enum(DOCUMENT_CATEGORIES).optional(),
+  expiresAt: z.string().nullable().optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const documentRequestSchema = z.object({
+  athleteEmail: z.string().trim().toLowerCase().email(),
+  title: z.string().trim().min(1).max(160),
+  category: z.enum(DOCUMENT_CATEGORIES).default("OTHER"),
+  notes: z.string().trim().max(500).optional(),
+});
+
 export const createClipSchema = z.object({
   startSec: z.coerce.number().min(0),
   endSec: z.coerce.number().min(0).optional(),

@@ -124,3 +124,78 @@ export async function canViewFilm(
   }
   return false;
 }
+
+/**
+ * Document access — every document has exactly one of ownerId (a personal
+ * document, about one athlete) or teamId (a team-level document) set.
+ * Personal: the owner, the uploader, and an APPROVED guardian of the
+ * owner can view. Team: any member can view (same pattern as
+ * TeamSafetyProtocol), but only a coach/admin can manage — see
+ * canManageDocument below.
+ */
+export async function canAccessDocument(
+  viewer: SessionUser,
+  doc: { ownerId: string | null; teamId: string | null; uploadedById: string }
+): Promise<boolean> {
+  if (viewer.id === doc.uploadedById) return true;
+  if (viewer.role === "SUPER_ADMIN") return true;
+
+  if (doc.ownerId) {
+    if (viewer.id === doc.ownerId) return true;
+    const link = await prisma.guardianLink.findFirst({
+      where: { guardianId: viewer.id, athleteId: doc.ownerId, status: "APPROVED" },
+    });
+    return Boolean(link);
+  }
+
+  if (doc.teamId) {
+    const role = await getTeamRole(viewer.id, doc.teamId);
+    return role !== null;
+  }
+
+  return false;
+}
+
+/** Who may upload/edit/delete a document — the owner, the original
+ * uploader, an APPROVED guardian of the owner (personal docs), or a
+ * coach/admin of the team (team docs). Stricter than canAccessDocument:
+ * a teammate can view a team document but not delete it. */
+export async function canManageDocument(
+  viewer: SessionUser,
+  doc: { ownerId: string | null; teamId: string | null; uploadedById: string }
+): Promise<boolean> {
+  if (viewer.id === doc.uploadedById) return true;
+  if (viewer.role === "SUPER_ADMIN") return true;
+
+  if (doc.ownerId) {
+    if (viewer.id === doc.ownerId) return true;
+    const link = await prisma.guardianLink.findFirst({
+      where: { guardianId: viewer.id, athleteId: doc.ownerId, status: "APPROVED" },
+    });
+    return Boolean(link);
+  }
+
+  if (doc.teamId) return isTeamCoachOrAdmin(viewer.id, doc.teamId);
+
+  return false;
+}
+
+/** Who may ask an athlete to upload a document — a coach/trainer sharing
+ * a team with them, or an APPROVED guardian. */
+export async function canRequestDocumentFrom(requester: SessionUser, athleteId: string): Promise<boolean> {
+  if (requester.id === athleteId) return false;
+  if (requester.role === "SUPER_ADMIN") return true;
+
+  if (requester.role === "PARENT") {
+    const link = await prisma.guardianLink.findFirst({
+      where: { guardianId: requester.id, athleteId, status: "APPROVED" },
+    });
+    if (link) return true;
+  }
+
+  if (requester.role === "COACH" || requester.role === "TRAINER") {
+    if (await usersShareTeam(requester.id, athleteId)) return true;
+  }
+
+  return false;
+}

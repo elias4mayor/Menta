@@ -73,6 +73,10 @@ model User {
   safetyChecklistItems       SafetyChecklistItem[]
   createdTeamSafetyProtocols TeamSafetyProtocol[]       @relation("TeamSafetyProtocolCreator")
   createdTeamSafetyChecklist TeamSafetyChecklistItem[]  @relation("TeamSafetyChecklistCreator")
+  ownedDocuments             Document[]                 @relation("DocumentOwner")
+  uploadedDocuments          Document[]                 @relation("DocumentUploader")
+  documentRequestsMade       DocumentRequest[]          @relation("DocumentRequester")
+  documentRequestsReceived   DocumentRequest[]          @relation("DocumentRequestAthlete")
 
   @@index([role])
 }
@@ -223,6 +227,7 @@ model Team {
   films                Film[]
   safetyProtocols      TeamSafetyProtocol[]
   safetyChecklistItems TeamSafetyChecklistItem[]
+  documents            Document[]
 
   @@index([organizationId])
 }
@@ -916,4 +921,67 @@ model TeamSafetyChecklistItem {
   createdBy User @relation("TeamSafetyChecklistCreator", fields: [createdById], references: [id])
 
   @@index([teamId])
+}
+
+/// MENTA Documents — a secure records center, not a generic file uploader.
+/// Every document has exactly one of ownerId (a personal document, about
+/// one athlete) or teamId (a team-level document — roster, waiver, safety
+/// plan) set, never both. Access is enforced in src/lib/permissions.ts's
+/// canAccessDocument(), reused by every route that touches a document —
+/// never inferred from ownerId/teamId directly in a route handler. Medical-
+/// adjacent categories (MEDICAL_CLEARANCE, INJURY, INSURANCE, EMERGENCY)
+/// are not a separate model — they get the same strict ownership check as
+/// every other category, since this is an organization/reminder tool, not
+/// a medical record system with its own regulatory model.
+///
+/// Category (Athlete/Parent-owned): PHYSICAL, MEDICAL_CLEARANCE, INJURY,
+///   INSURANCE, EMERGENCY_INFO, ACADEMIC, RECRUITING, CAMP, CERTIFICATION, OTHER
+/// Category (Coach/Trainer-owned, no team/athlete): CERTIFICATION,
+///   CREDENTIALS, BACKGROUND_CHECK, INSURANCE, OTHER
+/// Category (team-owned): TEAM_PHYSICALS, ROSTER, SAFETY_PROTOCOL,
+///   EMERGENCY_PLAN, CERTIFICATION, WAIVER, INSURANCE, OTHER
+model Document {
+  id               String    @id @default(cuid())
+  name             String
+  category         String
+  storageKey       String
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  expiresAt        DateTime?
+  notes            String?
+  ownerId          String?
+  teamId           String?
+  uploadedById     String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  owner      User? @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  team       Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  @@index([ownerId])
+  @@index([teamId])
+}
+
+/// A coach/trainer/parent asking an athlete to upload something — "Please
+/// upload your 2026 physical." Not a document itself; fulfilledDocumentId
+/// links to the Document once the athlete responds.
+/// Status: PENDING, FULFILLED, DISMISSED
+model DocumentRequest {
+  id                  String    @id @default(cuid())
+  requestedById       String
+  athleteId           String
+  title               String
+  category            String
+  notes               String?
+  status              String    @default("PENDING")
+  fulfilledDocumentId String?
+  createdAt           DateTime  @default(now())
+  resolvedAt          DateTime?
+
+  requestedBy User @relation("DocumentRequester", fields: [requestedById], references: [id])
+  athlete     User @relation("DocumentRequestAthlete", fields: [athleteId], references: [id])
+
+  @@index([athleteId])
 }

@@ -25,6 +25,21 @@ export const ALLOWED_VIDEO_TYPES = [
 
 export const MAX_UPLOAD_BYTES = (Number(process.env.MAX_UPLOAD_MB) || 300) * 1024 * 1024;
 
+export const ALLOWED_DOCUMENT_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+] as const;
+
+export const MAX_DOCUMENT_UPLOAD_BYTES = (Number(process.env.MAX_DOCUMENT_UPLOAD_MB) || 20) * 1024 * 1024;
+
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"] as const;
+
+export const MAX_AVATAR_UPLOAD_BYTES = (Number(process.env.MAX_AVATAR_UPLOAD_MB) || 8) * 1024 * 1024;
+
 function resolveKeyPath(key: string): string {
   const resolved = path.resolve(STORAGE_ROOT, key);
   if (!resolved.startsWith(STORAGE_ROOT)) {
@@ -64,6 +79,13 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   "video/webm": "webm",
   "video/x-matroska": "mkv",
   "video/x-m4v": "m4v",
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
 export function extensionForMimeType(mimeType: string): string {

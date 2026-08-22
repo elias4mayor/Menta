@@ -48,6 +48,7 @@ function navSectionsForRole(role: string): NavSection[] {
       {
         label: "You",
         items: [
+          { href: "/documents", label: "Documents" },
           { href: "/profile", label: "Profile" },
           { href: "/settings", label: "Settings" },
         ],
@@ -81,6 +82,7 @@ function navSectionsForRole(role: string): NavSection[] {
       {
         label: "You",
         items: [
+          { href: "/documents", label: "Documents" },
           { href: "/profile", label: "Profile" },
           { href: "/settings", label: "Settings" },
         ],
@@ -111,6 +113,7 @@ function navSectionsForRole(role: string): NavSection[] {
       {
         label: "You",
         items: [
+          { href: "/documents", label: "Documents" },
           { href: "/profile", label: "Profile" },
           { href: "/settings", label: "Settings" },
         ],
@@ -155,6 +158,7 @@ function navSectionsForRole(role: string): NavSection[] {
     {
       label: "You",
       items: [
+        { href: "/documents", label: "Documents" },
         { href: "/profile", label: "Profile" },
         { href: "/settings", label: "Settings" },
       ],
