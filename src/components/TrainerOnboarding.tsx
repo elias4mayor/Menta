@@ -90,14 +90,14 @@ export function TrainerOnboarding({ name }: { name: string }) {
   return (
     <div className="onb-root">
       <div className="onb-ambient" aria-hidden="true" />
-      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo" priority />
+      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo onb-logo-settled" priority />
 
       <div className="onb-stage" style={{ maxWidth: 560 }}>
         <div key={step} className="onb-content onb-enter">
           {step === "info" ? (
             <>
-              <h1 className="onb-title">Welcome to MENTA, {firstName}.</h1>
-              <p className="onb-subtitle">Build the programs your athletes actually need.</p>
+              <h1 className="onb-title">Let&rsquo;s set up your training profile.</h1>
+              <p className="onb-subtitle">{`${firstName}, build the programs your athletes actually need.`}</p>
 
               <form onSubmit={submitProfile} className="onb-fields space-y-4">
                 <div className="grid grid-cols-2 gap-4">

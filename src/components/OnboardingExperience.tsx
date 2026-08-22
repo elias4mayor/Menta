@@ -11,7 +11,7 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { pickMotivationalMessages } from "@/lib/motivational-messages";
 
-type Step = "boot" | "welcome" | "hello" | "sport" | "school" | "goals" | "review" | "building" | "reveal";
+type Step = "sport" | "school" | "goals" | "review" | "building" | "reveal";
 
 const QUESTION_STEPS: Step[] = ["sport", "school", "goals", "review"];
 
@@ -24,13 +24,6 @@ const BUILD_MIN_MS = 3400;
 // next one's arrival instead of overlapping or leaving a gap.
 const STATUS_INTERVAL_MS = 2200;
 const MOTIVATION_INTERVAL_MS = 4400;
-// Boot phase: logo entrance (~800ms, see @keyframes onbLogoBoot in
-// globals.css) + a brief hold (~500ms) where it sits perfectly still
-// before the welcome content starts crossfading in. Skipped entirely
-// under prefers-reduced-motion so the interface is immediately usable
-// rather than making anyone wait out an animation they've asked not to
-// see.
-const BOOT_MS = 1300;
 
 /**
  * The full first-launch onboarding experience: one dark, continuous
@@ -39,13 +32,16 @@ const BOOT_MS = 1300;
  * previous boxed multi-step form. Every value shown at the end (name,
  * sport, goals) is the athlete's own real answer; nothing here is invented
  * or implies computation (like a generated training plan) that doesn't
- * actually happen.
+ * actually happen. Reached only from behind OnboardingGate/MentaIntro,
+ * whose own logo reveal + "Welcome to MENTA." + "Hello" beats already
+ * cover what this component's old boot/welcome/hello preamble used to —
+ * this starts straight at the first real question.
  */
 export function OnboardingExperience({ name }: { name: string }) {
   const router = useRouter();
   const firstName = name.split(" ")[0];
 
-  const [step, setStep] = useState<Step>("boot");
+  const [step, setStep] = useState<Step>("sport");
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -72,16 +68,6 @@ export function OnboardingExperience({ name }: { name: string }) {
       setPhase("enter");
     }, TRANSITION_MS);
   }
-
-  // The boot phase (logo alone, no content) advances to "welcome"
-  // automatically — under reduced motion it advances immediately instead
-  // of holding for the full boot duration, since there's no entrance
-  // animation to wait out.
-  useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = setTimeout(() => goTo("welcome"), reduceMotion ? 0 : BOOT_MS);
-    return () => clearTimeout(timer);
-  }, []);
 
   function addGoal() {
     const trimmed = goalInput.trim();
@@ -159,7 +145,7 @@ export function OnboardingExperience({ name }: { name: string }) {
     <div className="onb-root">
       <div className="onb-ambient" aria-hidden="true" />
 
-      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo" priority />
+      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo onb-logo-settled" priority />
 
       {showProgress && (
         <>
@@ -177,10 +163,6 @@ export function OnboardingExperience({ name }: { name: string }) {
 
       <div className="onb-stage">
         <div key={step} className={`onb-content ${phase === "exit" ? "onb-exit" : "onb-enter"}`}>
-          {step === "welcome" && <WelcomeStep onBegin={() => goTo("hello")} />}
-
-          {step === "hello" && <HelloStep firstName={firstName} onDone={() => goTo("sport")} />}
-
           {step === "sport" && (
             <>
               <h1 className="onb-title">
@@ -235,7 +217,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                   />
                 </div>
               </div>
-              <StepNav onBack={() => goTo("hello")} onNext={() => goTo("school")} nextDisabled={!canAdvanceSport} />
+              <StepNav onNext={() => goTo("school")} nextDisabled={!canAdvanceSport} />
             </>
           )}
 
@@ -385,16 +367,18 @@ function StepNav({
   nextDisabled,
   nextLabel = "Continue",
 }: {
-  onBack: () => void;
+  onBack?: () => void;
   onNext: () => void;
   nextDisabled?: boolean;
   nextLabel?: string;
 }) {
   return (
     <div className="onb-nav">
-      <button type="button" className="btn-secondary" onClick={onBack}>
-        Back
-      </button>
+      {onBack && (
+        <button type="button" className="btn-secondary" onClick={onBack}>
+          Back
+        </button>
+      )}
       <button type="button" className="btn-primary" disabled={nextDisabled} onClick={onNext}>
         {nextLabel}
       </button>
@@ -408,87 +392,6 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
       <span className="text-text-3">{label}</span>
       <span className="text-text-1 font-semibold">{value}</span>
     </div>
-  );
-}
-
-// "Holds alone" long enough to actually be read, not just glimpsed.
-const WELCOME_TITLE_HOLD_MS = 1800;
-
-/**
- * "Welcome to MENTA." holds alone on screen, then fades out and gives way
- * to the subtitle + begin button — a title card, not everything appearing
- * at once.
- */
-function WelcomeStep({ onBegin }: { onBegin: () => void }) {
-  const [act, setAct] = useState<"title" | "rest">("title");
-  const [titlePhase, setTitlePhase] = useState<"enter" | "exit">("enter");
-
-  useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const exitTimer = setTimeout(() => setTitlePhase("exit"), reduceMotion ? 0 : WELCOME_TITLE_HOLD_MS);
-    const switchTimer = setTimeout(
-      () => setAct("rest"),
-      reduceMotion ? 0 : WELCOME_TITLE_HOLD_MS + TRANSITION_MS
-    );
-    return () => {
-      clearTimeout(exitTimer);
-      clearTimeout(switchTimer);
-    };
-  }, []);
-
-  if (act === "title") {
-    return (
-      <div className={`onb-content ${titlePhase === "exit" ? "onb-exit" : "onb-enter"}`}>
-        <h1 className="onb-title">
-          <GlowWaveText intensity="strong" speedMs={4200}>
-            Welcome to MENTA.
-          </GlowWaveText>
-        </h1>
-      </div>
-    );
-  }
-
-  return (
-    <div className="onb-content onb-enter">
-      <div className="onb-eyebrow">Athlete Operating System</div>
-      <p className="onb-subtitle" style={{ marginTop: 12 }}>
-        Let&rsquo;s build the athlete you want to become.
-      </p>
-      <div className="onb-actions">
-        <button type="button" className="btn-primary" onClick={onBegin}>
-          Let&rsquo;s begin
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M5 12h14M13 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function HelloStep({ firstName, onDone }: { firstName: string; onDone: () => void }) {
-  const doneRef = useRef(onDone);
-  useEffect(() => {
-    doneRef.current = onDone;
-  });
-
-  useEffect(() => {
-    const timer = setTimeout(() => doneRef.current(), 3400);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <>
-      <h1 className="onb-title">
-        <GlowWaveText intensity="strong" speedMs={4200}>{`Hello, ${firstName}.`}</GlowWaveText>
-      </h1>
-      <p className="onb-subtitle">We&rsquo;re going to build your MENTA around you.</p>
-      <div className="onb-actions">
-        <button type="button" className="text-base text-text-2 hover:text-text-1 transition-colors" onClick={onDone}>
-          Continue
-        </button>
-      </div>
-    </>
   );
 }
 

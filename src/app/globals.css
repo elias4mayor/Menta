@@ -1264,6 +1264,17 @@ h4 {
   }
 }
 
+/* Used by every onboarding content component (they're only ever reached
+   from behind OnboardingGate/MentaIntro, whose own small logo mark is
+   already sitting in this exact spot when it hands off) so the logo
+   doesn't play a second boot/fade-in on top of the one MentaIntro just
+   finished — it just keeps floating from wherever it already was. */
+.onb-logo.onb-logo-settled {
+  opacity: 0.92;
+  transform: translateX(-50%);
+  animation: onbLogoFloat 6s ease-in-out infinite;
+}
+
 @keyframes onbLogoFloat {
   0%,
   100% {
@@ -1606,5 +1617,167 @@ h4 {
 @media (max-width: 480px) {
   .onb-title {
     font-size: clamp(24px, 7vw, 32px);
+  }
+}
+
+/* ---------- MENTA cinematic first-launch intro ----------
+   Plays once, immediately after signup, before the role's onboarding
+   questions — see MentaIntro.tsx. Fixed full-screen overlay, independent
+   of .onb-root's light theme (it starts black and fades to white as its
+   last act), so it composites cleanly on top of whichever onboarding
+   root is mounted underneath it. Same fade grammar as .onb-content
+   (.mi-enter/.mi-exit mirror .onb-enter/.onb-exit) so the motion reads
+   as the same product, not a different animation system bolted on. */
+.mi-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+  transition: background-color 0.9s var(--ease);
+}
+
+.mi-root.mi-revealing {
+  background: #fff;
+}
+
+.mi-glow {
+  position: absolute;
+  width: 55vw;
+  height: 55vw;
+  max-width: 600px;
+  max-height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.07), transparent 72%);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+.mi-root.mi-revealing .mi-glow {
+  opacity: 0;
+}
+
+.mi-glow.mi-glow-on {
+  opacity: 1;
+}
+
+.mi-logo {
+  position: fixed;
+  z-index: 2;
+  height: 56px;
+  width: auto;
+  opacity: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  filter: none;
+  transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), top 0.9s var(--ease),
+    height 0.9s var(--ease), filter 0.9s var(--ease);
+}
+
+.mi-logo.mi-logo-on {
+  opacity: 0.95;
+}
+
+.mi-logo.mi-logo-small {
+  top: max(20px, env(safe-area-inset-top));
+  height: 22px;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.mi-root.mi-revealing .mi-logo {
+  filter: invert(1);
+  opacity: 0.92;
+}
+
+.mi-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 640px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mi-content {
+  width: 100%;
+}
+
+.mi-content.mi-enter {
+  animation: miEnter 0.5s var(--ease) both;
+}
+
+.mi-content.mi-exit {
+  animation: miExit 0.24s var(--ease) both;
+}
+
+@keyframes miEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes miExit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.mi-line {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(30px, 6vw, 52px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.mi-line-sub {
+  margin-top: 14px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(13px, 2vw, 15px);
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.mi-categories {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+}
+
+.mi-categories.mi-categories-on {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-root {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .mi-line {
+    font-size: clamp(24px, 7.5vw, 34px);
   }
 }

@@ -90,13 +90,13 @@ export function CoachOnboarding({ name }: { name: string }) {
   return (
     <div className="onb-root">
       <div className="onb-ambient" aria-hidden="true" />
-      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo" priority />
+      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo onb-logo-settled" priority />
 
       <div className="onb-stage" style={{ maxWidth: 560 }}>
         <div key={step} className="onb-content onb-enter">
           {step === "info" ? (
             <>
-              <h1 className="onb-title">Welcome to MENTA, Coach.</h1>
+              <h1 className="onb-title">Let&rsquo;s set up your team.</h1>
               <p className="onb-subtitle">{`${firstName}, your team has a lot to manage. MENTA brings it together.`}</p>
 
               <form onSubmit={submitProfile} className="onb-fields space-y-4">

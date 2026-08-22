@@ -56,14 +56,14 @@ export function ParentOnboarding({ name }: { name: string }) {
   return (
     <div className="onb-root">
       <div className="onb-ambient" aria-hidden="true" />
-      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo" priority />
+      <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo onb-logo-settled" priority />
 
       <div className="onb-stage" style={{ maxWidth: 520 }}>
         <div className="onb-content onb-enter">
           {!saved ? (
             <>
-              <h1 className="onb-title">Welcome to MENTA, {firstName}.</h1>
-              <p className="onb-subtitle">Stay connected to the athlete without adding more noise.</p>
+              <h1 className="onb-title">Let&rsquo;s get you connected.</h1>
+              <p className="onb-subtitle">{`${firstName}, stay connected to the athlete without adding more noise.`}</p>
 
               <form onSubmit={saveProfile} className="onb-fields space-y-4">
                 <div>
