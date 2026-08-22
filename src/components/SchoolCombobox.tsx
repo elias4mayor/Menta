@@ -3,6 +3,7 @@
 import { useId, useMemo, useRef, useState } from "react";
 import US_HIGH_SCHOOLS from "@/lib/data/us-high-schools.json";
 import US_COLLEGES from "@/lib/data/us-colleges.json";
+import { useDropdownPlacement } from "@/lib/use-dropdown-placement";
 
 type SchoolType = "High School" | "College";
 type SchoolEntry = { name: string; state: string; type: SchoolType };
@@ -51,10 +52,12 @@ export function SchoolCombobox({
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
 
   const matches = useMemo(() => matchesFor(value), [value]);
   const showList = open && matches.length > 0;
+  const { openUpward, maxHeight } = useDropdownPlacement(showList, rootRef);
 
   function choose(school: SchoolEntry) {
     onChange(school.name);
@@ -80,7 +83,7 @@ export function SchoolCombobox({
   }
 
   return (
-    <div className="select-root">
+    <div ref={rootRef} className="select-root">
       <input
         id={id}
         className="field-input"
@@ -103,7 +106,7 @@ export function SchoolCombobox({
         onKeyDown={handleKeyDown}
       />
       {showList && (
-        <ul id={listboxId} role="listbox" className="select-panel">
+        <ul id={listboxId} role="listbox" className={`select-panel${openUpward ? " select-panel-up" : ""}`} style={{ maxHeight }}>
           {matches.map((school, i) => (
             <li
               key={`${school.name}-${school.state}-${school.type}`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useDropdownPlacement } from "@/lib/use-dropdown-placement";
 
 export type SelectOption = { value: string; label: string; disabled?: boolean };
 
@@ -31,6 +32,7 @@ export function Select({
   const listRef = useRef<HTMLUListElement>(null);
 
   const selected = options.find((o) => o.value === value);
+  const { openUpward, maxHeight } = useDropdownPlacement(open, rootRef);
 
   useEffect(() => {
     if (!open) return;
@@ -103,7 +105,14 @@ export function Select({
         </svg>
       </button>
       {open && (
-        <ul ref={listRef} role="listbox" tabIndex={-1} className="select-panel" aria-activedescendant={id ? `${id}-opt-${highlighted}` : undefined}>
+        <ul
+          ref={listRef}
+          role="listbox"
+          tabIndex={-1}
+          className={`select-panel${openUpward ? " select-panel-up" : ""}`}
+          style={{ maxHeight }}
+          aria-activedescendant={id ? `${id}-opt-${highlighted}` : undefined}
+        >
           {options.map((opt, i) => (
             <li
               key={opt.value}

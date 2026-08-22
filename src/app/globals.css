@@ -385,6 +385,15 @@ h4 {
   list-style: none;
 }
 
+/* Flips the panel above its trigger instead of below — applied when
+   useDropdownPlacement() measures too little room underneath (e.g. a
+   dropdown near the bottom of the viewport, right above the onboarding
+   Continue button). */
+.select-panel-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 .select-option {
   display: flex;
   align-items: center;

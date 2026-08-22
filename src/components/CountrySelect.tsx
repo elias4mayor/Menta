@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import { ALL_COUNTRIES, flagEmoji } from "@/lib/geo";
+import { useDropdownPlacement } from "@/lib/use-dropdown-placement";
 
 const MAX_RESULTS = 8;
 
@@ -27,6 +28,7 @@ export function CountrySelect({
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
 
   const matches = useMemo(() => {
@@ -38,6 +40,7 @@ export function CountrySelect({
   }, [query]);
 
   const showList = open && matches.length > 0;
+  const { openUpward, maxHeight } = useDropdownPlacement(showList, rootRef);
 
   function choose(name: string) {
     onChange(name);
@@ -64,7 +67,7 @@ export function CountrySelect({
   }
 
   return (
-    <div className="select-root">
+    <div ref={rootRef} className="select-root">
       <input
         id={id}
         className="field-input"
@@ -92,7 +95,7 @@ export function CountrySelect({
         onKeyDown={handleKeyDown}
       />
       {showList && (
-        <ul id={listboxId} role="listbox" className="select-panel">
+        <ul id={listboxId} role="listbox" className={`select-panel${openUpward ? " select-panel-up" : ""}`} style={{ maxHeight }}>
           {matches.map((c, i) => (
             <li
               key={c.code}
