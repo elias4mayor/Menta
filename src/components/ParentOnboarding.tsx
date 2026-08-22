@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
 import { GuardianLinks } from "@/components/GuardianLinks";
 
-const RELATIONSHIPS = ["Parent", "Guardian", "Other"];
+export const RELATIONSHIPS = ["Parent", "Guardian", "Other"];
 
 /**
  * Parent/guardian onboarding — Phase 1 scope. Saves a real ParentProfile

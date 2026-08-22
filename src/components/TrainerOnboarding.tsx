@@ -7,7 +7,7 @@ import { Select } from "@/components/Select";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
 
-const SPECIALTIES = [
+export const SPECIALTIES = [
   "Strength",
   "Speed",
   "Agility",

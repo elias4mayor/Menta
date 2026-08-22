@@ -1,15 +1,24 @@
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { ProfileForm } from "@/components/ProfileForm";
+import { CoachProfileForm } from "@/components/CoachProfileForm";
+import { TrainerProfileForm } from "@/components/TrainerProfileForm";
+import { ParentProfileForm } from "@/components/ParentProfileForm";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { isMinor } from "@/lib/permissions";
 
+function parseJsonArray(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function ProfilePage() {
   const user = await requireUser();
-  const [profile, account] = await Promise.all([
-    prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
-    prisma.user.findUnique({ where: { id: user.id }, select: { dateOfBirth: true } }),
-  ]);
 
   return (
     <div className="w-full flex justify-center">
@@ -19,30 +28,81 @@ export default async function ProfilePage() {
         <div className="flex justify-center mb-8">
           <AvatarUpload userId={user.id} name={user.name} />
         </div>
-        {user.role === "ATHLETE" ? (
-          <ProfileForm
-            isMinor={isMinor(account?.dateOfBirth)}
-            initial={{
-              sport: profile?.sport ?? "",
-              position: profile?.position ?? "",
-              graduationYear: profile?.graduationYear ?? undefined,
-              heightCm: profile?.heightCm ?? undefined,
-              weightKg: profile?.weightKg ?? undefined,
-              schoolName: profile?.schoolName ?? "",
-              city: profile?.city ?? "",
-              state: profile?.state ?? "",
-              bio: profile?.bio ?? "",
-              gpa: profile?.gpa ?? undefined,
-              visibility: profile?.visibility ?? "PRIVATE",
-            }}
-          />
-        ) : (
-          <p className="text-text-3 text-sm text-center">
-            A dedicated {user.role.toLowerCase()} profile editor isn&rsquo;t built yet — your account details are
-            what you entered during onboarding. This page currently manages your photo.
-          </p>
-        )}
+        <ProfileFormForRole role={user.role} userId={user.id} />
       </div>
     </div>
+  );
+}
+
+async function ProfileFormForRole({ role, userId }: { role: string; userId: string }) {
+  if (role === "COACH") {
+    const profile = await prisma.coachProfile.findUnique({ where: { userId } });
+    return (
+      <CoachProfileForm
+        initial={{
+          phone: profile?.phone ?? "",
+          sport: profile?.sport ?? "",
+          coachingRole: profile?.coachingRole ?? "",
+          yearsCoaching: profile?.yearsCoaching ?? undefined,
+          organizationName: profile?.organizationName ?? "",
+          schoolName: profile?.schoolName ?? "",
+          focusAreas: parseJsonArray(profile?.focusAreas),
+        }}
+      />
+    );
+  }
+
+  if (role === "TRAINER") {
+    const profile = await prisma.trainerProfile.findUnique({ where: { userId } });
+    return (
+      <TrainerProfileForm
+        initial={{
+          phone: profile?.phone ?? "",
+          businessName: profile?.businessName ?? "",
+          sport: profile?.sport ?? "",
+          specialties: parseJsonArray(profile?.specialties),
+          trainingLocation: profile?.trainingLocation ?? "",
+          yearsExperience: profile?.yearsExperience ?? undefined,
+          certifications: profile?.certifications ?? "",
+          trainingPhilosophy: profile?.trainingPhilosophy ?? "",
+        }}
+      />
+    );
+  }
+
+  if (role === "PARENT") {
+    const profile = await prisma.parentProfile.findUnique({ where: { userId } });
+    return (
+      <ParentProfileForm
+        initial={{
+          phone: profile?.phone ?? "",
+          relationship: profile?.relationship ?? "",
+        }}
+      />
+    );
+  }
+
+  const [profile, account] = await Promise.all([
+    prisma.athleteProfile.findUnique({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { dateOfBirth: true } }),
+  ]);
+
+  return (
+    <ProfileForm
+      isMinor={isMinor(account?.dateOfBirth)}
+      initial={{
+        sport: profile?.sport ?? "",
+        position: profile?.position ?? "",
+        graduationYear: profile?.graduationYear ?? undefined,
+        heightCm: profile?.heightCm ?? undefined,
+        weightKg: profile?.weightKg ?? undefined,
+        schoolName: profile?.schoolName ?? "",
+        city: profile?.city ?? "",
+        state: profile?.state ?? "",
+        bio: profile?.bio ?? "",
+        gpa: profile?.gpa ?? undefined,
+        visibility: profile?.visibility ?? "PRIVATE",
+      }}
+    />
   );
 }

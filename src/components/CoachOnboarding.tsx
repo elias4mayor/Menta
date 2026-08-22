@@ -7,8 +7,8 @@ import { Select } from "@/components/Select";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
 
-const COACHING_ROLES = ["Head Coach", "Assistant Coach", "Strength Coach", "Position Coach", "Other"];
-const FOCUS_AREAS = [
+export const COACHING_ROLES = ["Head Coach", "Assistant Coach", "Strength Coach", "Position Coach", "Other"];
+export const FOCUS_AREAS = [
   "Team management",
   "Training",
   "Player development",
