@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 
-// Single clean grotesk for every heading and body across the whole site —
-// the closest free equivalent to Apple/Nike's own system sans (SF Pro /
-// Helvetica Neue), used everywhere on purpose so the site reads as one
-// consistent, minimal typeface rather than mixing display faces per page.
+// Fallback for the --font-heading/--font-body chain in globals.css, which
+// puts the real system-font stack (-apple-system/BlinkMacSystemFont, so
+// macOS/iOS actually render San Francisco, Segoe UI on Windows) first —
+// Inter only renders on platforms with neither (Android, Linux, older
+// browsers). Loaded once, used everywhere, so the whole app — marketing
+// site, every auth screen, onboarding, every dashboard — reads as one
+// consistent typeface rather than mixing display faces per page.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
