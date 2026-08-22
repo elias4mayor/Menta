@@ -25,7 +25,12 @@ type WorkoutItem = {
   category: string;
   description: string | null;
   exercises: { name: string; sets?: string; reps?: string; notes?: string }[];
+  teamId?: string | null;
   teamName: string | null;
+  assignedToId?: string | null;
+  assignedToName?: string | null;
+  isTemplate?: boolean;
+  canManage?: boolean;
   isPlanWorkout: boolean;
   yourCompletions: number;
   lastCompletedAt: string | null;
@@ -56,6 +61,7 @@ export function WorkoutGenerator({
   defaultPosition,
   defaultTrainingDaysPerWeek,
   manageableTeams,
+  rosterByTeam,
   onCreated,
   onSwitchToManual,
 }: {
@@ -63,6 +69,7 @@ export function WorkoutGenerator({
   defaultPosition?: string | null;
   defaultTrainingDaysPerWeek?: number | null;
   manageableTeams: { id: string; name: string }[];
+  rosterByTeam: Record<string, { id: string; name: string }[]>;
   onCreated: (w: WorkoutItem) => void;
   onSwitchToManual: () => void;
 }) {
@@ -74,9 +81,13 @@ export function WorkoutGenerator({
   const [duration, setDuration] = useState<number>(30);
   const [intensity, setIntensity] = useState<Intensity>("Moderate");
   const [teamId, setTeamId] = useState("");
+  const [assignedToId, setAssignedToId] = useState("");
+  const [isTemplate, setIsTemplate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState<GeneratedWorkout | null>(null);
+
+  const roster = teamId ? rosterByTeam[teamId] ?? [] : [];
 
   const roles = useMemo(() => rolesForSport(sport), [sport]);
 
@@ -122,7 +133,9 @@ export function WorkoutGenerator({
           category: generated.category,
           description,
           exercises,
-          teamId: teamId || undefined,
+          teamId: isTemplate ? undefined : teamId || undefined,
+          assignedToId: isTemplate ? undefined : assignedToId || undefined,
+          isTemplate,
         }),
       });
       const data = await res.json();
@@ -136,7 +149,12 @@ export function WorkoutGenerator({
         category: data.workout.category,
         description: data.workout.description,
         exercises,
-        teamName: manageableTeams.find((t) => t.id === teamId)?.name ?? null,
+        teamId: data.workout.teamId,
+        teamName: isTemplate ? null : manageableTeams.find((t) => t.id === teamId)?.name ?? null,
+        assignedToId: data.workout.assignedToId,
+        assignedToName: isTemplate ? null : roster.find((r) => r.id === assignedToId)?.name ?? null,
+        isTemplate: data.workout.isTemplate,
+        canManage: true,
         isPlanWorkout: false,
         yourCompletions: 0,
         lastCompletedAt: null,
@@ -227,10 +245,18 @@ export function WorkoutGenerator({
           />
         </div>
 
-        {manageableTeams.length > 0 && (
+        {manageableTeams.length > 0 && !isTemplate && (
           <div className="col-span-2">
             <label className="field-label" htmlFor="gen-team">Assign to</label>
-            <select id="gen-team" className="field-select" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+            <select
+              id="gen-team"
+              className="field-select"
+              value={teamId}
+              onChange={(e) => {
+                setTeamId(e.target.value);
+                setAssignedToId("");
+              }}
+            >
               <option value="">Personal (my training plan)</option>
               {manageableTeams.map((t) => (
                 <option key={t.id} value={t.id}>{t.name} (team)</option>
@@ -238,7 +264,25 @@ export function WorkoutGenerator({
             </select>
           </div>
         )}
+        {teamId && !isTemplate && roster.length > 0 && (
+          <div className="col-span-2">
+            <label className="field-label" htmlFor="gen-assignee">Who on the team?</label>
+            <select id="gen-assignee" className="field-select" value={assignedToId} onChange={(e) => setAssignedToId(e.target.value)}>
+              <option value="">Whole team</option>
+              {roster.map((r) => (
+                <option key={r.id} value={r.id}>Just {r.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
+
+      {manageableTeams.length > 0 && (
+        <label className="flex items-center gap-2 text-sm text-text-2">
+          <input type="checkbox" checked={isTemplate} onChange={(e) => setIsTemplate(e.target.checked)} />
+          Save as a reusable template instead of a live workout
+        </label>
+      )}
 
       <div>
         <div className="field-label">Available equipment (optional)</div>

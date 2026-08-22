@@ -102,20 +102,34 @@ const exerciseSchema = z.object({
   notes: z.string().trim().max(200).optional(),
 });
 
+const workoutCategoryEnum = z.enum([
+  "STRENGTH",
+  "SPEED",
+  "AGILITY",
+  "CONDITIONING",
+  "MOBILITY",
+  "SKILL",
+  "RECOVERY",
+]);
+
 export const createWorkoutSchema = z.object({
   title: z.string().trim().min(1).max(160),
-  category: z.enum([
-    "STRENGTH",
-    "SPEED",
-    "AGILITY",
-    "CONDITIONING",
-    "MOBILITY",
-    "SKILL",
-    "RECOVERY",
-  ]),
+  category: workoutCategoryEnum,
   description: z.string().trim().max(1000).optional(),
   exercises: z.array(exerciseSchema).max(30).optional(),
   teamId: z.string().optional(),
+  assignedToId: z.string().optional(),
+  isTemplate: z.boolean().optional(),
+});
+
+export const updateWorkoutSchema = z.object({
+  title: z.string().trim().min(1).max(160).optional(),
+  category: workoutCategoryEnum.optional(),
+  description: z.string().trim().max(1000).optional().or(z.literal("")),
+  exercises: z.array(exerciseSchema).max(30).optional(),
+  teamId: z.string().optional().nullable(),
+  assignedToId: z.string().optional().nullable(),
+  isTemplate: z.boolean().optional(),
 });
 
 export const logWorkoutCompletionSchema = z.object({

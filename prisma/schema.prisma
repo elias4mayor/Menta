@@ -60,6 +60,7 @@ model User {
   blocksMade                 Block[]                    @relation("Blocker")
   blocksReceived             Block[]                    @relation("Blocked")
   createdWorkouts            Workout[]                  @relation("WorkoutCreator")
+  assignedWorkouts           Workout[]                  @relation("WorkoutAssignee")
   workoutCompletions         WorkoutCompletion[]
   performanceEntries         PerformanceEntry[]
   uploadedFilms              Film[]                     @relation("FilmUploader")
@@ -288,14 +289,26 @@ model Workout {
   planTag     String?
   teamId      String?
   createdById String
+  /// A coach/trainer assigning a workout to one specific roster member
+  /// rather than the whole team — independent of teamId (both can be set
+  /// together, e.g. "this team's workout, but specifically for #12").
+  assignedToId String?
+  /// A reusable workout a coach/trainer saved to copy from later, not a
+  /// live assignment itself — "Use template" duplicates it into a real
+  /// workout via the same POST /api/workouts every other workout goes
+  /// through, so a template never grants any access a normal workout
+  /// wouldn't already have.
+  isTemplate  Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   team        Team?               @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdBy   User                @relation("WorkoutCreator", fields: [createdById], references: [id])
+  assignedTo  User?               @relation("WorkoutAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
   completions WorkoutCompletion[]
 
   @@index([teamId])
   @@index([createdById])
+  @@index([assignedToId])
 }
 
 model WorkoutCompletion {

@@ -110,6 +110,17 @@ export async function canManageTeam(user: SessionUser, teamId: string): Promise<
   return isTeamCoachOrAdmin(user.id, teamId);
 }
 
+/** Edit/delete/reassign a workout: the person who created it, or (for a team workout) a coach/admin of that team. */
+export async function canManageWorkout(
+  user: SessionUser,
+  workout: { createdById: string; teamId: string | null }
+): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+  if (workout.createdById === user.id) return true;
+  if (workout.teamId) return isTeamCoachOrAdmin(user.id, workout.teamId);
+  return false;
+}
+
 /** Film/clip visibility follows the same PRIVATE/TEAM/PUBLIC pattern as calendar events. */
 export async function canViewFilm(
   viewer: SessionUser,
