@@ -8,56 +8,180 @@ import type { ReactNode } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
 import { GlowWaveText } from "@/components/GlowWaveText";
 
-const NAV_SECTIONS: { label: string; items: { href: string; label: string }[] }[] = [
-  {
-    label: "Home",
-    items: [
-      { href: "/dashboard", label: "My MENTA" },
-      { href: "/ai-coach", label: "MENTA AI" },
-    ],
-  },
-  {
-    label: "Development",
-    items: [
-      { href: "/train", label: "Training" },
-      { href: "/performance", label: "Performance" },
-      { href: "/film", label: "Film" },
-      { href: "/recovery", label: "Recovery" },
-      { href: "/mind", label: "Mindset" },
-    ],
-  },
-  {
-    label: "Future",
-    items: [
-      { href: "/school", label: "Academics" },
-      { href: "/recruit", label: "Recruiting" },
-      { href: "/safety", label: "Safety" },
-    ],
-  },
-  {
-    label: "Team",
-    items: [
-      { href: "/team", label: "Team" },
-      { href: "/messages", label: "Messages" },
-      { href: "/calendar", label: "Calendar" },
-    ],
-  },
-  {
-    label: "You",
-    items: [
-      { href: "/profile", label: "Profile" },
-      { href: "/settings", label: "Settings" },
-    ],
-  },
-];
+type NavSection = { label: string; items: { href: string; label: string }[] };
 
-const MOBILE_ITEMS = [
-  { href: "/dashboard", label: "Home" },
-  { href: "/ai-coach", label: "AI" },
-  { href: "/team", label: "Team" },
-  { href: "/messages", label: "Msgs" },
-  { href: "/profile", label: "You" },
-];
+/**
+ * Nav is role-aware: the athlete list below is the original, unchanged
+ * navigation. Coach/Trainer/Parent get a deliberately smaller list —
+ * every link here points at a route that already exists and already
+ * shows that role something real; pages that only make sense once
+ * Phases 2-4 build out the coach/trainer/parent dashboards properly
+ * (e.g. a trainer's own client/program tools) aren't linked yet rather
+ * than pointing at an athlete-shaped page that would confuse them.
+ */
+function navSectionsForRole(role: string): NavSection[] {
+  if (role === "COACH") {
+    return [
+      {
+        label: "Home",
+        items: [
+          { href: "/dashboard", label: "My MENTA" },
+          { href: "/ai-coach", label: "MENTA Coach AI" },
+        ],
+      },
+      {
+        label: "Team",
+        items: [
+          { href: "/team", label: "Team" },
+          { href: "/film", label: "Film" },
+          { href: "/safety", label: "Safety" },
+          { href: "/school", label: "Academics" },
+        ],
+      },
+      {
+        label: "Communication",
+        items: [
+          { href: "/messages", label: "Messages" },
+          { href: "/calendar", label: "Calendar" },
+        ],
+      },
+      {
+        label: "You",
+        items: [
+          { href: "/profile", label: "Profile" },
+          { href: "/settings", label: "Settings" },
+        ],
+      },
+    ];
+  }
+
+  if (role === "TRAINER") {
+    return [
+      {
+        label: "Home",
+        items: [
+          { href: "/dashboard", label: "My MENTA" },
+          { href: "/ai-coach", label: "MENTA Trainer AI" },
+        ],
+      },
+      {
+        label: "Communication",
+        items: [
+          { href: "/messages", label: "Messages" },
+          { href: "/calendar", label: "Calendar" },
+        ],
+      },
+      {
+        label: "You",
+        items: [
+          { href: "/profile", label: "Profile" },
+          { href: "/settings", label: "Settings" },
+        ],
+      },
+    ];
+  }
+
+  if (role === "PARENT") {
+    return [
+      {
+        label: "Home",
+        items: [
+          { href: "/dashboard", label: "My MENTA" },
+          { href: "/ai-coach", label: "MENTA Family AI" },
+        ],
+      },
+      {
+        label: "Athlete",
+        items: [
+          { href: "/safety", label: "Safety" },
+          { href: "/calendar", label: "Calendar" },
+        ],
+      },
+      {
+        label: "Communication",
+        items: [{ href: "/messages", label: "Messages" }],
+      },
+      {
+        label: "You",
+        items: [
+          { href: "/profile", label: "Profile" },
+          { href: "/settings", label: "Settings" },
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Home",
+      items: [
+        { href: "/dashboard", label: "My MENTA" },
+        { href: "/ai-coach", label: "MENTA AI" },
+      ],
+    },
+    {
+      label: "Development",
+      items: [
+        { href: "/train", label: "Training" },
+        { href: "/performance", label: "Performance" },
+        { href: "/film", label: "Film" },
+        { href: "/recovery", label: "Recovery" },
+        { href: "/mind", label: "Mindset" },
+      ],
+    },
+    {
+      label: "Future",
+      items: [
+        { href: "/school", label: "Academics" },
+        { href: "/recruit", label: "Recruiting" },
+        { href: "/safety", label: "Safety" },
+      ],
+    },
+    {
+      label: "Team",
+      items: [
+        { href: "/team", label: "Team" },
+        { href: "/messages", label: "Messages" },
+        { href: "/calendar", label: "Calendar" },
+      ],
+    },
+    {
+      label: "You",
+      items: [
+        { href: "/profile", label: "Profile" },
+        { href: "/settings", label: "Settings" },
+      ],
+    },
+  ];
+}
+
+function mobileItemsForRole(role: string): { href: string; label: string }[] {
+  if (role === "COACH") {
+    return [
+      { href: "/dashboard", label: "Home" },
+      { href: "/team", label: "Team" },
+      { href: "/ai-coach", label: "AI" },
+      { href: "/messages", label: "Msgs" },
+      { href: "/profile", label: "You" },
+    ];
+  }
+  if (role === "TRAINER" || role === "PARENT") {
+    return [
+      { href: "/dashboard", label: "Home" },
+      { href: "/ai-coach", label: "AI" },
+      { href: "/messages", label: "Msgs" },
+      { href: "/calendar", label: "Cal" },
+      { href: "/profile", label: "You" },
+    ];
+  }
+  return [
+    { href: "/dashboard", label: "Home" },
+    { href: "/ai-coach", label: "AI" },
+    { href: "/team", label: "Team" },
+    { href: "/messages", label: "Msgs" },
+    { href: "/profile", label: "You" },
+  ];
+}
 
 // Computed client-side only (useEffect, not during render) so the server-
 // rendered HTML and the client's first render always match — Date().getHours()
@@ -91,6 +215,8 @@ export function AppShell({
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const greeting = useTimeOfDayGreeting();
+  const navSections = navSectionsForRole(user.role);
+  const mobileItems = mobileItemsForRole(user.role);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -117,7 +243,7 @@ export function AppShell({
           />
         </Link>
         <nav className="flex-1 space-y-7 overflow-y-auto">
-          {NAV_SECTIONS.map((section) => (
+          {navSections.map((section) => (
             <div key={section.label}>
               <div className="mono text-text-3 px-3 mb-2">{section.label}</div>
               <div className="space-y-0.5">
@@ -227,7 +353,7 @@ export function AppShell({
           backdropFilter: "blur(16px)",
         }}
       >
-        {MOBILE_ITEMS.map((item) => {
+        {mobileItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link

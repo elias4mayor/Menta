@@ -34,6 +34,9 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   athleteProfile             AthleteProfile?
+  coachProfile               CoachProfile?
+  trainerProfile             TrainerProfile?
+  parentProfile              ParentProfile?
   sessions                   Session[]
   resetTokens                PasswordResetToken[]
   memberships                TeamMembership[]
@@ -120,6 +123,68 @@ model AthleteProfile {
   /// shown on the dashboard exactly as the athlete entered it.
   trainingDaysPerWeek   Int?
   visibility            String    @default("PRIVATE")
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A User with role=COACH gets this instead of AthleteProfile. Team/
+/// Organization creation-or-join at onboarding reuses the existing Team,
+/// TeamMembership (teamRole="COACH"), and Organization models — this
+/// table holds only the coach's own identity/goal fields, not a second
+/// team system.
+model CoachProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  sport                 String?
+  /// Head Coach, Assistant Coach, Strength Coach, Position Coach, Other
+  coachingRole          String?
+  yearsCoaching         Int?
+  organizationName      String?
+  schoolName            String?
+  /// JSON-stringified array of the coach's selected focus areas from
+  /// onboarding (e.g. "Training", "Film", "Recruiting") — same freeform
+  /// string-array pattern as Workout.exercises, not a second enum system.
+  focusAreas            String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A User with role=TRAINER gets this instead of AthleteProfile.
+model TrainerProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  businessName          String?
+  sport                 String?
+  /// JSON-stringified array (Strength, Speed, Agility, Mobility, ...).
+  specialties           String?
+  trainingLocation      String?
+  yearsExperience       Int?
+  certifications        String?
+  trainingPhilosophy    String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A User with role=PARENT gets this instead of AthleteProfile. Athlete
+/// connections themselves reuse GuardianLink (see src/app/api/guardian) —
+/// this table is only the parent's own identity fields.
+model ParentProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  /// Parent, Guardian, Other
+  relationship          String?
   onboardingCompletedAt DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

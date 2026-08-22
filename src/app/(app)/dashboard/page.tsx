@@ -8,6 +8,10 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 import { PlanCard } from "@/components/PlanCard";
 import { demandsFor } from "@/lib/sports";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
+import { CoachDashboard } from "@/components/CoachDashboard";
+import { TrainerDashboard } from "@/components/TrainerDashboard";
+import { ParentDashboard } from "@/components/ParentDashboard";
+import type { SessionUser } from "@/lib/session";
 
 function startOfDay(d: Date) {
   const copy = new Date(d);
@@ -23,6 +27,15 @@ function endOfDay(d: Date) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
+
+  if (user.role === "COACH") return <CoachDashboard user={user} />;
+  if (user.role === "TRAINER") return <TrainerDashboard user={user} />;
+  if (user.role === "PARENT") return <ParentDashboard user={user} />;
+
+  return <AthleteDashboard user={user} />;
+}
+
+async function AthleteDashboard({ user }: { user: SessionUser }) {
   const now = new Date();
 
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

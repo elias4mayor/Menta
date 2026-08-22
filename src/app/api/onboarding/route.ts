@@ -8,6 +8,12 @@ import { buildStarterWorkouts, ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (user.role !== "ATHLETE") {
+    return NextResponse.json(
+      { error: "This onboarding endpoint is for athlete accounts. See /api/onboarding/coach, /trainer, or /parent." },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = onboardingSchema.safeParse(body);

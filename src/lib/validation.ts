@@ -38,6 +38,32 @@ export const onboardingSchema = z.object({
   goals: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
 });
 
+export const coachOnboardingSchema = z.object({
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  sport: z.string().trim().max(60).optional().or(z.literal("")),
+  coachingRole: z.string().trim().max(60).optional().or(z.literal("")),
+  yearsCoaching: z.coerce.number().int().min(0).max(70).optional(),
+  organizationName: z.string().trim().max(160).optional().or(z.literal("")),
+  schoolName: z.string().trim().max(160).optional().or(z.literal("")),
+  focusAreas: z.array(z.string().trim().min(1).max(60)).max(15).optional(),
+});
+
+export const trainerOnboardingSchema = z.object({
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  businessName: z.string().trim().max(160).optional().or(z.literal("")),
+  sport: z.string().trim().max(60).optional().or(z.literal("")),
+  specialties: z.array(z.string().trim().min(1).max(60)).max(15).optional(),
+  trainingLocation: z.string().trim().max(160).optional().or(z.literal("")),
+  yearsExperience: z.coerce.number().int().min(0).max(70).optional(),
+  certifications: z.string().trim().max(300).optional().or(z.literal("")),
+  trainingPhilosophy: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export const parentOnboardingSchema = z.object({
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  relationship: z.string().trim().max(60).optional().or(z.literal("")),
+});
+
 export const profileUpdateSchema = z.object({
   sport: z.string().trim().max(60).optional(),
   position: z.string().trim().max(60).optional(),
