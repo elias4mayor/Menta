@@ -4,7 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
+import { CountrySelect } from "@/components/CountrySelect";
+import { PhoneInput } from "@/components/PhoneInput";
 import { GuardianLinks } from "@/components/GuardianLinks";
+import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 
 export const RELATIONSHIPS = ["Parent", "Guardian", "Other"];
 
@@ -21,6 +25,8 @@ export function ParentOnboarding({ name }: { name: string }) {
 
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState("");
+  const [country, setCountry] = useState("United States");
+  const [goals, setGoals] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +39,12 @@ export function ParentOnboarding({ name }: { name: string }) {
       const res = await fetch("/api/onboarding/parent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone || undefined, relationship: relationship || undefined }),
+        body: JSON.stringify({
+          phone: phone || undefined,
+          relationship: relationship || undefined,
+          country: country || undefined,
+          goals,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -67,10 +78,6 @@ export function ParentOnboarding({ name }: { name: string }) {
 
               <form onSubmit={saveProfile} className="onb-fields space-y-4">
                 <div>
-                  <label className="field-label" htmlFor="parent-phone">Phone</label>
-                  <input id="parent-phone" className="field-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" />
-                </div>
-                <div>
                   <label className="field-label" htmlFor="parent-relationship">Relationship to athlete</label>
                   <Select
                     id="parent-relationship"
@@ -78,6 +85,26 @@ export function ParentOnboarding({ name }: { name: string }) {
                     onChange={setRelationship}
                     placeholder="Select one"
                     options={RELATIONSHIPS.map((r) => ({ value: r, label: r }))}
+                  />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="parent-country">Country</label>
+                  <CountrySelect id="parent-country" value={country} onChange={setCountry} />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="parent-phone">Phone</label>
+                  <PhoneInput id="parent-phone" value={phone} onChange={setPhone} />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="parent-goals">{GOAL_QUESTION.PARENT}</label>
+                  <MultiSelect
+                    id="parent-goals"
+                    options={GOAL_OPTIONS.PARENT}
+                    value={goals}
+                    onChange={setGoals}
+                    max={GOALS_MAX}
+                    placeholder="Select your goals"
+                    searchPlaceholder="Search goals…"
                   />
                 </div>
 

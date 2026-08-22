@@ -16,8 +16,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { phone, businessName, sport, specialties, trainingLocation, yearsExperience, certifications, trainingPhilosophy } =
-    parsed.data;
+  const {
+    phone,
+    businessName,
+    sport,
+    specialties,
+    trainingLocation,
+    yearsExperience,
+    certifications,
+    trainingPhilosophy,
+    country,
+    goals,
+  } = parsed.data;
   const data = {
     phone: phone || undefined,
     businessName: businessName || undefined,
@@ -27,6 +37,8 @@ export async function PATCH(request: Request) {
     yearsExperience,
     certifications: certifications || undefined,
     trainingPhilosophy: trainingPhilosophy || undefined,
+    country: country || undefined,
+    goals: goals ? JSON.stringify(goals) : undefined,
   };
 
   const profile = await prisma.trainerProfile.upsert({

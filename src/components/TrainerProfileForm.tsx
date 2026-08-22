@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
+import { CountrySelect } from "@/components/CountrySelect";
+import { PhoneInput } from "@/components/PhoneInput";
 import { SPORTS as SPORT_CONFIGS } from "@/lib/sports";
 import { SPECIALTIES } from "@/components/TrainerOnboarding";
+import { GOAL_OPTIONS, GOALS_MAX } from "@/lib/goals";
 
 const SPORTS = SPORT_CONFIGS.map((s) => s.name);
-const PHONE_MAX = 30;
 const TEXT_MAX = 160;
 const CERTS_MAX = 300;
 const PHILOSOPHY_MAX = 500;
@@ -20,6 +23,8 @@ type TrainerData = {
   yearsExperience?: number;
   certifications: string;
   trainingPhilosophy: string;
+  country: string;
+  goals: string[];
 };
 
 function withCurrentValue(options: string[], current: string): string[] {
@@ -96,14 +101,7 @@ export function TrainerProfileForm({ initial }: { initial: TrainerData }) {
           </div>
           <div>
             <label className="field-label" htmlFor="trainer-phone">Phone</label>
-            <input
-              id="trainer-phone"
-              className="field-input"
-              maxLength={PHONE_MAX}
-              value={data.phone}
-              onChange={(e) => update("phone", e.target.value)}
-              placeholder="(555) 555-5555"
-            />
+            <PhoneInput id="trainer-phone" value={data.phone} onChange={(v) => update("phone", v)} />
           </div>
           <div>
             <label className="field-label" htmlFor="trainer-location">Training location</label>
@@ -115,6 +113,10 @@ export function TrainerProfileForm({ initial }: { initial: TrainerData }) {
               onChange={(e) => update("trainingLocation", e.target.value)}
               placeholder="Gym, facility, or city"
             />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="trainer-country">Country</label>
+            <CountrySelect id="trainer-country" value={data.country} onChange={(v) => update("country", v)} />
           </div>
         </div>
       </section>
@@ -171,6 +173,18 @@ export function TrainerProfileForm({ initial }: { initial: TrainerData }) {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="space-y-2">
+        <div className="field-label">What do you want to improve with your athletes?</div>
+        <MultiSelect
+          options={GOAL_OPTIONS.TRAINER}
+          value={data.goals}
+          onChange={(v) => update("goals", v)}
+          max={GOALS_MAX}
+          placeholder="Select your goals"
+          searchPlaceholder="Search goals…"
+        />
       </section>
 
       {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}

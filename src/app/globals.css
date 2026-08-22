@@ -428,6 +428,157 @@ h4 {
   color: var(--text-1);
 }
 
+/* Country-aware phone input — a compact dial-code select (flag + code)
+   docked to a number field, reusing .select-panel/.select-option for the
+   dropdown itself. */
+.phone-input {
+  display: flex;
+  gap: 8px;
+}
+
+.phone-input-dial {
+  flex-shrink: 0;
+  width: auto;
+}
+
+.phone-input-dial .select-trigger {
+  min-width: 92px;
+  gap: 6px;
+}
+
+.phone-input-number {
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-input-number[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.phone-dial-panel {
+  width: max(260px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.phone-dial-panel ul {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.phone-dial-search {
+  flex-shrink: 0;
+}
+
+/* Multi-select (onboarding goals, etc.) — same panel/option grammar as
+   Select/PhoneInput's dropdown, plus a left-side checkbox indicator (many
+   concurrent selections read better with the check on every row than
+   Select's single-value trailing checkmark) and a chip row + counter
+   rendered below the trigger. */
+.multi-select-panel {
+  width: max(320px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.multi-select-panel ul {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.multi-select-search {
+  flex-shrink: 0;
+}
+
+.multi-select-option-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  color: var(--on-signal);
+}
+
+.select-option[aria-selected="true"] .multi-select-option-check {
+  background: var(--grad-signal);
+  border-color: transparent;
+}
+
+.multi-select-empty {
+  padding: 14px 10px;
+  color: var(--text-3);
+  font-size: 13px;
+  text-align: center;
+}
+
+.multi-select-footer {
+  margin-top: 10px;
+}
+
+.multi-select-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.multi-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 6px 6px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.multi-select-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-select-chip button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--text-3);
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.multi-select-chip button:hover {
+  background: var(--nav-hover-bg);
+  color: var(--text-1);
+}
+
+.multi-select-counter {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+
 /* Underline-style field, used only on the split login/signup screens —
    no box, just a bottom border, for a cleaner minimal look than the
    boxed .field-input used everywhere else in the app. */

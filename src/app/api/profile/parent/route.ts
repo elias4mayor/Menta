@@ -16,10 +16,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { phone, relationship } = parsed.data;
+  const { phone, relationship, country, goals } = parsed.data;
   const data = {
     phone: phone || undefined,
     relationship: relationship || undefined,
+    country: country || undefined,
+    goals: goals ? JSON.stringify(goals) : undefined,
   };
 
   const profile = await prisma.parentProfile.upsert({

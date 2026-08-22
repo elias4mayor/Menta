@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
+import { CountrySelect } from "@/components/CountrySelect";
+import { PhoneInput } from "@/components/PhoneInput";
 import { SPORTS as SPORT_CONFIGS } from "@/lib/sports";
-import { COACHING_ROLES, FOCUS_AREAS } from "@/components/CoachOnboarding";
+import { COACHING_ROLES } from "@/components/CoachOnboarding";
+import { GOAL_OPTIONS, GOALS_MAX } from "@/lib/goals";
 
 const SPORTS = SPORT_CONFIGS.map((s) => s.name);
-const PHONE_MAX = 30;
 const ORG_MAX = 160;
 
 type CoachData = {
@@ -16,6 +19,7 @@ type CoachData = {
   yearsCoaching?: number;
   organizationName: string;
   schoolName: string;
+  country: string;
   focusAreas: string[];
 };
 
@@ -33,10 +37,6 @@ export function CoachProfileForm({ initial }: { initial: CoachData }) {
   function update<K extends keyof CoachData>(key: K, value: CoachData[K]) {
     setData((d) => ({ ...d, [key]: value }));
     setSaved(false);
-  }
-
-  function toggleFocus(area: string) {
-    update("focusAreas", data.focusAreas.includes(area) ? data.focusAreas.filter((a) => a !== area) : [...data.focusAreas, area]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,14 +104,7 @@ export function CoachProfileForm({ initial }: { initial: CoachData }) {
           </div>
           <div>
             <label className="field-label" htmlFor="coach-phone">Phone</label>
-            <input
-              id="coach-phone"
-              className="field-input"
-              maxLength={PHONE_MAX}
-              value={data.phone}
-              onChange={(e) => update("phone", e.target.value)}
-              placeholder="(555) 555-5555"
-            />
+            <PhoneInput id="coach-phone" value={data.phone} onChange={(v) => update("phone", v)} />
           </div>
         </div>
       </section>
@@ -141,24 +134,23 @@ export function CoachProfileForm({ initial }: { initial: CoachData }) {
               placeholder="Ridgeview High School"
             />
           </div>
+          <div>
+            <label className="field-label" htmlFor="coach-country">Country</label>
+            <CountrySelect id="coach-country" value={data.country} onChange={(v) => update("country", v)} />
+          </div>
         </div>
       </section>
 
       <section className="space-y-2">
-        <div className="field-label">What do you want MENTA to help with?</div>
-        <div className="flex flex-wrap gap-2">
-          {FOCUS_AREAS.map((area) => (
-            <button
-              key={area}
-              type="button"
-              onClick={() => toggleFocus(area)}
-              className="badge"
-              style={{ cursor: "pointer", opacity: data.focusAreas.includes(area) ? 1 : 0.5 }}
-            >
-              {area}
-            </button>
-          ))}
-        </div>
+        <div className="field-label">What do you want to improve with your team?</div>
+        <MultiSelect
+          options={GOAL_OPTIONS.COACH}
+          value={data.focusAreas}
+          onChange={(v) => update("focusAreas", v)}
+          max={GOALS_MAX}
+          placeholder="Select your goals"
+          searchPlaceholder="Search goals…"
+        />
       </section>
 
       {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}

@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
 import { SchoolCombobox } from "@/components/SchoolCombobox";
 import { CountrySelect } from "@/components/CountrySelect";
 import { StateField } from "@/components/StateField";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
+import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 import { pickMotivationalMessages } from "@/lib/motivational-messages";
 
 type Step = "sport" | "school" | "goals" | "review" | "building" | "reveal";
@@ -52,7 +54,6 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [country, setCountry] = useState("United States");
-  const [goalInput, setGoalInput] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -67,18 +68,6 @@ export function OnboardingExperience({ name }: { name: string }) {
       setStep(next);
       setPhase("enter");
     }, TRANSITION_MS);
-  }
-
-  function addGoal() {
-    const trimmed = goalInput.trim();
-    if (trimmed && goals.length < 5) {
-      setGoals([...goals, trimmed]);
-      setGoalInput("");
-    }
-  }
-
-  function removeGoal(index: number) {
-    setGoals(goals.filter((_, i) => i !== index));
   }
 
   // Runs the real save exactly once when entering "building" — the status
@@ -259,36 +248,22 @@ export function OnboardingExperience({ name }: { name: string }) {
           {step === "goals" && (
             <>
               <h1 className="onb-title">
-                <GlowWaveText intensity="strong">What do you want to improve?</GlowWaveText>
+                <GlowWaveText intensity="strong">{GOAL_QUESTION.ATHLETE}</GlowWaveText>
               </h1>
-              <p className="onb-micro">We&rsquo;ll build around what matters most. Up to five.</p>
-              <div className="onb-fields space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    className="field-input"
-                    value={goalInput}
-                    onChange={(e) => setGoalInput(e.target.value)}
-                    placeholder="Get recruited to a D1 program"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addGoal();
-                      }
-                    }}
+              <p className="onb-micro">Select everything you want MENTA to help you improve.</p>
+              <div className="onb-fields space-y-4">
+                <div>
+                  <label className="field-label" htmlFor="onb-goals">Goals</label>
+                  <MultiSelect
+                    id="onb-goals"
+                    options={GOAL_OPTIONS.ATHLETE}
+                    value={goals}
+                    onChange={setGoals}
+                    max={GOALS_MAX}
+                    placeholder="Select your goals"
+                    searchPlaceholder="Search goals…"
                   />
-                  <button type="button" onClick={addGoal} className="btn-secondary shrink-0">Add</button>
                 </div>
-                <ul className="space-y-2">
-                  {goals.map((g, i) => (
-                    <li key={g + i} className="onb-goal-chip">
-                      <span>{g}</span>
-                      <button type="button" onClick={() => removeGoal(i)} className="text-text-3 hover:text-text-1">
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                  {goals.length === 0 && <p className="text-text-3 text-sm">No goals added yet — optional.</p>}
-                </ul>
                 <div>
                   <label className="field-label" htmlFor="onb-training-days">Training days per week</label>
                   <Select

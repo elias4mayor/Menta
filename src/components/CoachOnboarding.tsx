@@ -4,23 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
+import { CountrySelect } from "@/components/CountrySelect";
+import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
+import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 
 export const COACHING_ROLES = ["Head Coach", "Assistant Coach", "Strength Coach", "Position Coach", "Other"];
-export const FOCUS_AREAS = [
-  "Team management",
-  "Training",
-  "Player development",
-  "Film",
-  "Performance",
-  "Recovery",
-  "Academics",
-  "Recruiting",
-  "Safety",
-  "Communication",
-  "Mental performance",
-];
 
 /**
  * Coach onboarding — two real steps: coach profile (saved via
@@ -42,14 +33,11 @@ export function CoachOnboarding({ name }: { name: string }) {
   const [yearsCoaching, setYearsCoaching] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [country, setCountry] = useState("United States");
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [teamDone, setTeamDone] = useState(false);
-
-  function toggleFocus(area: string) {
-    setFocusAreas((prev) => (prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]));
-  }
 
   async function submitProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +54,7 @@ export function CoachOnboarding({ name }: { name: string }) {
           yearsCoaching: yearsCoaching ? Number(yearsCoaching) : undefined,
           organizationName: organizationName || undefined,
           schoolName: schoolName || undefined,
+          country: country || undefined,
           focusAreas,
         }),
       });
@@ -102,12 +91,12 @@ export function CoachOnboarding({ name }: { name: string }) {
               <form onSubmit={submitProfile} className="onb-fields space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="field-label" htmlFor="coach-phone">Phone</label>
-                    <input id="coach-phone" className="field-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" />
+                    <label className="field-label" htmlFor="coach-country">Country</label>
+                    <CountrySelect id="coach-country" value={country} onChange={setCountry} />
                   </div>
                   <div>
-                    <label className="field-label" htmlFor="coach-years">Years coaching</label>
-                    <input id="coach-years" type="number" className="field-input" value={yearsCoaching} onChange={(e) => setYearsCoaching(e.target.value)} placeholder="5" />
+                    <label className="field-label" htmlFor="coach-phone">Phone</label>
+                    <PhoneInput id="coach-phone" value={phone} onChange={setPhone} />
                   </div>
                 </div>
 
@@ -136,30 +125,31 @@ export function CoachOnboarding({ name }: { name: string }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="field-label" htmlFor="coach-org">Organization</label>
-                    <input id="coach-org" className="field-input" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="Ridgeview Athletics" />
+                    <label className="field-label" htmlFor="coach-years">Years coaching</label>
+                    <input id="coach-years" type="number" className="field-input" value={yearsCoaching} onChange={(e) => setYearsCoaching(e.target.value)} placeholder="5" />
                   </div>
                   <div>
-                    <label className="field-label" htmlFor="coach-school">School / club</label>
-                    <input id="coach-school" className="field-input" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Ridgeview High School" />
+                    <label className="field-label" htmlFor="coach-org">Organization</label>
+                    <input id="coach-org" className="field-input" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="Ridgeview Athletics" />
                   </div>
                 </div>
 
                 <div>
-                  <div className="field-label">What do you want MENTA to help with?</div>
-                  <div className="flex flex-wrap gap-2">
-                    {FOCUS_AREAS.map((area) => (
-                      <button
-                        key={area}
-                        type="button"
-                        onClick={() => toggleFocus(area)}
-                        className="badge"
-                        style={{ cursor: "pointer", opacity: focusAreas.includes(area) ? 1 : 0.5 }}
-                      >
-                        {area}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="field-label" htmlFor="coach-school">School / club</label>
+                  <input id="coach-school" className="field-input" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Ridgeview High School" />
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="coach-goals">{GOAL_QUESTION.COACH}</label>
+                  <MultiSelect
+                    id="coach-goals"
+                    options={GOAL_OPTIONS.COACH}
+                    value={focusAreas}
+                    onChange={setFocusAreas}
+                    max={GOALS_MAX}
+                    placeholder="Select your goals"
+                    searchPlaceholder="Search goals…"
+                  />
                 </div>
 
                 {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}

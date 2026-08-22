@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { phone, sport, coachingRole, yearsCoaching, organizationName, schoolName, focusAreas } = parsed.data;
+  const { phone, sport, coachingRole, yearsCoaching, organizationName, schoolName, country, focusAreas } = parsed.data;
 
   await prisma.coachProfile.upsert({
     where: { userId: user.id },
@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       yearsCoaching,
       organizationName: organizationName || undefined,
       schoolName: schoolName || undefined,
+      country: country || undefined,
       focusAreas: focusAreas ? JSON.stringify(focusAreas) : undefined,
       onboardingCompletedAt: new Date(),
     },
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       yearsCoaching,
       organizationName: organizationName || undefined,
       schoolName: schoolName || undefined,
+      country: country || undefined,
       focusAreas: focusAreas ? JSON.stringify(focusAreas) : undefined,
       onboardingCompletedAt: new Date(),
     },

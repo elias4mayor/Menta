@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
+import { CountrySelect } from "@/components/CountrySelect";
+import { PhoneInput } from "@/components/PhoneInput";
 import { RELATIONSHIPS } from "@/components/ParentOnboarding";
-
-const PHONE_MAX = 30;
+import { GOAL_OPTIONS, GOALS_MAX } from "@/lib/goals";
 
 type ParentData = {
   phone: string;
   relationship: string;
+  country: string;
+  goals: string[];
 };
 
 function withCurrentValue(options: string[], current: string): string[] {
@@ -59,14 +63,7 @@ export function ParentProfileForm({ initial }: { initial: ParentData }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label" htmlFor="parent-phone">Phone</label>
-            <input
-              id="parent-phone"
-              className="field-input"
-              maxLength={PHONE_MAX}
-              value={data.phone}
-              onChange={(e) => update("phone", e.target.value)}
-              placeholder="(555) 555-5555"
-            />
+            <PhoneInput id="parent-phone" value={data.phone} onChange={(v) => update("phone", v)} />
           </div>
           <div>
             <label className="field-label" htmlFor="parent-relationship">Relationship to athlete</label>
@@ -78,7 +75,23 @@ export function ParentProfileForm({ initial }: { initial: ParentData }) {
               options={relationshipOptions.map((r) => ({ value: r, label: r }))}
             />
           </div>
+          <div>
+            <label className="field-label" htmlFor="parent-country">Country</label>
+            <CountrySelect id="parent-country" value={data.country} onChange={(v) => update("country", v)} />
+          </div>
         </div>
+      </section>
+
+      <section className="space-y-2">
+        <div className="field-label">How can MENTA better support your athlete?</div>
+        <MultiSelect
+          options={GOAL_OPTIONS.PARENT}
+          value={data.goals}
+          onChange={(v) => update("goals", v)}
+          max={GOALS_MAX}
+          placeholder="Select your goals"
+          searchPlaceholder="Search goals…"
+        />
       </section>
 
       {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}

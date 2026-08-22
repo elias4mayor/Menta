@@ -46,7 +46,8 @@ export const coachOnboardingSchema = z.object({
   yearsCoaching: z.coerce.number().int().min(0).max(70).optional(),
   organizationName: z.string().trim().max(160).optional().or(z.literal("")),
   schoolName: z.string().trim().max(160).optional().or(z.literal("")),
-  focusAreas: z.array(z.string().trim().min(1).max(60)).max(15).optional(),
+  country: z.string().trim().max(60).optional().or(z.literal("")),
+  focusAreas: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
 });
 
 export const trainerOnboardingSchema = z.object({
@@ -58,11 +59,15 @@ export const trainerOnboardingSchema = z.object({
   yearsExperience: z.coerce.number().int().min(0).max(70).optional(),
   certifications: z.string().trim().max(300).optional().or(z.literal("")),
   trainingPhilosophy: z.string().trim().max(500).optional().or(z.literal("")),
+  country: z.string().trim().max(60).optional().or(z.literal("")),
+  goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
 });
 
 export const parentOnboardingSchema = z.object({
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   relationship: z.string().trim().max(60).optional().or(z.literal("")),
+  country: z.string().trim().max(60).optional().or(z.literal("")),
+  goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
 });
 
 export const profileUpdateSchema = z.object({

@@ -25,6 +25,8 @@ export async function POST(request: Request) {
     yearsExperience,
     certifications,
     trainingPhilosophy,
+    country,
+    goals,
   } = parsed.data;
 
   await prisma.trainerProfile.upsert({
@@ -39,6 +41,8 @@ export async function POST(request: Request) {
       yearsExperience,
       certifications: certifications || undefined,
       trainingPhilosophy: trainingPhilosophy || undefined,
+      country: country || undefined,
+      goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },
     update: {
@@ -50,6 +54,8 @@ export async function POST(request: Request) {
       yearsExperience,
       certifications: certifications || undefined,
       trainingPhilosophy: trainingPhilosophy || undefined,
+      country: country || undefined,
+      goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },
   });

@@ -4,8 +4,12 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
+import { MultiSelect } from "@/components/MultiSelect";
+import { CountrySelect } from "@/components/CountrySelect";
+import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
+import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 
 export const SPECIALTIES = [
   "Strength",
@@ -42,6 +46,8 @@ export function TrainerOnboarding({ name }: { name: string }) {
   const [yearsExperience, setYearsExperience] = useState("");
   const [certifications, setCertifications] = useState("");
   const [trainingPhilosophy, setTrainingPhilosophy] = useState("");
+  const [country, setCountry] = useState("United States");
+  const [goals, setGoals] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [groupDone, setGroupDone] = useState(false);
@@ -67,6 +73,8 @@ export function TrainerOnboarding({ name }: { name: string }) {
           yearsExperience: yearsExperience ? Number(yearsExperience) : undefined,
           certifications: certifications || undefined,
           trainingPhilosophy: trainingPhilosophy || undefined,
+          country: country || undefined,
+          goals,
         }),
       });
       const data = await res.json();
@@ -102,13 +110,18 @@ export function TrainerOnboarding({ name }: { name: string }) {
               <form onSubmit={submitProfile} className="onb-fields space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="field-label" htmlFor="trainer-phone">Phone</label>
-                    <input id="trainer-phone" className="field-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 555-5555" />
+                    <label className="field-label" htmlFor="trainer-country">Country</label>
+                    <CountrySelect id="trainer-country" value={country} onChange={setCountry} />
                   </div>
                   <div>
-                    <label className="field-label" htmlFor="trainer-business">Business / organization</label>
-                    <input id="trainer-business" className="field-input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Optional" />
+                    <label className="field-label" htmlFor="trainer-phone">Phone</label>
+                    <PhoneInput id="trainer-phone" value={phone} onChange={setPhone} />
                   </div>
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="trainer-business">Business / organization</label>
+                  <input id="trainer-business" className="field-input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Optional" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -158,6 +171,19 @@ export function TrainerOnboarding({ name }: { name: string }) {
                 <div>
                   <label className="field-label" htmlFor="trainer-philosophy">Training philosophy</label>
                   <textarea id="trainer-philosophy" className="field-textarea" rows={2} value={trainingPhilosophy} onChange={(e) => setTrainingPhilosophy(e.target.value)} placeholder="Optional — a sentence or two." />
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="trainer-goals">{GOAL_QUESTION.TRAINER}</label>
+                  <MultiSelect
+                    id="trainer-goals"
+                    options={GOAL_OPTIONS.TRAINER}
+                    value={goals}
+                    onChange={setGoals}
+                    max={GOALS_MAX}
+                    placeholder="Select your goals"
+                    searchPlaceholder="Search goals…"
+                  />
                 </div>
 
                 {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}

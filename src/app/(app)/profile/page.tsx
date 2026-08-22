@@ -46,6 +46,7 @@ async function ProfileFormForRole({ role, userId }: { role: string; userId: stri
           yearsCoaching: profile?.yearsCoaching ?? undefined,
           organizationName: profile?.organizationName ?? "",
           schoolName: profile?.schoolName ?? "",
+          country: profile?.country ?? "",
           focusAreas: parseJsonArray(profile?.focusAreas),
         }}
       />
@@ -65,6 +66,8 @@ async function ProfileFormForRole({ role, userId }: { role: string; userId: stri
           yearsExperience: profile?.yearsExperience ?? undefined,
           certifications: profile?.certifications ?? "",
           trainingPhilosophy: profile?.trainingPhilosophy ?? "",
+          country: profile?.country ?? "",
+          goals: parseJsonArray(profile?.goals),
         }}
       />
     );
@@ -77,6 +80,8 @@ async function ProfileFormForRole({ role, userId }: { role: string; userId: stri
         initial={{
           phone: profile?.phone ?? "",
           relationship: profile?.relationship ?? "",
+          country: profile?.country ?? "",
+          goals: parseJsonArray(profile?.goals),
         }}
       />
     );

@@ -160,9 +160,15 @@ model CoachProfile {
   yearsCoaching         Int?
   organizationName      String?
   schoolName            String?
-  /// JSON-stringified array of the coach's selected focus areas from
-  /// onboarding (e.g. "Training", "Film", "Recruiting") — same freeform
-  /// string-array pattern as Workout.exercises, not a second enum system.
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else (src/lib/data/countries.json).
+  country               String?
+  /// JSON-stringified array of the coach's selected onboarding goals —
+  /// full sentences from src/lib/goals.ts's COACH list (e.g. "I want to
+  /// improve my team's overall performance."), same freeform string-array
+  /// pattern as Workout.exercises. Column predates this: it originally
+  /// held single-word focus areas from an earlier onboarding version:
+  /// the shape didn't change, only what onboarding now writes into it.
   focusAreas            String?
   onboardingCompletedAt DateTime?
   createdAt             DateTime  @default(now())
@@ -184,6 +190,12 @@ model TrainerProfile {
   yearsExperience       Int?
   certifications        String?
   trainingPhilosophy    String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else.
+  country               String?
+  /// JSON-stringified array of selected onboarding goals — full sentences
+  /// from src/lib/goals.ts's TRAINER list.
+  goals                 String?
   onboardingCompletedAt DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -200,6 +212,12 @@ model ParentProfile {
   phone                 String?
   /// Parent, Guardian, Other
   relationship          String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else.
+  country               String?
+  /// JSON-stringified array of selected onboarding goals — full sentences
+  /// from src/lib/goals.ts's PARENT list.
+  goals                 String?
   onboardingCompletedAt DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
