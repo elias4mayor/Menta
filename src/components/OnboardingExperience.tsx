@@ -13,6 +13,7 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 import { pickMotivationalMessages } from "@/lib/motivational-messages";
+import { SCHOOL_TYPES } from "@/lib/schools";
 
 type Step = "sport" | "school" | "goals" | "review" | "building" | "reveal";
 
@@ -52,6 +53,7 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [position, setPosition] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schoolType, setSchoolType] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [country, setCountry] = useState("United States");
@@ -59,17 +61,23 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Country determines which states/provinces (and eventually cities) are
-  // even valid, so switching it invalidates whatever was already picked.
+  // Country determines which states/provinces (and cities) are even
+  // valid, so switching it invalidates whatever was already picked —
+  // including a school name, since school search is scoped to the
+  // selected country/state and a school chosen under the old one may no
+  // longer be geographically consistent (School Type isn't cleared: it's
+  // a real category independent of location).
   function handleCountryChange(next: string) {
     setCountry(next);
     setState("");
     setCity("");
+    setSchoolName("");
   }
 
   function handleStateChange(next: string) {
     setState(next);
     setCity("");
+    setSchoolName("");
   }
 
   useEffect(() => () => {
@@ -102,7 +110,8 @@ export function OnboardingExperience({ name }: { name: string }) {
             sport,
             position: position || undefined,
             graduationYear: graduationYear ? Number(graduationYear) : undefined,
-            schoolName: schoolName || undefined,
+            schoolName,
+            schoolType,
             city: city || undefined,
             state: state || undefined,
             country: country || undefined,
@@ -232,9 +241,22 @@ export function OnboardingExperience({ name }: { name: string }) {
               <p className="onb-micro">MENTA adapts to your program and your team.</p>
               <div className="onb-fields space-y-4">
                 <div>
+                  <label className="field-label" htmlFor="onb-school-type">School type</label>
+                  <Select
+                    id="onb-school-type"
+                    value={schoolType}
+                    onChange={setSchoolType}
+                    placeholder="Select a school type"
+                    options={SCHOOL_TYPES.map((t) => ({ value: t, label: t }))}
+                  />
+                </div>
+                <div>
                   <label className="field-label" htmlFor="onb-school">School</label>
                   <SchoolCombobox
                     id="onb-school"
+                    country={country}
+                    state={state}
+                    schoolType={schoolType}
                     value={schoolName}
                     onChange={setSchoolName}
                     placeholder="Start typing your school's name…"
@@ -255,7 +277,11 @@ export function OnboardingExperience({ name }: { name: string }) {
                   </div>
                 </div>
               </div>
-              <StepNav onBack={() => goTo("sport")} onNext={() => goTo("goals")} />
+              <StepNav
+                onBack={() => goTo("sport")}
+                onNext={() => goTo("goals")}
+                nextDisabled={!schoolName.trim() || !schoolType}
+              />
             </>
           )}
 
@@ -303,6 +329,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                 <ReviewRow label="Sport" value={sport || "—"} />
                 <ReviewRow label={sport ? roleLabel(sport) : "Position"} value={position || "—"} />
                 <ReviewRow label="School" value={schoolName || "—"} />
+                <ReviewRow label="School type" value={schoolType || "—"} />
                 <ReviewRow label="Location" value={[city, state].filter(Boolean).join(", ") || "—"} />
                 <ReviewRow label="Goals" value={goals.length ? goals.join(", ") : "—"} />
                 <ReviewRow label="Training days" value={trainingDaysPerWeek ? `${trainingDaysPerWeek}/week` : "—"} />

@@ -4,8 +4,9 @@ import { getSessionUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
 import { buildStarterWorkouts, ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
-import { countryCodeForName } from "@/lib/geo";
+import { countryCodeForName, stateCodeForName } from "@/lib/geo";
 import { isCityCountryMismatch } from "@/lib/geo-server";
+import { isSchoolStateMismatch } from "@/lib/schools-server";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -26,13 +27,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const { sport, position, graduationYear, schoolName, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
+  const { sport, position, graduationYear, schoolName, schoolType, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
+
+  const countryCode = country ? countryCodeForName(country) : undefined;
 
   if (city && country) {
-    const countryCode = countryCodeForName(country);
     if (countryCode && (await isCityCountryMismatch(countryCode, city))) {
       return NextResponse.json(
         { error: "That city doesn't match the selected country." },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (schoolName) {
+    const schoolStateCode = countryCode === "US" && state ? stateCodeForName("US", state) : undefined;
+    if (isSchoolStateMismatch(schoolStateCode, schoolName)) {
+      return NextResponse.json(
+        { error: "That school doesn't match the selected state." },
         { status: 400 }
       );
     }
@@ -45,7 +57,8 @@ export async function POST(request: Request) {
       sport,
       position: position || undefined,
       graduationYear,
-      schoolName: schoolName || undefined,
+      schoolName,
+      schoolType,
       city: city || undefined,
       state: state || undefined,
       country: country || undefined,
@@ -56,7 +69,8 @@ export async function POST(request: Request) {
       sport,
       position: position || undefined,
       graduationYear,
-      schoolName: schoolName || undefined,
+      schoolName,
+      schoolType,
       city: city || undefined,
       state: state || undefined,
       country: country || undefined,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { countryCodeForName, statesForCountry } from "@/lib/geo";
+import { SCHOOL_TYPES } from "@/lib/schools";
 
 /**
  * Cross-field check reused by every onboarding schema that collects
@@ -61,7 +62,8 @@ export const onboardingSchema = z
     sport: z.string().trim().min(1).max(60),
     position: z.string().trim().max(60).optional().or(z.literal("")),
     graduationYear: z.coerce.number().int().min(2024).max(2040).optional(),
-    schoolName: z.string().trim().max(160).optional().or(z.literal("")),
+    schoolName: z.string().trim().min(1, "School name is required").max(160),
+    schoolType: z.enum(SCHOOL_TYPES, { message: "Select a school type" }),
     city: z.string().trim().max(120).optional().or(z.literal("")),
     state: z.string().trim().max(60).optional().or(z.literal("")),
     country: z.string().trim().max(60).optional().or(z.literal("")),
@@ -77,7 +79,8 @@ export const coachOnboardingSchema = z
     coachingRole: z.string().trim().max(60).optional().or(z.literal("")),
     yearsCoaching: z.coerce.number().int().min(0).max(70).optional(),
     organizationName: z.string().trim().max(160).optional().or(z.literal("")),
-    schoolName: z.string().trim().max(160).optional().or(z.literal("")),
+    schoolName: z.string().trim().min(1, "School name is required").max(160),
+    schoolType: z.enum(SCHOOL_TYPES, { message: "Select a school type" }),
     country: z.string().trim().max(60).optional().or(z.literal("")),
     state: z.string().trim().max(60).optional().or(z.literal("")),
     city: z.string().trim().max(120).optional().or(z.literal("")),

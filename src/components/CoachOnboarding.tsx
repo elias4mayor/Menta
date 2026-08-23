@@ -10,8 +10,10 @@ import { StateSelect } from "@/components/StateSelect";
 import { CitySelect } from "@/components/CitySelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
+import { SchoolCombobox } from "@/components/SchoolCombobox";
 import { SPORTS } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
+import { SCHOOL_TYPES } from "@/lib/schools";
 
 export const COACHING_ROLES = ["Head Coach", "Assistant Coach", "Strength Coach", "Position Coach", "Other"];
 
@@ -35,6 +37,7 @@ export function CoachOnboarding({ name }: { name: string }) {
   const [yearsCoaching, setYearsCoaching] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schoolType, setSchoolType] = useState("");
   const [country, setCountry] = useState("United States");
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
@@ -47,11 +50,13 @@ export function CoachOnboarding({ name }: { name: string }) {
     setCountry(next);
     setState("");
     setCity("");
+    setSchoolName("");
   }
 
   function handleStateChange(next: string) {
     setState(next);
     setCity("");
+    setSchoolName("");
   }
 
   async function submitProfile(e: React.FormEvent) {
@@ -68,7 +73,8 @@ export function CoachOnboarding({ name }: { name: string }) {
           coachingRole: coachingRole || undefined,
           yearsCoaching: yearsCoaching ? Number(yearsCoaching) : undefined,
           organizationName: organizationName || undefined,
-          schoolName: schoolName || undefined,
+          schoolName,
+          schoolType,
           country: country || undefined,
           state: state || undefined,
           city: city || undefined,
@@ -162,9 +168,28 @@ export function CoachOnboarding({ name }: { name: string }) {
                     <input id="coach-org" className="field-input" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="Ridgeview Athletics" />
                   </div>
                   <div>
-                    <label className="field-label" htmlFor="coach-school">School / club</label>
-                    <input id="coach-school" className="field-input" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Ridgeview High School" />
+                    <label className="field-label" htmlFor="coach-school-type">School type</label>
+                    <Select
+                      id="coach-school-type"
+                      value={schoolType}
+                      onChange={setSchoolType}
+                      placeholder="Select a school type"
+                      options={SCHOOL_TYPES.map((t) => ({ value: t, label: t }))}
+                    />
                   </div>
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="coach-school">School / club</label>
+                  <SchoolCombobox
+                    id="coach-school"
+                    country={country}
+                    state={state}
+                    schoolType={schoolType}
+                    value={schoolName}
+                    onChange={setSchoolName}
+                    placeholder="Start typing your school or club's name…"
+                  />
                 </div>
 
                 <div>
@@ -183,7 +208,7 @@ export function CoachOnboarding({ name }: { name: string }) {
                 {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
 
                 <div className="onb-actions">
-                  <button type="submit" disabled={loading} className="btn-primary">
+                  <button type="submit" disabled={loading || !schoolName.trim() || !schoolType} className="btn-primary">
                     {loading ? "Saving…" : "Continue"}
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M5 12h14M13 5l7 7-7 7" />

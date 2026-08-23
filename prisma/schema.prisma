@@ -161,6 +161,12 @@ model AthleteProfile {
   heightCm              Int?
   weightKg              Int?
   schoolName            String?
+  /// High School, Community College, Junior College (JUCO), 4-Year
+  /// University, Trade/Vocational School, or Other — always the athlete's
+  /// own explicit choice (src/lib/schools.ts's SCHOOL_TYPES), never
+  /// inferred from schoolName, since the real school datasets behind
+  /// search can't reliably distinguish those categories.
+  schoolType            String?
   city                  String?
   state                 String?
   /// Free-text; the onboarding UI defaults it to "United States" via
@@ -196,6 +202,10 @@ model CoachProfile {
   yearsCoaching         Int?
   organizationName      String?
   schoolName            String?
+  /// High School, Community College, Junior College (JUCO), 4-Year
+  /// University, Trade/Vocational School, or Other — see the identical
+  /// field on AthleteProfile for why this is always an explicit choice.
+  schoolType            String?
   /// Real ISO-3166-1 country name, from the same global country list
   /// CountrySelect uses everywhere else (src/lib/data/countries.json).
   country               String?
