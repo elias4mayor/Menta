@@ -62,16 +62,46 @@ export async function proxy(request: NextRequest) {
 
   let hasValidSession = false;
   let emailVerified = false;
+  let onboardingCompleted = false;
   if (token) {
     const tokenHash = hashToken(token);
     const session = tokenHash
       ? await prisma.session.findUnique({
           where: { tokenHash },
-          select: { revokedAt: true, expiresAt: true, user: { select: { emailVerified: true } } },
+          select: {
+            revokedAt: true,
+            expiresAt: true,
+            user: {
+              select: {
+                emailVerified: true,
+                role: true,
+                athleteProfile: { select: { onboardingCompletedAt: true } },
+                coachProfile: { select: { onboardingCompletedAt: true } },
+                trainerProfile: { select: { onboardingCompletedAt: true } },
+                parentProfile: { select: { onboardingCompletedAt: true } },
+              },
+            },
+          },
         })
       : null;
     hasValidSession = Boolean(session && !session.revokedAt && session.expiresAt > new Date());
     emailVerified = Boolean(session?.user.emailVerified);
+    // Each role has exactly one matching profile relation — that profile's
+    // onboardingCompletedAt (set by the matching /api/onboarding/* route)
+    // is the real, durable "has this user finished onboarding" signal, not
+    // just a one-time redirect decided at signup time.
+    const user = session?.user;
+    if (user) {
+      onboardingCompleted = Boolean(
+        user.role === "COACH"
+          ? user.coachProfile?.onboardingCompletedAt
+          : user.role === "TRAINER"
+            ? user.trainerProfile?.onboardingCompletedAt
+            : user.role === "PARENT"
+              ? user.parentProfile?.onboardingCompletedAt
+              : user.athleteProfile?.onboardingCompletedAt
+      );
+    }
   }
 
   // The cookie is present but doesn't correspond to a real, active session
@@ -102,10 +132,26 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/verify-email", request.url));
   }
 
+  // A verified session that hasn't finished onboarding yet gets sent there
+  // instead of into the rest of the app — this is the actual, durable gate
+  // that was missing: signup/OAuth only decided this once at redirect time,
+  // so a user landing on /dashboard straight out of email verification (or
+  // typing any protected URL directly) skipped onboarding entirely.
+  // /onboarding is excluded from this check the same way /verify-email is
+  // excluded from the check above it, so this can't loop.
+  if (
+    PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) &&
+    !pathname.startsWith("/onboarding") &&
+    hasValidSession &&
+    emailVerified &&
+    !onboardingCompleted
+  ) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
+  }
+
   if (AUTH_ONLY_PREFIXES.some((p) => pathname.startsWith(p)) && hasValidSession) {
-    return NextResponse.redirect(
-      new URL(emailVerified ? "/dashboard" : "/verify-email", request.url)
-    );
+    const dest = !emailVerified ? "/verify-email" : !onboardingCompleted ? "/onboarding" : "/dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   if (pathname.startsWith("/verify-email")) {
@@ -113,7 +159,7 @@ export async function proxy(request: NextRequest) {
       return withStaleCookieCleared(NextResponse.redirect(new URL("/login", request.url)));
     }
     if (emailVerified) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL(onboardingCompleted ? "/dashboard" : "/onboarding", request.url));
     }
   }
 
