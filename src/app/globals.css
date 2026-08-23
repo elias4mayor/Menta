@@ -29,6 +29,11 @@
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.14),
     0 6px 16px -10px rgba(0, 0, 0, 0.07);
   --ease: cubic-bezier(0.16, 0.8, 0.3, 1);
+  /* A second, slower-settling easing curve for the marketing homepage's
+     cinematic scroll reveals specifically — kept separate from --ease
+     (used in ~30 places across the whole product, onboarding included)
+     so tuning the homepage's motion never risks retiming anything else. */
+  --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
   /* Real system-font stack first (San Francisco on macOS/iOS via
      -apple-system/BlinkMacSystemFont, Segoe UI on Windows), then the other
      real system faces Apple's own stack falls back to (Helvetica Neue,
@@ -701,8 +706,25 @@ h4 {
   filter: blur(0);
 }
 
+/* Cinematic variant of .reveal: same IntersectionObserver-driven .in
+   toggle (see RevealInit), just with a touch of scale and the slower
+   --ease-cinematic curve for the homepage's product-reveal moments.
+   Combine with .reveal on the same element (`className="reveal
+   reveal-scale"`) rather than replacing it, so the base .reveal used
+   elsewhere (onboarding included) is never touched by this. */
+.reveal-scale {
+  transform: translateY(24px) scale(0.97);
+  transition: opacity 0.9s var(--ease-cinematic), transform 0.9s var(--ease-cinematic),
+    filter 0.9s var(--ease-cinematic);
+}
+
+.reveal-scale.in {
+  transform: translateY(0) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .reveal,
+  .reveal-scale {
     opacity: 1;
     transform: none;
     filter: none;
@@ -729,6 +751,36 @@ h4 {
 
 .tilt-card:hover .glass-sheen {
   opacity: 1;
+}
+
+/* Flat, restrained MacBook-style frame for the homepage's dashboard
+   showcase — a dark bezel + thin base bar, no camera dot or 3D rotation,
+   so it reads as "premium hardware presentation" without tipping into a
+   skeuomorphic or spinning mockup. */
+.laptop-frame-bezel {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #3a3a3d, #1c1c1e);
+  padding: 14px;
+  box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+}
+
+.laptop-frame-screen {
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.laptop-frame-base {
+  height: 14px;
+  margin: 0 24px;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(180deg, #2b2b2d, #19191b);
+}
+
+@media (max-width: 640px) {
+  .laptop-frame-base {
+    margin: 0 10px;
+  }
 }
 
 ::selection {
@@ -1203,7 +1255,13 @@ h4 {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: var(--bg);
+  /* Translucent, not opaque: IntroBoot only ever mounts on the homepage,
+     directly above Hero's LiveGallery, which is already live and rotating
+     underneath from first paint. A solid wash would hide it completely;
+     this lets the photography read as dim/subdued behind the logo instead
+     of a hard cut from white to photo once the overlay fades. */
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(3px) saturate(105%);
   display: none;
   flex-direction: column;
   align-items: center;

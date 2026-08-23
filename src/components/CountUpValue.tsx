@@ -6,7 +6,19 @@ import { useEffect, useRef, useState } from "react";
  * Animates a number counting up from 0 when it scrolls into view.
  * Respects prefers-reduced-motion by jumping straight to the final value.
  */
-export function CountUpValue({ value, durationMs = 1200 }: { value: number; durationMs?: number }) {
+export function CountUpValue({
+  value,
+  durationMs = 1200,
+  decimals = 0,
+  suffix = "",
+}: {
+  value: number;
+  durationMs?: number;
+  /** Decimal places to keep in the animated display, e.g. 1 for "3.8". */
+  decimals?: number;
+  /** Appended after the number once formatted, e.g. "%". */
+  suffix?: string;
+}) {
   const [display, setDisplay] = useState(0);
   const spanRef = useRef<HTMLSpanElement>(null);
   const started = useRef(false);
@@ -32,7 +44,7 @@ export function CountUpValue({ value, durationMs = 1200 }: { value: number; dura
         function tick(now: number) {
           const progress = Math.min((now - start) / durationMs, 1);
           const eased = 1 - Math.pow(1 - progress, 4); // easeOutQuart
-          setDisplay(Math.round(eased * value));
+          setDisplay(eased * value);
           if (progress < 1) requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
@@ -43,5 +55,10 @@ export function CountUpValue({ value, durationMs = 1200 }: { value: number; dura
     return () => observer.disconnect();
   }, [value, durationMs]);
 
-  return <span ref={spanRef}>{display}</span>;
+  return (
+    <span ref={spanRef}>
+      {display.toFixed(decimals)}
+      {suffix}
+    </span>
+  );
 }

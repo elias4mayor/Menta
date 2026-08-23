@@ -32,8 +32,13 @@ export function WhoSection() {
 
   return (
     <section className="px-6 md:px-10 pt-20 pb-4 text-center border-t border-[var(--border-soft)]">
-      <div className="mono text-text-3 mb-6">Built for every role in an athlete&rsquo;s development</div>
-      <div className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto">
+      <div className="mono text-text-3 mb-6 reveal reveal-scale">
+        Built for every role in an athlete&rsquo;s development
+      </div>
+      <div
+        className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto reveal reveal-scale"
+        style={{ transitionDelay: "100ms" }}
+      >
         {ROLES.map((r) => (
           <button
             key={r.role}
