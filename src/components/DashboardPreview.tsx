@@ -2,12 +2,12 @@
 
 import { useRef } from "react";
 
-const METRICS = [
+const METRICS: { label: string; value: string; caption?: string }[] = [
   { label: "Readiness", value: "92" },
   { label: "Weekly Load", value: "Optimal" },
   { label: "GPA", value: "3.8" },
   { label: "Recovery", value: "87%" },
-  { label: "Recruiting", value: "12 Opportunities" },
+  { label: "Recruiting", value: "12", caption: "Opportunities" },
 ];
 
 export function DashboardPreview() {
@@ -40,9 +40,13 @@ export function DashboardPreview() {
       <div className="mono text-text-3 mb-6 text-center">Your MENTA Dashboard</div>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         {METRICS.map((m) => (
-          <div key={m.label} className="bg-surface-2 rounded-[var(--r-sm)] p-4 text-center">
+          <div
+            key={m.label}
+            className="bg-surface-2 rounded-[var(--r-sm)] p-4 h-full flex flex-col items-center justify-center text-center"
+          >
             <div className="mono text-text-3 mb-2 text-xs">{m.label}</div>
-            <div className="text-2xl font-semibold leading-tight">{m.value}</div>
+            <div className="text-2xl font-semibold leading-tight whitespace-nowrap">{m.value}</div>
+            {m.caption && <div className="text-text-3 text-xs mt-1">{m.caption}</div>}
           </div>
         ))}
       </div>
