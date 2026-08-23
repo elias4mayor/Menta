@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
 import { buildStarterWorkouts, ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
+import { countryCodeForName } from "@/lib/geo";
+import { isCityCountryMismatch } from "@/lib/geo-server";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -25,6 +27,16 @@ export async function POST(request: Request) {
   }
 
   const { sport, position, graduationYear, schoolName, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
+
+  if (city && country) {
+    const countryCode = countryCodeForName(country);
+    if (countryCode && (await isCityCountryMismatch(countryCode, city))) {
+      return NextResponse.json(
+        { error: "That city doesn't match the selected country." },
+        { status: 400 }
+      );
+    }
+  }
 
   await prisma.athleteProfile.upsert({
     where: { userId: user.id },

@@ -80,6 +80,7 @@ export const coachOnboardingSchema = z
     schoolName: z.string().trim().max(160).optional().or(z.literal("")),
     country: z.string().trim().max(60).optional().or(z.literal("")),
     state: z.string().trim().max(60).optional().or(z.literal("")),
+    city: z.string().trim().max(120).optional().or(z.literal("")),
     focusAreas: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
   })
   .superRefine(refineStateMatchesCountry);
@@ -96,6 +97,7 @@ export const trainerOnboardingSchema = z
     trainingPhilosophy: z.string().trim().max(500).optional().or(z.literal("")),
     country: z.string().trim().max(60).optional().or(z.literal("")),
     state: z.string().trim().max(60).optional().or(z.literal("")),
+    city: z.string().trim().max(120).optional().or(z.literal("")),
     goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
   })
   .superRefine(refineStateMatchesCountry);
@@ -106,6 +108,7 @@ export const parentOnboardingSchema = z
     relationship: z.string().trim().max(60).optional().or(z.literal("")),
     country: z.string().trim().max(60).optional().or(z.literal("")),
     state: z.string().trim().max(60).optional().or(z.literal("")),
+    city: z.string().trim().max(120).optional().or(z.literal("")),
     goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
   })
   .superRefine(refineStateMatchesCountry);

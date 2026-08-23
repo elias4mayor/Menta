@@ -54,6 +54,11 @@ export function countryCodeForName(name: string): string | undefined {
   return ALL_COUNTRIES.find((c) => c.name === name)?.code;
 }
 
+/** Look up a state's short code within one country by its exact name. */
+export function stateCodeForName(countryCode: string, stateName: string): string | undefined {
+  return ALL_STATES.find((s) => s.countryCode === countryCode && s.name === stateName)?.stateCode ?? undefined;
+}
+
 /** Real USPS state/territory names + 2-letter abbreviations. */
 export const US_STATES: { name: string; code: string }[] = [
   { name: "Alabama", code: "AL" }, { name: "Alaska", code: "AK" }, { name: "Arizona", code: "AZ" },

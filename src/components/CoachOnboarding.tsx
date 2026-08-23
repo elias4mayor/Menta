@@ -7,6 +7,7 @@ import { Select } from "@/components/Select";
 import { MultiSelect } from "@/components/MultiSelect";
 import { CountrySelect } from "@/components/CountrySelect";
 import { StateSelect } from "@/components/StateSelect";
+import { CitySelect } from "@/components/CitySelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
@@ -36,6 +37,7 @@ export function CoachOnboarding({ name }: { name: string }) {
   const [schoolName, setSchoolName] = useState("");
   const [country, setCountry] = useState("United States");
   const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,12 @@ export function CoachOnboarding({ name }: { name: string }) {
   function handleCountryChange(next: string) {
     setCountry(next);
     setState("");
+    setCity("");
+  }
+
+  function handleStateChange(next: string) {
+    setState(next);
+    setCity("");
   }
 
   async function submitProfile(e: React.FormEvent) {
@@ -63,6 +71,7 @@ export function CoachOnboarding({ name }: { name: string }) {
           schoolName: schoolName || undefined,
           country: country || undefined,
           state: state || undefined,
+          city: city || undefined,
           focusAreas,
         }),
       });
@@ -104,8 +113,13 @@ export function CoachOnboarding({ name }: { name: string }) {
                   </div>
                   <div>
                     <label className="field-label" htmlFor="coach-state">State / province</label>
-                    <StateSelect id="coach-state" country={country} value={state} onChange={setState} />
+                    <StateSelect id="coach-state" country={country} value={state} onChange={handleStateChange} />
                   </div>
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="coach-city">City</label>
+                  <CitySelect id="coach-city" country={country} state={state} value={city} onChange={setCity} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

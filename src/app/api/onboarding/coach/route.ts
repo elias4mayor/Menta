@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { coachOnboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { countryCodeForName } from "@/lib/geo";
+import { isCityCountryMismatch } from "@/lib/geo-server";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -16,7 +18,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { phone, sport, coachingRole, yearsCoaching, organizationName, schoolName, country, state, focusAreas } = parsed.data;
+  const { phone, sport, coachingRole, yearsCoaching, organizationName, schoolName, country, state, city, focusAreas } = parsed.data;
+
+  if (city && country) {
+    const countryCode = countryCodeForName(country);
+    if (countryCode && (await isCityCountryMismatch(countryCode, city))) {
+      return NextResponse.json({ error: "That city doesn't match the selected country." }, { status: 400 });
+    }
+  }
 
   await prisma.coachProfile.upsert({
     where: { userId: user.id },
@@ -30,6 +39,7 @@ export async function POST(request: Request) {
       schoolName: schoolName || undefined,
       country: country || undefined,
       state: state || undefined,
+      city: city || undefined,
       focusAreas: focusAreas ? JSON.stringify(focusAreas) : undefined,
       onboardingCompletedAt: new Date(),
     },
@@ -42,6 +52,7 @@ export async function POST(request: Request) {
       schoolName: schoolName || undefined,
       country: country || undefined,
       state: state || undefined,
+      city: city || undefined,
       focusAreas: focusAreas ? JSON.stringify(focusAreas) : undefined,
       onboardingCompletedAt: new Date(),
     },

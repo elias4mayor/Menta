@@ -116,6 +116,22 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+/// Real cities (152,307, from the same dr5hn/countries-states-cities-database
+/// dataset states.json came from — ODbL v1.0, attribution required),
+/// server-side only: never queried from the client, always through
+/// /api/geo/cities. Seeded from src/lib/data/cities-seed.json via
+/// prisma/seed-cities.mjs — that JSON file is the committed source of
+/// truth; this table is the queryable, indexed copy of it.
+model City {
+  id          String  @id @default(cuid())
+  name        String
+  countryCode String
+  stateCode   String?
+
+  @@index([countryCode, stateCode, name])
+  @@index([countryCode, name])
+}
+
 /// A 6-digit signup email-verification code. Same shape as
 /// PasswordResetToken (hashed at rest, expiring, single-use) plus an
 /// attempts counter so a stolen/guessed code can be rate-limited by count,
@@ -186,6 +202,11 @@ model CoachProfile {
   /// Real state/province name for `country`, from the same global
   /// dataset StateSelect uses (src/lib/data/states.json).
   state                 String?
+  /// Real city name, searched server-side against the City table
+  /// (src/lib/data/cities-seed.json) via /api/geo/cities — free-typed
+  /// values are still accepted, so this isn't constrained to an exact
+  /// match the way country/state are.
+  city                  String?
   /// JSON-stringified array of the coach's selected onboarding goals —
   /// full sentences from src/lib/goals.ts's COACH list (e.g. "I want to
   /// improve my team's overall performance."), same freeform string-array
@@ -218,6 +239,8 @@ model TrainerProfile {
   country               String?
   /// Real state/province name for `country` (src/lib/data/states.json).
   state                 String?
+  /// Real city name (see the same field's doc-comment on CoachProfile).
+  city                  String?
   /// JSON-stringified array of selected onboarding goals — full sentences
   /// from src/lib/goals.ts's TRAINER list.
   goals                 String?
@@ -242,6 +265,8 @@ model ParentProfile {
   country               String?
   /// Real state/province name for `country` (src/lib/data/states.json).
   state                 String?
+  /// Real city name (see the same field's doc-comment on CoachProfile).
+  city                  String?
   /// JSON-stringified array of selected onboarding goals — full sentences
   /// from src/lib/goals.ts's PARENT list.
   goals                 String?

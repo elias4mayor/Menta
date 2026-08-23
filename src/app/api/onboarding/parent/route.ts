@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { parentOnboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { countryCodeForName } from "@/lib/geo";
+import { isCityCountryMismatch } from "@/lib/geo-server";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -16,7 +18,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { phone, relationship, country, state, goals } = parsed.data;
+  const { phone, relationship, country, state, city, goals } = parsed.data;
+
+  if (city && country) {
+    const countryCode = countryCodeForName(country);
+    if (countryCode && (await isCityCountryMismatch(countryCode, city))) {
+      return NextResponse.json({ error: "That city doesn't match the selected country." }, { status: 400 });
+    }
+  }
 
   await prisma.parentProfile.upsert({
     where: { userId: user.id },
@@ -26,6 +35,7 @@ export async function POST(request: Request) {
       relationship: relationship || undefined,
       country: country || undefined,
       state: state || undefined,
+      city: city || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },
@@ -34,6 +44,7 @@ export async function POST(request: Request) {
       relationship: relationship || undefined,
       country: country || undefined,
       state: state || undefined,
+      city: city || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },

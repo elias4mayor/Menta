@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { trainerOnboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { countryCodeForName } from "@/lib/geo";
+import { isCityCountryMismatch } from "@/lib/geo-server";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -27,8 +29,16 @@ export async function POST(request: Request) {
     trainingPhilosophy,
     country,
     state,
+    city,
     goals,
   } = parsed.data;
+
+  if (city && country) {
+    const countryCode = countryCodeForName(country);
+    if (countryCode && (await isCityCountryMismatch(countryCode, city))) {
+      return NextResponse.json({ error: "That city doesn't match the selected country." }, { status: 400 });
+    }
+  }
 
   await prisma.trainerProfile.upsert({
     where: { userId: user.id },
@@ -44,6 +54,7 @@ export async function POST(request: Request) {
       trainingPhilosophy: trainingPhilosophy || undefined,
       country: country || undefined,
       state: state || undefined,
+      city: city || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },
@@ -58,6 +69,7 @@ export async function POST(request: Request) {
       trainingPhilosophy: trainingPhilosophy || undefined,
       country: country || undefined,
       state: state || undefined,
+      city: city || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },

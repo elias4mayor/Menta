@@ -7,6 +7,7 @@ import { Select } from "@/components/Select";
 import { MultiSelect } from "@/components/MultiSelect";
 import { CountrySelect } from "@/components/CountrySelect";
 import { StateSelect } from "@/components/StateSelect";
+import { CitySelect } from "@/components/CitySelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { GuardianLinks } from "@/components/GuardianLinks";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
@@ -28,6 +29,7 @@ export function ParentOnboarding({ name }: { name: string }) {
   const [relationship, setRelationship] = useState("");
   const [country, setCountry] = useState("United States");
   const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,12 @@ export function ParentOnboarding({ name }: { name: string }) {
   function handleCountryChange(next: string) {
     setCountry(next);
     setState("");
+    setCity("");
+  }
+
+  function handleStateChange(next: string) {
+    setState(next);
+    setCity("");
   }
 
   async function saveProfile(e: React.FormEvent) {
@@ -51,6 +59,7 @@ export function ParentOnboarding({ name }: { name: string }) {
           relationship: relationship || undefined,
           country: country || undefined,
           state: state || undefined,
+          city: city || undefined,
           goals,
         }),
       });
@@ -102,8 +111,12 @@ export function ParentOnboarding({ name }: { name: string }) {
                   </div>
                   <div>
                     <label className="field-label" htmlFor="parent-state">State / province</label>
-                    <StateSelect id="parent-state" country={country} value={state} onChange={setState} />
+                    <StateSelect id="parent-state" country={country} value={state} onChange={handleStateChange} />
                   </div>
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="parent-city">City</label>
+                  <CitySelect id="parent-city" country={country} state={state} value={city} onChange={setCity} />
                 </div>
                 <div>
                   <label className="field-label" htmlFor="parent-phone">Phone</label>

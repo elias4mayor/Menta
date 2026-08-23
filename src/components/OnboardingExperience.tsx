@@ -8,6 +8,7 @@ import { MultiSelect } from "@/components/MultiSelect";
 import { SchoolCombobox } from "@/components/SchoolCombobox";
 import { CountrySelect } from "@/components/CountrySelect";
 import { StateField } from "@/components/StateField";
+import { CitySelect } from "@/components/CitySelect";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
@@ -63,6 +64,11 @@ export function OnboardingExperience({ name }: { name: string }) {
   function handleCountryChange(next: string) {
     setCountry(next);
     setState("");
+    setCity("");
+  }
+
+  function handleStateChange(next: string) {
+    setState(next);
     setCity("");
   }
 
@@ -240,12 +246,12 @@ export function OnboardingExperience({ name }: { name: string }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="field-label" htmlFor="onb-city">City</label>
-                    <input id="onb-city" className="field-input" value={city} onChange={(e) => setCity(e.target.value)} />
+                    <label className="field-label" htmlFor="onb-state">State</label>
+                    <StateField id="onb-state" country={country} value={state} onChange={handleStateChange} />
                   </div>
                   <div>
-                    <label className="field-label" htmlFor="onb-state">State</label>
-                    <StateField id="onb-state" country={country} value={state} onChange={setState} />
+                    <label className="field-label" htmlFor="onb-city">City</label>
+                    <CitySelect id="onb-city" country={country} state={state} value={city} onChange={setCity} />
                   </div>
                 </div>
               </div>

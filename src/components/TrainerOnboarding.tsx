@@ -7,6 +7,7 @@ import { Select } from "@/components/Select";
 import { MultiSelect } from "@/components/MultiSelect";
 import { CountrySelect } from "@/components/CountrySelect";
 import { StateSelect } from "@/components/StateSelect";
+import { CitySelect } from "@/components/CitySelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
@@ -49,6 +50,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
   const [trainingPhilosophy, setTrainingPhilosophy] = useState("");
   const [country, setCountry] = useState("United States");
   const [state, setState] = useState("");
+  const [city, setCity] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,12 @@ export function TrainerOnboarding({ name }: { name: string }) {
   function handleCountryChange(next: string) {
     setCountry(next);
     setState("");
+    setCity("");
+  }
+
+  function handleStateChange(next: string) {
+    setState(next);
+    setCity("");
   }
 
   function toggleSpecialty(s: string) {
@@ -82,6 +90,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
           trainingPhilosophy: trainingPhilosophy || undefined,
           country: country || undefined,
           state: state || undefined,
+          city: city || undefined,
           goals,
         }),
       });
@@ -123,19 +132,24 @@ export function TrainerOnboarding({ name }: { name: string }) {
                   </div>
                   <div>
                     <label className="field-label" htmlFor="trainer-state">State / province</label>
-                    <StateSelect id="trainer-state" country={country} value={state} onChange={setState} />
+                    <StateSelect id="trainer-state" country={country} value={state} onChange={handleStateChange} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="field-label" htmlFor="trainer-city">City</label>
+                    <CitySelect id="trainer-city" country={country} state={state} value={city} onChange={setCity} />
+                  </div>
+                  <div>
                     <label className="field-label" htmlFor="trainer-phone">Phone</label>
                     <PhoneInput id="trainer-phone" value={phone} onChange={setPhone} />
                   </div>
-                  <div>
-                    <label className="field-label" htmlFor="trainer-business">Business / organization</label>
-                    <input id="trainer-business" className="field-input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Optional" />
-                  </div>
+                </div>
+
+                <div>
+                  <label className="field-label" htmlFor="trainer-business">Business / organization</label>
+                  <input id="trainer-business" className="field-input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Optional" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
