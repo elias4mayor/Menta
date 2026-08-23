@@ -35,29 +35,73 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
 
   const focusAreas: string[] = coachProfile?.focusAreas ? JSON.parse(coachProfile.focusAreas) : [];
   const totalAthletes = teams.reduce((sum, t) => sum + t.memberships.filter((m) => m.teamRole === "ATHLETE").length, 0);
+  const allEvents = teams
+    .flatMap((t) => t.events.map((e) => ({ ...e, teamName: t.name })))
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="card p-0 mb-8 overflow-hidden dash-in-primary dash-in-3">
-        <div className="grid grid-cols-2 md:grid-cols-3">
-          {[
-            { label: "Teams", value: teams.length },
-            { label: "Athletes", value: totalAthletes },
-            { label: "Upcoming events", value: teams.reduce((sum, t) => sum + t.events.length, 0) },
-          ].map((stat, i) => (
-            <div
-              key={stat.label}
-              className="p-5"
-              style={{ borderRight: i < 2 ? "1px solid var(--border-soft)" : undefined }}
-            >
-              <div className="text-3xl font-heading font-semibold mb-1">{stat.value}</div>
-              <div className="mono text-text-3">{stat.label}</div>
+    <div className="max-w-6xl mx-auto">
+      <div className="cockpit-grid mb-8">
+        <div className="hero-panel dash-in-primary dash-in-3">
+          <div className="mono text-text-3 mb-2">Now</div>
+          <h2 className="text-2xl font-semibold mb-1">
+            {allEvents[0] ? allEvents[0].title : "No practice scheduled today"}
+          </h2>
+          <p className="text-text-2 text-sm mb-6">
+            {allEvents[0]
+              ? `${allEvents[0].teamName} · ${new Date(allEvents[0].startsAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
+              : "Check in with your roster or review recent film."}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {[
+              { label: "Teams", value: teams.length, href: "/team" },
+              { label: "Athletes", value: totalAthletes, href: "/team" },
+              { label: "Upcoming events", value: allEvents.length, href: "/calendar" },
+            ].map((stat) => (
+              <Link key={stat.label} href={stat.href} className="block">
+                <div className="cockpit-stat-value mb-1">{stat.value}</div>
+                <div className="mono text-text-3">{stat.label}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4 dash-in dash-in-4">
+          <div className="context-card">
+            <div className="flex items-center justify-between mb-3">
+              <div className="mono text-text-3">Next up</div>
+              <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
+                Calendar →
+              </Link>
             </div>
-          ))}
+            {allEvents.length === 0 ? (
+              <p className="text-text-2 text-sm">Nothing on the calendar yet.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {allEvents.slice(0, 3).map((e) => (
+                  <li key={e.id} className="flex items-center justify-between">
+                    <span>{e.title}</span>
+                    <span className="mono text-text-3 text-xs">
+                      {new Date(e.startsAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="context-card">
+            <div className="mono text-text-3 mb-3">Quick actions</div>
+            <div className="flex flex-col gap-2">
+              <Link href="/team" className="btn-secondary justify-start">Manage roster</Link>
+              <Link href="/film" className="btn-secondary justify-start">Review film</Link>
+              <Link href="/ai-coach" className="btn-secondary justify-start">Ask MENTA Coach AI</Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="card p-5 mb-8 dash-in dash-in-4">
+      <div className="card p-5 mb-8 dash-in dash-in-5">
         <div className="flex items-center justify-between mb-3">
           <div className="mono text-text-3">Your teams</div>
           <Link href="/team" className="text-xs text-text-2 hover:text-text-1">
@@ -107,45 +151,22 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-8 dash-in dash-in-5">
-        <div className="card card-hover p-5">
-          <div className="mono text-text-3 mb-3">Coach profile</div>
-          {coachProfile ? (
-            <>
-              <p className="text-sm mb-1">{coachProfile.coachingRole || "Role not set"}{coachProfile.sport ? ` · ${coachProfile.sport}` : ""}</p>
-              <p className="text-text-2 text-sm">{coachProfile.organizationName || coachProfile.schoolName || "Organization not set"}</p>
-              {focusAreas.length > 0 && (
-                <p className="text-text-3 text-xs mt-2">Focused on: {focusAreas.join(" · ")}</p>
-              )}
-            </>
-          ) : (
-            <p className="text-text-2 text-sm">Finish onboarding to set up your coach profile.</p>
-          )}
-          <Link href="/profile" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
-            View profile →
-          </Link>
-        </div>
-
-        <div className="card card-hover p-5">
-          <div className="mono text-text-3 mb-3">Coming up</div>
-          {teams.every((t) => t.events.length === 0) ? (
-            <p className="text-text-2 text-sm">Nothing on the calendar yet.</p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {teams.flatMap((t) => t.events.map((e) => (
-                <li key={e.id} className="flex items-center justify-between">
-                  <span>{e.title}</span>
-                  <span className="mono text-text-3 text-xs">
-                    {new Date(e.startsAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
-                </li>
-              )))}
-            </ul>
-          )}
-          <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
-            Full calendar →
-          </Link>
-        </div>
+      <div className="card card-hover p-5 mb-8">
+        <div className="mono text-text-3 mb-3">Coach profile</div>
+        {coachProfile ? (
+          <>
+            <p className="text-sm mb-1">{coachProfile.coachingRole || "Role not set"}{coachProfile.sport ? ` · ${coachProfile.sport}` : ""}</p>
+            <p className="text-text-2 text-sm">{coachProfile.organizationName || coachProfile.schoolName || "Organization not set"}</p>
+            {focusAreas.length > 0 && (
+              <p className="text-text-3 text-xs mt-2">Focused on: {focusAreas.join(" · ")}</p>
+            )}
+          </>
+        ) : (
+          <p className="text-text-2 text-sm">Finish onboarding to set up your coach profile.</p>
+        )}
+        <Link href="/profile" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
+          View profile →
+        </Link>
       </div>
 
       <div className="card p-5">

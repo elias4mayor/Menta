@@ -8,8 +8,11 @@ import type { ReactNode } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { Avatar } from "@/components/Avatar";
+import { NavIcon } from "@/components/NavIcons";
+import { AskMenta } from "@/components/AskMenta";
 
-type NavSection = { label: string; items: { href: string; label: string }[] };
+type NavItem = { href: string; label: string; icon: string };
+type NavSection = { label: string; items: NavItem[] };
 
 /**
  * Nav is role-aware: the athlete list below is the original, unchanged
@@ -26,32 +29,32 @@ function navSectionsForRole(role: string): NavSection[] {
       {
         label: "Home",
         items: [
-          { href: "/dashboard", label: "My MENTA" },
-          { href: "/ai-coach", label: "MENTA Coach AI" },
+          { href: "/dashboard", label: "My MENTA", icon: "home" },
+          { href: "/ai-coach", label: "MENTA Coach AI", icon: "spark" },
         ],
       },
       {
         label: "Team",
         items: [
-          { href: "/team", label: "Team" },
-          { href: "/film", label: "Film" },
-          { href: "/safety", label: "Safety" },
-          { href: "/school", label: "Academics" },
+          { href: "/team", label: "Team", icon: "team" },
+          { href: "/film", label: "Film", icon: "film" },
+          { href: "/safety", label: "Safety", icon: "safety" },
+          { href: "/school", label: "Academics", icon: "school" },
         ],
       },
       {
         label: "Communication",
         items: [
-          { href: "/messages", label: "Messages" },
-          { href: "/calendar", label: "Calendar" },
+          { href: "/messages", label: "Messages", icon: "messages" },
+          { href: "/calendar", label: "Calendar", icon: "calendar" },
         ],
       },
       {
         label: "You",
         items: [
-          { href: "/documents", label: "Documents" },
-          { href: "/profile", label: "Profile" },
-          { href: "/settings", label: "Settings" },
+          { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/profile", label: "Profile", icon: "profile" },
+          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -62,30 +65,30 @@ function navSectionsForRole(role: string): NavSection[] {
       {
         label: "Home",
         items: [
-          { href: "/dashboard", label: "My MENTA" },
-          { href: "/ai-coach", label: "MENTA Trainer AI" },
+          { href: "/dashboard", label: "My MENTA", icon: "home" },
+          { href: "/ai-coach", label: "MENTA Trainer AI", icon: "spark" },
         ],
       },
       {
         label: "Clients",
         items: [
-          { href: "/team", label: "Groups" },
-          { href: "/train", label: "Training" },
+          { href: "/team", label: "Groups", icon: "team" },
+          { href: "/train", label: "Training", icon: "train" },
         ],
       },
       {
         label: "Communication",
         items: [
-          { href: "/messages", label: "Messages" },
-          { href: "/calendar", label: "Calendar" },
+          { href: "/messages", label: "Messages", icon: "messages" },
+          { href: "/calendar", label: "Calendar", icon: "calendar" },
         ],
       },
       {
         label: "You",
         items: [
-          { href: "/documents", label: "Documents" },
-          { href: "/profile", label: "Profile" },
-          { href: "/settings", label: "Settings" },
+          { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/profile", label: "Profile", icon: "profile" },
+          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -96,27 +99,27 @@ function navSectionsForRole(role: string): NavSection[] {
       {
         label: "Home",
         items: [
-          { href: "/dashboard", label: "My MENTA" },
-          { href: "/ai-coach", label: "MENTA Family AI" },
+          { href: "/dashboard", label: "My MENTA", icon: "home" },
+          { href: "/ai-coach", label: "MENTA Family AI", icon: "spark" },
         ],
       },
       {
         label: "Athlete",
         items: [
-          { href: "/safety", label: "Safety" },
-          { href: "/calendar", label: "Calendar" },
+          { href: "/safety", label: "Safety", icon: "safety" },
+          { href: "/calendar", label: "Calendar", icon: "calendar" },
         ],
       },
       {
         label: "Communication",
-        items: [{ href: "/messages", label: "Messages" }],
+        items: [{ href: "/messages", label: "Messages", icon: "messages" }],
       },
       {
         label: "You",
         items: [
-          { href: "/documents", label: "Documents" },
-          { href: "/profile", label: "Profile" },
-          { href: "/settings", label: "Settings" },
+          { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/profile", label: "Profile", icon: "profile" },
+          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -126,42 +129,42 @@ function navSectionsForRole(role: string): NavSection[] {
     {
       label: "Home",
       items: [
-        { href: "/dashboard", label: "My MENTA" },
-        { href: "/ai-coach", label: "MENTA AI" },
+        { href: "/dashboard", label: "My MENTA", icon: "home" },
+        { href: "/ai-coach", label: "MENTA AI", icon: "spark" },
       ],
     },
     {
       label: "Development",
       items: [
-        { href: "/train", label: "Training" },
-        { href: "/performance", label: "Performance" },
-        { href: "/film", label: "Film" },
-        { href: "/recovery", label: "Recovery" },
-        { href: "/mind", label: "Mindset" },
+        { href: "/train", label: "Training", icon: "train" },
+        { href: "/performance", label: "Performance", icon: "performance" },
+        { href: "/film", label: "Film", icon: "film" },
+        { href: "/recovery", label: "Recovery", icon: "recovery" },
+        { href: "/mind", label: "Mindset", icon: "mind" },
       ],
     },
     {
       label: "Future",
       items: [
-        { href: "/school", label: "Academics" },
-        { href: "/recruit", label: "Recruiting" },
-        { href: "/safety", label: "Safety" },
+        { href: "/school", label: "Academics", icon: "school" },
+        { href: "/recruit", label: "Recruiting", icon: "recruit" },
+        { href: "/safety", label: "Safety", icon: "safety" },
       ],
     },
     {
       label: "Team",
       items: [
-        { href: "/team", label: "Team" },
-        { href: "/messages", label: "Messages" },
-        { href: "/calendar", label: "Calendar" },
+        { href: "/team", label: "Team", icon: "team" },
+        { href: "/messages", label: "Messages", icon: "messages" },
+        { href: "/calendar", label: "Calendar", icon: "calendar" },
       ],
     },
     {
       label: "You",
       items: [
-        { href: "/documents", label: "Documents" },
-        { href: "/profile", label: "Profile" },
-        { href: "/settings", label: "Settings" },
+        { href: "/documents", label: "Documents", icon: "documents" },
+        { href: "/profile", label: "Profile", icon: "profile" },
+        { href: "/settings", label: "Settings", icon: "settings" },
       ],
     },
   ];
@@ -263,10 +266,12 @@ export function AppShell({
             priority
           />
         </Link>
-        <nav className="flex-1 space-y-7 overflow-y-auto">
+        <nav className="flex-1 space-y-6 overflow-y-auto">
           {navSections.map((section) => (
             <div key={section.label}>
-              <div className="mono text-text-3 px-3 mb-2">{section.label}</div>
+              <div className="mono text-text-3 px-3 mb-2.5" style={{ opacity: 0.75 }}>
+                {section.label}
+              </div>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
                   const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -274,7 +279,7 @@ export function AppShell({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="relative block px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300 active:scale-[0.97]"
+                      className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300 active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
                       style={{
                         color: active ? "var(--text-1)" : "var(--text-2)",
                         background: active ? "var(--nav-hover-bg)" : "transparent",
@@ -286,12 +291,13 @@ export function AppShell({
                           style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
                         />
                       )}
+                      <NavIcon name={item.icon} className="shrink-0" />
                       {active ? (
                         <GlowWaveText intensity="subtle" hoverBoost={false}>
                           {item.label}
                         </GlowWaveText>
                       ) : (
-                        item.label
+                        <span className="truncate">{item.label}</span>
                       )}
                     </Link>
                   );
@@ -383,6 +389,8 @@ export function AppShell({
           );
         })}
       </nav>
+
+      <AskMenta />
     </div>
   );
 }

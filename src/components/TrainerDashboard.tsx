@@ -34,22 +34,43 @@ export async function TrainerDashboard({ user }: { user: SessionUser }) {
   const totalClients = teams.reduce((sum, t) => sum + t.memberships.filter((m) => m.teamRole === "ATHLETE").length, 0);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="card p-0 mb-8 overflow-hidden dash-in-primary dash-in-3">
-        <div className="grid grid-cols-2">
-          {[
-            { label: "Groups", value: teams.length },
-            { label: "Clients", value: totalClients },
-          ].map((stat, i) => (
-            <div key={stat.label} className="p-5" style={{ borderRight: i === 0 ? "1px solid var(--border-soft)" : undefined }}>
-              <div className="text-3xl font-heading font-semibold mb-1">{stat.value}</div>
-              <div className="mono text-text-3">{stat.label}</div>
+    <div className="max-w-6xl mx-auto">
+      <div className="cockpit-grid mb-8">
+        <div className="hero-panel dash-in-primary dash-in-3">
+          <div className="mono text-text-3 mb-2">Now</div>
+          <h2 className="text-2xl font-semibold mb-1">
+            {trainerProfile?.businessName || `${user.name.split(" ")[0]}'s training`}
+          </h2>
+          <p className="text-text-2 text-sm mb-6">
+            {trainerProfile?.sport
+              ? `${trainerProfile.sport} · ${totalClients} client${totalClients === 1 ? "" : "s"} across ${teams.length} group${teams.length === 1 ? "" : "s"}`
+              : "Finish onboarding to set up your training profile."}
+          </p>
+          <div className="grid grid-cols-2 gap-6">
+            <Link href="/team" className="block">
+              <div className="cockpit-stat-value mb-1">{teams.length}</div>
+              <div className="mono text-text-3">Groups</div>
+            </Link>
+            <Link href="/team" className="block">
+              <div className="cockpit-stat-value mb-1">{totalClients}</div>
+              <div className="mono text-text-3">Clients</div>
+            </Link>
+          </div>
+        </div>
+
+        <div className="space-y-4 dash-in dash-in-4">
+          <div className="context-card">
+            <div className="mono text-text-3 mb-3">Quick actions</div>
+            <div className="flex flex-col gap-2">
+              <Link href="/team" className="btn-secondary justify-start">Manage groups</Link>
+              <Link href="/train" className="btn-secondary justify-start">Training library</Link>
+              <Link href="/ai-coach" className="btn-secondary justify-start">Ask MENTA Trainer AI</Link>
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
-      <div className="card p-5 mb-8 dash-in dash-in-4">
+      <div className="card p-5 mb-8 dash-in dash-in-5">
         <div className="flex items-center justify-between mb-3">
           <div className="mono text-text-3">Your clients</div>
           <Link href="/team" className="text-xs text-text-2 hover:text-text-1">
@@ -91,7 +112,7 @@ export async function TrainerDashboard({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      <div className="card card-hover p-5 mb-8 dash-in dash-in-5">
+      <div className="card card-hover p-5 mb-8">
         <div className="mono text-text-3 mb-3">Trainer profile</div>
         {trainerProfile ? (
           <>

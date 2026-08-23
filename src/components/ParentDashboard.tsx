@@ -62,45 +62,84 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
     });
   }
 
+  const totalWorkouts = snapshots.reduce((sum, s) => sum + s.workoutsThisWeek, 0);
+  const totalGoals = snapshots.reduce((sum, s) => sum + s.activeGoals, 0);
+
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="card p-5 mb-8 dash-in-primary dash-in-3">
-        <div className="mono text-text-3 mb-3">Your athletes</div>
-        {approvedLinks.length === 0 && pendingLinks.length === 0 ? (
-          <p className="text-text-2 text-sm">
-            You haven&rsquo;t connected an athlete yet.{" "}
-            <Link href="/settings" className="text-text-1 hover:underline">
-              Send a request from Settings
-            </Link>{" "}
-            using the email on their MENTA account.
+    <div className="max-w-6xl mx-auto">
+      <div className="cockpit-grid mb-8">
+        <div className="hero-panel dash-in-primary dash-in-3">
+          <div className="mono text-text-3 mb-2">Now</div>
+          <h2 className="text-2xl font-semibold mb-1">
+            {snapshots.length > 0
+              ? `Watching ${snapshots.length} athlete${snapshots.length === 1 ? "" : "s"}`
+              : pendingLinks.length > 0
+                ? "Approval pending"
+                : "No athletes connected yet"}
+          </h2>
+          <p className="text-text-2 text-sm mb-6">
+            {snapshots.length > 0
+              ? snapshots.map((s) => s.name.split(" ")[0]).join(", ")
+              : pendingLinks.length > 0
+                ? `${pendingLinks.length} request${pendingLinks.length === 1 ? "" : "s"} waiting on approval`
+                : "Connect an athlete from Settings to see their training snapshot."}
           </p>
-        ) : (
-          <ul className="space-y-3">
-            {approvedLinks.map((l) => (
-              <li key={l.id} className="flex items-center justify-between text-sm">
-                <span>
-                  {l.athlete.name} <span className="text-text-3">({l.athlete.email})</span>
-                </span>
-                <span className="badge badge-live">Connected</span>
-              </li>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { label: "Athletes connected", value: approvedLinks.length, href: "/settings" },
+              { label: "Pending requests", value: pendingLinks.length, href: "/settings" },
+              { label: "Workouts this week", value: totalWorkouts, href: "/settings" },
+              { label: "Active goals", value: totalGoals, href: "/settings" },
+            ].map((stat) => (
+              <Link key={stat.label} href={stat.href} className="block">
+                <div className="cockpit-stat-value mb-1">{stat.value}</div>
+                <div className="mono text-text-3">{stat.label}</div>
+              </Link>
             ))}
-            {pendingLinks.map((l) => (
-              <li key={l.id} className="flex items-center justify-between text-sm">
-                <span>
-                  {l.athlete.name} <span className="text-text-3">({l.athlete.email})</span>
-                </span>
-                <span className="badge">Pending approval</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <Link href="/settings" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
-          Manage connections →
-        </Link>
+          </div>
+        </div>
+
+        <div className="space-y-4 dash-in dash-in-4">
+          <div className="context-card">
+            <div className="mono text-text-3 mb-3">Your athletes</div>
+            {approvedLinks.length === 0 && pendingLinks.length === 0 ? (
+              <p className="text-text-2 text-sm">
+                You haven&rsquo;t connected an athlete yet.{" "}
+                <Link href="/settings" className="text-text-1 hover:underline">
+                  Send a request from Settings
+                </Link>{" "}
+                using the email on their MENTA account.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {approvedLinks.map((l) => (
+                  <li key={l.id} className="flex items-center justify-between text-sm">
+                    <span>{l.athlete.name}</span>
+                    <span className="badge badge-live">Connected</span>
+                  </li>
+                ))}
+                {pendingLinks.map((l) => (
+                  <li key={l.id} className="flex items-center justify-between text-sm">
+                    <span>{l.athlete.name}</span>
+                    <span className="badge">Pending</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="context-card">
+            <div className="mono text-text-3 mb-3">Quick actions</div>
+            <div className="flex flex-col gap-2">
+              <Link href="/settings" className="btn-secondary justify-start">Manage connections</Link>
+              <Link href="/ai-coach" className="btn-secondary justify-start">Ask MENTA</Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       {snapshots.length > 0 && (
-        <div className="space-y-4 mb-8 dash-in dash-in-4">
+        <div className="space-y-4 mb-8 dash-in dash-in-5">
           {snapshots.map((s) => (
             <div key={s.athleteId} className="card card-hover p-5">
               <div className="flex items-center justify-between mb-3">
@@ -128,7 +167,7 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
         </div>
       )}
 
-      <div className="card p-5 dash-in dash-in-5">
+      <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="mono text-text-3">Recent notifications</div>
           <Link href="/notifications" className="text-xs text-text-2 hover:text-text-1">
