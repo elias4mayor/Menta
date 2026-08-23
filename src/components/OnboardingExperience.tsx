@@ -57,6 +57,7 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [goals, setGoals] = useState<string[]>([]);
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
 
   // Country determines which states/provinces (and cities) are even
   // valid, so switching it invalidates whatever was already picked —
@@ -141,9 +142,17 @@ export function OnboardingExperience({ name }: { name: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
+  // router.refresh() here used to race router.push("/dashboard") — both are
+  // App Router transitions, and firing refresh() right after push()
+  // interrupted the in-flight navigation with a refetch of the *current*
+  // route instead. push() alone already fetches fresh server data for the
+  // destination route, so the extra refresh() was redundant on top of being
+  // the race. (The other half of the original bug was upstream, in
+  // VerifyEmailForm — see its comment.)
   function enterDashboard() {
+    if (entering) return;
+    setEntering(true);
     router.push("/dashboard");
-    router.refresh();
   }
 
   const questionIndex = QUESTION_STEPS.indexOf(step);
@@ -359,7 +368,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                 A starter training plan for {sport} is ready in your Training library.
               </p>
               <div className="onb-actions">
-                <button type="button" className="btn-primary" onClick={enterDashboard}>
+                <button type="button" className="btn-primary" onClick={enterDashboard} disabled={entering}>
                   Enter MENTA
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M5 12h14M13 5l7 7-7 7" />

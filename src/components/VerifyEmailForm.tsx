@@ -47,7 +47,17 @@ export function VerifyEmailForm({ email }: { email: string }) {
         return;
       }
       setDone(true);
-      setTimeout(() => router.push("/dashboard"), 900);
+      // Was router.push("/dashboard") — for a freshly-verified account
+      // onboarding is never complete yet, so proxy.ts always redirected
+      // that straight back to /onboarding. That redirected push left the
+      // App Router's client-side cache believing "/dashboard" resolves to
+      // /onboarding for the rest of the session: later, once onboarding
+      // actually finished and the reveal screen's "Enter MENTA" called
+      // router.push("/dashboard") for real, it silently no-opped (no
+      // request, no navigation) instead of re-checking — confirmed via
+      // network trace, not assumed. Pushing straight to the real
+      // destination here avoids ever creating that stale entry.
+      setTimeout(() => router.push("/onboarding"), 900);
     } catch {
       setError("Network error. Try again.");
       setCode("");

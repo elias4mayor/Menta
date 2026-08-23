@@ -61,6 +61,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
   const [goals, setGoals] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
   const [groupDone, setGroupDone] = useState(false);
 
   function handleCountryChange(next: string) {
@@ -140,9 +141,15 @@ export function TrainerOnboarding({ name }: { name: string }) {
     }
   }
 
+  // router.refresh() here used to race router.push("/dashboard") and
+  // interrupt the in-flight navigation with a refetch of the *current*
+  // route instead of one to /dashboard — see OnboardingExperience.tsx's
+  // enterDashboard() for the full explanation (same bug, same fix, shared
+  // across all four role onboarding flows).
   function enterDashboard() {
+    if (entering) return;
+    setEntering(true);
     router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -279,7 +286,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
               </p>
 
               <div className="onb-actions">
-                <button type="button" className="btn-primary" onClick={enterDashboard}>
+                <button type="button" className="btn-primary" onClick={enterDashboard} disabled={entering}>
                   Enter MENTA
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M5 12h14M13 5l7 7-7 7" />
