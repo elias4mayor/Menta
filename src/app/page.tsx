@@ -4,6 +4,7 @@ import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { Hero } from "@/components/Hero";
 import { DashboardPreview } from "@/components/DashboardPreview";
+import { FeatureShowcase } from "@/components/FeatureShowcase";
 import { WhoSection } from "@/components/WhoSection";
 import { FounderStory } from "@/components/FounderStory";
 import { RevealInit } from "@/components/RevealInit";
@@ -17,6 +18,74 @@ const PILLARS = [
   { name: "Mindset", href: "/mind", desc: "Mental performance check-ins and journaling." },
   { name: "Academics", href: "/school", desc: "GPA tracking and eligibility checklists." },
   { name: "Recruiting", href: "/recruit", desc: "Recruiting profile and outreach organizer." },
+];
+
+const FEATURES = [
+  {
+    eyebrow: "Performance",
+    heading: "See every rep, every PR, every trend.",
+    description:
+      "Log workouts, track personal records, and watch performance trends over time — so progress is visible, not just felt.",
+    href: "/performance",
+    cta: "Explore Performance",
+    metrics: [
+      { label: "40-yd", value: "4.6s" },
+      { label: "Bench", value: "225 lb" },
+      { label: "Vertical", value: "32in" },
+    ],
+  },
+  {
+    eyebrow: "Mindset",
+    heading: "Mental performance, tracked like everything else.",
+    description:
+      "Quick check-ins on focus, confidence, and stress build a real picture of mental readiness over a season, not just game day.",
+    href: "/mind",
+    cta: "Explore Mindset",
+    metrics: [
+      { label: "Focus", value: "8/10" },
+      { label: "Confidence", value: "7/10" },
+      { label: "Stress", value: "Low" },
+    ],
+  },
+  {
+    eyebrow: "Academics",
+    heading: "Grades and eligibility, before they become a problem.",
+    description:
+      "GPA tracking and eligibility checklists live next to training — so academics never fall through the cracks.",
+    href: "/school",
+    cta: "Explore Academics",
+    metrics: [
+      { label: "GPA", value: "3.8" },
+      { label: "Eligibility", value: "On Track" },
+      { label: "Credits", value: "18/24" },
+    ],
+  },
+  {
+    eyebrow: "Recruiting",
+    heading: "One organized recruiting profile, not five spreadsheets.",
+    description:
+      "Track outreach, schools, and contacts in one recruiting profile built to travel with the athlete.",
+    href: "/recruit",
+    cta: "Explore Recruiting",
+    metrics: [
+      { label: "Schools", value: "6" },
+      { label: "Contacts", value: "12" },
+      { label: "Offers", value: "2" },
+    ],
+  },
+  {
+    eyebrow: "Recovery",
+    heading: "Recovery treated as part of training, not an afterthought.",
+    description:
+      "Sleep, load, and wellness check-ins turn recovery into a habit that's actually tracked.",
+    href: "/recovery",
+    cta: "Explore Recovery",
+    metrics: [
+      { label: "Sleep", value: "7.5h" },
+      { label: "Recovery", value: "87%" },
+      { label: "Load", value: "Optimal" },
+    ],
+  },
 ];
 
 const TESTIMONIALS = [
@@ -88,6 +157,12 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="px-6 md:px-10 py-24 border-t border-[var(--border-soft)] space-y-24 md:space-y-32 max-w-5xl mx-auto">
+          {FEATURES.map((f, i) => (
+            <FeatureShowcase key={f.eyebrow} {...f} reverse={i % 2 === 1} />
+          ))}
         </section>
 
         <section className="px-6 md:px-10 py-24 border-t border-[var(--border-soft)] text-center">
