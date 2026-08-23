@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { Hero } from "@/components/Hero";
+import { DashboardPreview } from "@/components/DashboardPreview";
 import { WhoSection } from "@/components/WhoSection";
 import { FounderStory } from "@/components/FounderStory";
 import { RevealInit } from "@/components/RevealInit";
@@ -47,6 +48,18 @@ export default function HomePage() {
       <MarketingNav />
       <main>
         <Hero />
+
+        <section className="px-6 md:px-10 pt-20 pb-24 text-center">
+          <div className="mb-12">
+            <div className="eyebrow justify-center flex mx-auto w-fit">See MENTA in action</div>
+            <h2 className="text-3xl md:text-5xl font-semibold mb-2">One dashboard for the whole athlete.</h2>
+            <p className="text-text-3 text-sm max-w-xl mx-auto">
+              Illustrative example — your own dashboard reflects your real training, academics,
+              recovery, and recruiting data.
+            </p>
+          </div>
+          <DashboardPreview />
+        </section>
 
         <WhoSection />
 

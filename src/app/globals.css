@@ -766,6 +766,11 @@ h4 {
   --border: rgba(255, 255, 255, 0.16);
   --border-soft: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.28);
+  /* GlowWaveText's default --glow-wave-color is a dark shadow tuned for
+     the light-theme dashboards (dark text, so a dark glow reads as an
+     "ink" pulse) — on the hero's dark photo the headline is white, so it
+     needs a light glow instead or the effect is invisible. */
+  --glow-wave-color: rgba(255, 255, 255, 0.55);
 }
 
 .hero-on-dark .card {
