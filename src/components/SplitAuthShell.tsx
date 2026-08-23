@@ -57,7 +57,7 @@ export function SplitAuthShell({
 
       <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 md:py-10 bg-bg md:bg-transparent">
         <div className="w-full max-w-sm">
-          <Link href="/" className="flex items-center justify-center mb-10">
+          <Link href="/" className="flex items-center justify-center mb-10 auth-in dash-in-1">
             <Image
               src="/logo.png"
               alt="MENTA"
@@ -68,11 +68,13 @@ export function SplitAuthShell({
               priority
             />
           </Link>
-          <div className="mono text-text-3 mb-2">{eyebrow}</div>
-          <h1 className="text-3xl font-semibold mb-1">{title}</h1>
-          {subtitle && <p className="text-text-2 text-sm mb-8">{subtitle}</p>}
-          <div className={subtitle ? "" : "mt-8"}>{children}</div>
-          {footer && <div className="mt-8 text-sm text-text-2">{footer}</div>}
+          <div className="auth-in dash-in-2">
+            <div className="mono text-text-3 mb-2">{eyebrow}</div>
+            <h1 className="text-3xl font-semibold mb-1">{title}</h1>
+            {subtitle && <p className="text-text-2 text-sm mb-8">{subtitle}</p>}
+          </div>
+          <div className={`auth-in dash-in-3 ${subtitle ? "" : "mt-8"}`}>{children}</div>
+          {footer && <div className="mt-8 text-sm text-text-2 auth-in dash-in-4">{footer}</div>}
         </div>
       </div>
     </div>

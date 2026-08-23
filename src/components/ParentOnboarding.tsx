@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
@@ -13,6 +13,7 @@ import { GuardianLinks } from "@/components/GuardianLinks";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 
 export const RELATIONSHIPS = ["Parent", "Guardian", "Other"];
+const TRANSITION_MS = 260;
 
 /**
  * Parent/guardian onboarding — Phase 1 scope. Saves a real ParentProfile
@@ -32,6 +33,8 @@ export function ParentOnboarding({ name }: { name: string }) {
   const [city, setCity] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [phase, setPhase] = useState<"enter" | "exit">("enter");
+  const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +48,18 @@ export function ParentOnboarding({ name }: { name: string }) {
     setState(next);
     setCity("");
   }
+
+  function goToConnect() {
+    setPhase("exit");
+    transitionTimer.current = setTimeout(() => {
+      setSaved(true);
+      setPhase("enter");
+    }, TRANSITION_MS);
+  }
+
+  useEffect(() => () => {
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+  }, []);
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -68,7 +83,7 @@ export function ParentOnboarding({ name }: { name: string }) {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      setSaved(true);
+      goToConnect();
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -87,7 +102,7 @@ export function ParentOnboarding({ name }: { name: string }) {
       <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo onb-logo-settled" priority />
 
       <div className="onb-stage" style={{ maxWidth: 520 }}>
-        <div className="onb-content onb-enter">
+        <div key={saved ? "connect" : "form"} className={`onb-content ${phase === "exit" ? "onb-exit" : "onb-enter"}`}>
           {!saved ? (
             <>
               <h1 className="onb-title">Let&rsquo;s get you connected.</h1>

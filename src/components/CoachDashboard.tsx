@@ -38,7 +38,7 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="card p-0 mb-8 overflow-hidden">
+      <div className="card p-0 mb-8 overflow-hidden dash-in-primary dash-in-3">
         <div className="grid grid-cols-2 md:grid-cols-3">
           {[
             { label: "Teams", value: teams.length },
@@ -57,7 +57,7 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      <div className="card p-5 mb-8">
+      <div className="card p-5 mb-8 dash-in dash-in-4">
         <div className="flex items-center justify-between mb-3">
           <div className="mono text-text-3">Your teams</div>
           <Link href="/team" className="text-xs text-text-2 hover:text-text-1">
@@ -107,8 +107,8 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-8">
-        <div className="card p-5">
+      <div className="grid md:grid-cols-2 gap-4 mb-8 dash-in dash-in-5">
+        <div className="card card-hover p-5">
           <div className="mono text-text-3 mb-3">Coach profile</div>
           {coachProfile ? (
             <>
@@ -126,7 +126,7 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
           </Link>
         </div>
 
-        <div className="card p-5">
+        <div className="card card-hover p-5">
           <div className="mono text-text-3 mb-3">Coming up</div>
           {teams.every((t) => t.events.length === 0) ? (
             <p className="text-text-2 text-sm">Nothing on the calendar yet.</p>

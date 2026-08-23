@@ -64,7 +64,7 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="card p-5 mb-8">
+      <div className="card p-5 mb-8 dash-in-primary dash-in-3">
         <div className="mono text-text-3 mb-3">Your athletes</div>
         {approvedLinks.length === 0 && pendingLinks.length === 0 ? (
           <p className="text-text-2 text-sm">
@@ -100,9 +100,9 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
       </div>
 
       {snapshots.length > 0 && (
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-8 dash-in dash-in-4">
           {snapshots.map((s) => (
-            <div key={s.athleteId} className="card p-5">
+            <div key={s.athleteId} className="card card-hover p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="mono text-text-3">{s.name}&rsquo;s snapshot</div>
                 {(s.sport || s.schoolName) && (
@@ -128,7 +128,7 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
         </div>
       )}
 
-      <div className="card p-5">
+      <div className="card p-5 dash-in dash-in-5">
         <div className="flex items-center justify-between mb-3">
           <div className="mono text-text-3">Recent notifications</div>
           <Link href="/notifications" className="text-xs text-text-2 hover:text-text-1">

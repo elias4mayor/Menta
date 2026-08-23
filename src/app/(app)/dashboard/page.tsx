@@ -121,7 +121,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="card p-0 mb-8 overflow-hidden">
+      <div className="card p-0 mb-8 overflow-hidden dash-in-primary dash-in-3">
           <div className="grid grid-cols-2 md:grid-cols-4">
             {[
               {
@@ -165,24 +165,26 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           </div>
         </div>
 
-        <PlanCard
-          sport={profile?.sport ?? null}
-          trainingDaysPerWeek={profile?.trainingDaysPerWeek ?? null}
-          developmentAreas={demands?.developmentAreas ?? []}
-          trainingNote={demands?.trainingNote ?? ""}
-          workouts={planWorkouts.map((w) => ({
-            id: w.id,
-            title: w.title,
-            category: w.category,
-            description: w.description,
-            exercises: w.exercises ? JSON.parse(w.exercises) : [],
-            yourCompletions: w.completions.length,
-            lastCompletedAt: w.completions[0]?.completedAt.toISOString() ?? null,
-          }))}
-        />
+        <div className="dash-in dash-in-4">
+          <PlanCard
+            sport={profile?.sport ?? null}
+            trainingDaysPerWeek={profile?.trainingDaysPerWeek ?? null}
+            developmentAreas={demands?.developmentAreas ?? []}
+            trainingNote={demands?.trainingNote ?? ""}
+            workouts={planWorkouts.map((w) => ({
+              id: w.id,
+              title: w.title,
+              category: w.category,
+              description: w.description,
+              exercises: w.exercises ? JSON.parse(w.exercises) : [],
+              yourCompletions: w.completions.length,
+              lastCompletedAt: w.completions[0]?.completedAt.toISOString() ?? null,
+            }))}
+          />
+        </div>
 
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="card p-5">
+        <div className="grid md:grid-cols-3 gap-4 mb-8 dash-in dash-in-5">
+          <div className="card card-hover p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="mono text-text-3"><GlowWaveText intensity="subtle">Today</GlowWaveText></div>
               <Link href="/calendar" className="text-xs text-text-2 hover:text-text-1">
@@ -208,12 +210,12 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
             )}
           </div>
 
-          <div className="card p-5">
+          <div className="card card-hover p-5">
             <TodaysPriorities goals={priorityGoals} />
           </div>
 
           <div
-            className="card p-5"
+            className="card card-hover p-5"
             style={{
               border: "1px solid transparent",
               backgroundImage: "linear-gradient(var(--surface), var(--surface)), var(--grad-signal)",

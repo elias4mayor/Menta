@@ -270,12 +270,19 @@ h4 {
 }
 
 .card-hover {
-  transition: transform 0.35s var(--ease), border-color 0.35s var(--ease);
+  transition: transform 0.35s var(--ease), border-color 0.35s var(--ease), box-shadow 0.35s var(--ease);
 }
 
 .card-hover:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px) scale(1.008);
   border-color: var(--border-strong);
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.16), 0 8px 20px -10px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover:hover {
+    transform: none;
+  }
 }
 
 .btn-primary {
@@ -2039,5 +2046,134 @@ h4 {
 @media (max-width: 480px) {
   .mi-line {
     font-size: clamp(24px, 7.5vw, 34px);
+  }
+}
+
+/* ============================================================
+   PHASE 5 — GLOBAL MOTION SYSTEM
+   ============================================================
+   A small, shared mount-triggered entrance system for surfaces the
+   existing .reveal (src/components/RevealInit.tsx) deliberately skips —
+   authenticated dashboard chrome and the auth pages. .reveal is
+   scroll-triggered (IntersectonObserver) and used for the marketing site,
+   where a visitor scrolls through content once; these surfaces are
+   visited repeatedly by signed-in users, so this system fires once on
+   mount, is short (≤420ms end-to-end), uses only opacity+transform (no
+   blur — cheap enough to not matter on a revisit), and never blocks
+   interaction: everything is interactive immediately, motion is purely
+   decorative. Five .stagger-N steps give a controlled, non-random
+   hierarchy (page chrome → nav → heading → primary content → secondary
+   cards) instead of animating every element independently. */
+:root {
+  --stagger-1: 0ms;
+  --stagger-2: 90ms;
+  --stagger-3: 160ms;
+  --stagger-4: 260ms;
+  --stagger-5: 360ms;
+}
+
+@keyframes dashIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-in {
+  animation: dashIn 0.45s var(--ease) both;
+}
+
+.dash-in-1 { animation-delay: var(--stagger-1); }
+.dash-in-2 { animation-delay: var(--stagger-2); }
+.dash-in-3 { animation-delay: var(--stagger-3); }
+.dash-in-4 { animation-delay: var(--stagger-4); }
+.dash-in-5 { animation-delay: var(--stagger-5); }
+
+/* Same treatment, one shared entry point (SplitAuthShell) for every
+   auth page — login, signup, forgot-password, reset-password. */
+.auth-in {
+  animation: dashIn 0.5s var(--ease) both;
+}
+
+/* Nav active-indicator: a soft fade+scale on arrival rather than an
+   instant pop, without the larger risk of rebuilding the sidebar into a
+   single sliding shared-layout element. */
+@keyframes navDotIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scaleY(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+  }
+}
+
+.nav-dot-in {
+  animation: navDotIn 0.3s var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-in,
+  .auth-in,
+  .nav-dot-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   PHASE 5B — SPATIAL DEPTH REFINEMENT
+   ============================================================
+   .depth-visual: the handful of "most important visual moments" the
+   Phase 5B spec calls out (product preview, the Performance/Recruiting
+   feature visuals, the mission statement) get a continuous sense of
+   depth as they cross the viewport — driven by the --depth custom
+   property RevealInit.tsx's second IntersectionObserver sets (0 at the
+   edge of the viewport, 1 once fully in view). Everything else on the
+   homepage keeps the existing one-time .reveal/.reveal-scale treatment;
+   this is deliberately applied to only a few elements, not the whole
+   page, per "do not animate everything." transform-only, so it's cheap
+   whether or not --depth is actually changing this frame. */
+.depth-visual {
+  --depth: 0;
+  transform: scale(calc(0.97 + var(--depth) * 0.03)) translateY(calc((1 - var(--depth)) * 8px));
+  transition: transform 0.4s var(--ease-cinematic);
+  will-change: transform;
+}
+
+/* Primary dashboard card gets a touch more presence than the plain
+   .dash-in opacity/translateY treatment secondary cards use — still
+   just transform+opacity, still ≤450ms, still fires once on mount. */
+@keyframes dashInPrimary {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dash-in-primary {
+  animation: dashInPrimary 0.45s var(--ease-cinematic) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .depth-visual {
+    transform: none;
+    transition: none;
+  }
+
+  .dash-in-primary {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

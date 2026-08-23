@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
@@ -34,11 +34,15 @@ export const SPECIALTIES = [
  * — a trainer's clients are the athletes on a team they're a trainer-role
  * member of. Skippable; can be done later from Team.
  */
+const TRANSITION_MS = 260;
+
 export function TrainerOnboarding({ name }: { name: string }) {
   const router = useRouter();
   const firstName = name.split(" ")[0];
 
   const [step, setStep] = useState<"info" | "group">("info");
+  const [phase, setPhase] = useState<"enter" | "exit">("enter");
+  const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [phone, setPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -71,6 +75,18 @@ export function TrainerOnboarding({ name }: { name: string }) {
     setSpecialties((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
 
+  function goToGroup() {
+    setPhase("exit");
+    transitionTimer.current = setTimeout(() => {
+      setStep("group");
+      setPhase("enter");
+    }, TRANSITION_MS);
+  }
+
+  useEffect(() => () => {
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+  }, []);
+
   async function submitProfile(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -99,7 +115,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      setStep("group");
+      goToGroup();
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -118,7 +134,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
       <Image src="/logo.png" alt="MENTA" width={863} height={194} className="onb-logo onb-logo-settled" priority />
 
       <div className="onb-stage" style={{ maxWidth: 560 }}>
-        <div key={step} className="onb-content onb-enter">
+        <div key={step} className={`onb-content ${phase === "exit" ? "onb-exit" : "onb-enter"}`}>
           {step === "info" ? (
             <>
               <h1 className="onb-title">Let&rsquo;s set up your training profile.</h1>

@@ -8,7 +8,7 @@ export function Hero() {
       <LiveGallery slides={GALLERY_SLIDES} heroBg />
       <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center hero-on-dark">
         <h1
-          className="text-text-1 text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal"
+          className="text-text-1 text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal reveal-scale"
           style={{ transitionDelay: "0ms" }}
         >
           <GlowWaveText intensity="strong">Build the future of athlete development.</GlowWaveText>

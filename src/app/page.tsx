@@ -127,7 +127,9 @@ export default function HomePage() {
               recovery, and recruiting data.
             </p>
           </div>
-          <DashboardPreview />
+          <div className="depth-visual">
+            <DashboardPreview />
+          </div>
         </section>
 
         <WhoSection />
@@ -161,7 +163,12 @@ export default function HomePage() {
 
         <section className="px-6 md:px-10 py-24 border-t border-[var(--border-soft)] space-y-24 md:space-y-32 max-w-5xl mx-auto">
           {FEATURES.map((f, i) => (
-            <FeatureShowcase key={f.eyebrow} {...f} reverse={i % 2 === 1} />
+            <FeatureShowcase
+              key={f.eyebrow}
+              {...f}
+              reverse={i % 2 === 1}
+              depth={f.eyebrow === "Performance" || f.eyebrow === "Recruiting"}
+            />
           ))}
         </section>
 
@@ -217,7 +224,7 @@ export default function HomePage() {
         <section className="relative px-6 md:px-10 py-32 border-t border-y border-[var(--border-soft)] text-center overflow-hidden">
           <div className="eyebrow justify-center reveal reveal-scale">Our mission</div>
           <p
-            className="serif-italic max-w-3xl mx-auto text-3xl md:text-5xl leading-tight text-text-1 reveal reveal-scale"
+            className="depth-visual serif-italic max-w-3xl mx-auto text-3xl md:text-5xl leading-tight text-text-1 reveal reveal-scale"
             style={{ transitionDelay: "100ms" }}
           >
             Every athlete deserves the kind of support system that used to require money,

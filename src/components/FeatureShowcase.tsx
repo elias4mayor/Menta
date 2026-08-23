@@ -17,6 +17,7 @@ export function FeatureShowcase({
   metrics,
   reverse = false,
   delayBase = 0,
+  depth = false,
 }: {
   eyebrow: string;
   heading: string;
@@ -26,6 +27,10 @@ export function FeatureShowcase({
   metrics: Metric[];
   reverse?: boolean;
   delayBase?: number;
+  /** Continuous depth-on-scroll for the visual card — reserved for the
+   * one or two most important entries (see Phase 5B's "do not animate
+   * everything"), not applied to every feature by default. */
+  depth?: boolean;
 }) {
   return (
     <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
@@ -53,7 +58,7 @@ export function FeatureShowcase({
       </div>
 
       <div
-        className={`card p-6 reveal reveal-scale${reverse ? " md:order-1" : ""}`}
+        className={`card p-6 reveal reveal-scale${depth ? " depth-visual" : ""}${reverse ? " md:order-1" : ""}`}
         style={{ transitionDelay: `${delayBase + 200}ms` }}
       >
         <div className="mono text-text-3 mb-4 text-xs">Illustrative example</div>

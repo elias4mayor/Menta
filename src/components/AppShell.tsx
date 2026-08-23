@@ -249,7 +249,7 @@ export function AppShell({
   return (
     <div className="app-shell min-h-screen flex bg-bg">
       <aside
-        className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6"
+        className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6 dash-in dash-in-1"
         style={{ borderRight: "1px solid var(--border-soft)", background: "var(--sidebar-tint)" }}
       >
         <Link href="/dashboard" className="flex items-center px-2 mb-10">
@@ -282,7 +282,7 @@ export function AppShell({
                     >
                       {active && (
                         <span
-                          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full"
+                          className="absolute left-0 top-1/2 rounded-full nav-dot-in"
                           style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
                         />
                       )}
@@ -320,7 +320,7 @@ export function AppShell({
 
       <div className="flex-1 flex flex-col min-w-0">
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4"
+          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 dash-in dash-in-2"
           style={{
             borderBottom: "1px solid var(--border-soft)",
             background: "var(--topbar-bg)",

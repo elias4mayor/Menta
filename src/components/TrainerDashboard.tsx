@@ -35,7 +35,7 @@ export async function TrainerDashboard({ user }: { user: SessionUser }) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="card p-0 mb-8 overflow-hidden">
+      <div className="card p-0 mb-8 overflow-hidden dash-in-primary dash-in-3">
         <div className="grid grid-cols-2">
           {[
             { label: "Groups", value: teams.length },
@@ -49,7 +49,7 @@ export async function TrainerDashboard({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      <div className="card p-5 mb-8">
+      <div className="card p-5 mb-8 dash-in dash-in-4">
         <div className="flex items-center justify-between mb-3">
           <div className="mono text-text-3">Your clients</div>
           <Link href="/team" className="text-xs text-text-2 hover:text-text-1">
@@ -91,7 +91,7 @@ export async function TrainerDashboard({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      <div className="card p-5 mb-8">
+      <div className="card card-hover p-5 mb-8 dash-in dash-in-5">
         <div className="mono text-text-3 mb-3">Trainer profile</div>
         {trainerProfile ? (
           <>
