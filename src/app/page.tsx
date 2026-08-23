@@ -59,7 +59,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="px-6 md:px-10 py-24 border-t border-[var(--border-soft)]">
+        <section id="platform" className="px-6 md:px-10 py-24 border-t border-[var(--border-soft)]">
           <div className="eyebrow justify-center flex mx-auto w-fit">The seven pillars</div>
           <div className="grid md:grid-cols-4 gap-4 max-w-5xl mx-auto mt-6">
             {PILLARS.map((p) => (

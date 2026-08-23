@@ -30,13 +30,15 @@
     0 6px 16px -10px rgba(0, 0, 0, 0.07);
   --ease: cubic-bezier(0.16, 0.8, 0.3, 1);
   /* Real system-font stack first (San Francisco on macOS/iOS via
-     -apple-system/BlinkMacSystemFont, Segoe UI on Windows), with the
-     already-loaded Inter webfont as the fallback everywhere else
-     (Android/Linux/older browsers) — not a placeholder value, an actual
-     working chain. Every heading/body font in the app reads through
-     these two tokens, so this one change is the whole app's typography. */
-  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", var(--font-inter), "Inter", sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", var(--font-inter), "Inter", sans-serif;
+     -apple-system/BlinkMacSystemFont, Segoe UI on Windows), then the other
+     real system faces Apple's own stack falls back to (Helvetica Neue,
+     Arial), with the already-loaded Inter webfont as the last-resort
+     fallback for platforms with none of the above (Android/Linux/older
+     browsers) — not a placeholder value, an actual working chain. Every
+     heading/body font in the app reads through these two tokens, so this
+     one change is the whole app's typography. */
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, var(--font-inter), "Inter", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, var(--font-inter), "Inter", sans-serif;
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", monospace;
   --font-serif: var(--font-fraunces), "Fraunces", serif;
 
@@ -708,26 +710,6 @@ h4 {
   }
 }
 
-/* Cursor-follow ambient glow, positioned by JS (hero section only). */
-.cursor-glow {
-  position: absolute;
-  width: 520px;
-  height: 520px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 0.07),
-    rgba(0, 0, 0, 0.025) 45%,
-    transparent 72%
-  );
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  will-change: transform;
-}
-
 /* Subtle 3D tilt + sheen for the hero product mockup. */
 .tilt-card {
   transform-style: preserve-3d;
@@ -749,31 +731,6 @@ h4 {
   opacity: 1;
 }
 
-.shiny-text {
-  background: linear-gradient(100deg, var(--text-2) 30%, #ffffff 50%, var(--text-2) 70%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shinyText 3s linear infinite;
-}
-
-@keyframes shinyText {
-  0% {
-    background-position: 200% center;
-  }
-  100% {
-    background-position: -200% center;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shiny-text {
-    animation: none;
-    background-position: 0 center;
-  }
-}
-
 ::selection {
   background: rgba(0, 0, 0, 0.14);
 }
@@ -790,57 +747,6 @@ h4 {
 ::-webkit-scrollbar-thumb {
   background: var(--surface-2);
   border-radius: 999px;
-}
-
-/* MarketingNav floating over Hero's dark-scrimmed photo background (top
-   of the homepage, unscrolled): the hero photo panel is a deliberate
-   dark accent kept as-is (see .live-gallery.hero-bg::after) even though
-   the rest of the site is white now, so the nav's own text needs to stay
-   light while it's transparently overlapping that panel — everywhere
-   else (scrolled past the hero, or on a page with no hero at all) it
-   reads through the normal light-page tokens instead. Same
-   scoped-custom-property mechanism as .app-shell/.onb-root, just applied
-   conditionally by MarketingNav.tsx instead of statically. */
-.marketing-nav-on-hero {
-  --text-1: #ffffff;
-  --text-2: rgba(255, 255, 255, 0.78);
-  --text-3: rgba(255, 255, 255, 0.6);
-}
-
-/* Hero's own heading/subtitle/secondary-button text sits directly on
-   that same dark hero photo (not inside an opaque card), so it needs the
-   same light override — except the floating dashboard-mockup .card
-   nested inside it, which has its own opaque light surface and should
-   read with the normal dark-on-light text every other card uses. */
-.hero-on-dark {
-  /* --bg is overridden too, purely because .btn-primary is defined as
-     background: var(--text-1); color: var(--bg) — i.e. "whatever the
-     page isn't" — so Join Beta renders as the same white pill with dark
-     text it always has here, instead of white-on-white. */
-  --bg: #08080a;
-  --text-1: #ffffff;
-  --text-2: rgba(255, 255, 255, 0.78);
-  --text-3: rgba(255, 255, 255, 0.6);
-  --border: rgba(255, 255, 255, 0.16);
-  --border-soft: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.28);
-}
-
-.hero-on-dark .card {
-  --text-1: #1d1d1f;
-  --text-2: #45454a;
-  --text-3: #6b6b70;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-soft: rgba(0, 0, 0, 0.05);
-  --border-strong: rgba(0, 0, 0, 0.14);
-}
-
-.hero-on-dark .shiny-text {
-  background: linear-gradient(100deg, rgba(255, 255, 255, 0.55) 30%, #ffffff 50%, rgba(255, 255, 255, 0.55) 70%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 /* ---------- premium nav dropdown (Platform mega-menu) ---------- */

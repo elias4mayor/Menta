@@ -7,15 +7,8 @@ import { PlatformDropdown } from "@/components/PlatformMenu";
 
 const CLOSE_DELAY_MS = 180;
 
-export function MarketingNav({ overHero = false }: { overHero?: boolean } = {}) {
+export function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
-  // Only the homepage passes overHero=true, for the stretch while it's
-  // floating transparently over Hero's dark photo panel — everywhere else
-  // (scrolled past it, or a page with no hero at all) the nav sits on the
-  // normal white page and should read through the ordinary dark-on-light
-  // tokens from the start, not wait for a scroll event that may never
-  // come on a short page.
-  const onHero = overHero && !scrolled;
   const [platformOpen, setPlatformOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const logoWrapRef = useRef<HTMLDivElement>(null);
@@ -130,10 +123,10 @@ export function MarketingNav({ overHero = false }: { overHero?: boolean } = {}) 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-end px-6 md:px-10 transition-[padding,background-color,border-color] duration-300${onHero ? " marketing-nav-on-hero" : ""}`}
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-end px-6 md:px-10 transition-[padding,background-color,border-color] duration-300"
         style={{
           padding: scrolled ? "14px 24px" : "22px 24px",
-          background: onHero ? "rgba(8,8,10,0.4)" : "rgba(255,255,255,0.78)",
+          background: "rgba(255,255,255,0.78)",
           backdropFilter: "blur(20px) saturate(140%)",
           borderBottom: scrolled ? "1px solid var(--border)" : "1px solid transparent",
         }}
@@ -154,7 +147,7 @@ export function MarketingNav({ overHero = false }: { overHero?: boolean } = {}) 
                 width={863}
                 height={194}
                 className="h-9 w-auto"
-                style={{ filter: onHero ? "none" : "invert(1)" }}
+                style={{ filter: "invert(1)" }}
                 priority
               />
             </Link>
