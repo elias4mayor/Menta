@@ -749,6 +749,34 @@ h4 {
   border-radius: 999px;
 }
 
+/* Hero's own heading/subtitle/CTA/tagline text sits directly on the live
+   photo gallery background (not inside an opaque card), so it needs a
+   light-on-dark override — except the floating dashboard-mockup .card
+   nested inside it, which has its own opaque light surface and should
+   read with the normal dark-on-light text every other card uses. */
+.hero-on-dark {
+  /* --bg is overridden too, purely because .btn-primary is defined as
+     background: var(--text-1); color: var(--bg) — i.e. "whatever the
+     page isn't" — so Join the MENTA Beta renders as the same white pill
+     with dark text it always has here, instead of white-on-white. */
+  --bg: #08080a;
+  --text-1: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.78);
+  --text-3: rgba(255, 255, 255, 0.6);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-soft: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.28);
+}
+
+.hero-on-dark .card {
+  --text-1: #1d1d1f;
+  --text-2: #45454a;
+  --text-3: #6b6b70;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.14);
+}
+
 /* ---------- premium nav dropdown (Platform mega-menu) ---------- */
 .nav-dropdown {
   position: absolute;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef } from "react";
+import { LiveGallery, GALLERY_SLIDES } from "@/components/LiveGallery";
 
 const METRICS = [
   { label: "Readiness", value: "92" },
@@ -31,8 +32,9 @@ export function Hero() {
 
   return (
     <section className="relative px-6 md:px-10 pt-40 md:pt-48 pb-24 text-center overflow-hidden">
-      <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
-        <h1 className="text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal">
+      <LiveGallery slides={GALLERY_SLIDES} heroBg />
+      <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center hero-on-dark">
+        <h1 className="text-text-1 text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal">
           Build the future of athlete development.
         </h1>
         <p className="text-text-2 text-lg max-w-xl mb-8 reveal">
