@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
 import { MultiSelect } from "@/components/MultiSelect";
 import { CountrySelect } from "@/components/CountrySelect";
+import { StateSelect } from "@/components/StateSelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
 import { SPORTS } from "@/lib/sports";
@@ -34,10 +35,16 @@ export function CoachOnboarding({ name }: { name: string }) {
   const [organizationName, setOrganizationName] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [country, setCountry] = useState("United States");
+  const [state, setState] = useState("");
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [teamDone, setTeamDone] = useState(false);
+
+  function handleCountryChange(next: string) {
+    setCountry(next);
+    setState("");
+  }
 
   async function submitProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -55,6 +62,7 @@ export function CoachOnboarding({ name }: { name: string }) {
           organizationName: organizationName || undefined,
           schoolName: schoolName || undefined,
           country: country || undefined,
+          state: state || undefined,
           focusAreas,
         }),
       });
@@ -92,15 +100,19 @@ export function CoachOnboarding({ name }: { name: string }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="field-label" htmlFor="coach-country">Country</label>
-                    <CountrySelect id="coach-country" value={country} onChange={setCountry} />
+                    <CountrySelect id="coach-country" value={country} onChange={handleCountryChange} />
                   </div>
                   <div>
-                    <label className="field-label" htmlFor="coach-phone">Phone</label>
-                    <PhoneInput id="coach-phone" value={phone} onChange={setPhone} />
+                    <label className="field-label" htmlFor="coach-state">State / province</label>
+                    <StateSelect id="coach-state" country={country} value={state} onChange={setState} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="field-label" htmlFor="coach-phone">Phone</label>
+                    <PhoneInput id="coach-phone" value={phone} onChange={setPhone} />
+                  </div>
                   <div>
                     <label className="field-label" htmlFor="coach-sport">Sport</label>
                     <Select
@@ -111,6 +123,9 @@ export function CoachOnboarding({ name }: { name: string }) {
                       options={SPORTS.map((s) => ({ value: s.name, label: s.name }))}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="field-label" htmlFor="coach-role">Coaching role</label>
                     <Select
@@ -121,22 +136,21 @@ export function CoachOnboarding({ name }: { name: string }) {
                       options={COACHING_ROLES.map((r) => ({ value: r, label: r }))}
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="field-label" htmlFor="coach-years">Years coaching</label>
                     <input id="coach-years" type="number" className="field-input" value={yearsCoaching} onChange={(e) => setYearsCoaching(e.target.value)} placeholder="5" />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="field-label" htmlFor="coach-org">Organization</label>
                     <input id="coach-org" className="field-input" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="Ridgeview Athletics" />
                   </div>
-                </div>
-
-                <div>
-                  <label className="field-label" htmlFor="coach-school">School / club</label>
-                  <input id="coach-school" className="field-input" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Ridgeview High School" />
+                  <div>
+                    <label className="field-label" htmlFor="coach-school">School / club</label>
+                    <input id="coach-school" className="field-input" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Ridgeview High School" />
+                  </div>
                 </div>
 
                 <div>

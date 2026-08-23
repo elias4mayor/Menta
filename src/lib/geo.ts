@@ -1,4 +1,5 @@
 import COUNTRIES from "@/lib/data/countries.json";
+import STATES from "@/lib/data/states.json";
 
 export type Country = { name: string; code: string; dial: string };
 
@@ -28,6 +29,29 @@ export function flagEmoji(countryCode: string): string {
   return countryCode
     .toUpperCase()
     .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+}
+
+export type StateEntry = { name: string; countryCode: string; stateCode: string | null };
+
+/**
+ * Real states/provinces/regions for every country in ALL_COUNTRIES that
+ * has administrative divisions (195 of 196 — Vatican City genuinely has
+ * none), trimmed from the dr5hn/countries-states-cities-database project
+ * (https://github.com/dr5hn/countries-states-cities-database, ODbL v1.0,
+ * attribution required) down to just {name, countryCode, stateCode}.
+ * 4,936 entries. Community-maintained data — verify anything
+ * safety-critical against an official source.
+ */
+export const ALL_STATES: StateEntry[] = STATES;
+
+/** States/provinces for one country by its ISO code, e.g. statesForCountry("US"). */
+export function statesForCountry(countryCode: string): StateEntry[] {
+  return ALL_STATES.filter((s) => s.countryCode === countryCode);
+}
+
+/** Look up a country's ISO code by its exact name, e.g. "United States" -> "US". */
+export function countryCodeForName(name: string): string | undefined {
+  return ALL_COUNTRIES.find((c) => c.name === name)?.code;
 }
 
 /** Real USPS state/territory names + 2-letter abbreviations. */

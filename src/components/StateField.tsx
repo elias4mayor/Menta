@@ -1,13 +1,13 @@
 "use client";
 
-import { Select } from "@/components/Select";
-import { US_STATES } from "@/lib/geo";
+import { StateSelect } from "@/components/StateSelect";
 
 /**
- * State/province field — a real searchable dropdown of the 50 states + DC
- * when the country is the United States (the only place this app has a
- * real, verified state list), and a plain text input otherwise. Per the
- * onboarding spec: "State: Dynamic based on country."
+ * State/province field — now backed by the real global states/provinces
+ * dataset (src/lib/data/states.json, ~4,936 entries across 195 countries)
+ * via StateSelect, instead of the old US-only list. StateSelect itself
+ * degrades honestly (a disabled, clearly-labeled field) for the one
+ * country the real dataset has no divisions for.
  */
 export function StateField({
   id,
@@ -20,25 +20,5 @@ export function StateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  if (country === "United States") {
-    return (
-      <Select
-        id={id}
-        value={value}
-        onChange={onChange}
-        placeholder="Select a state"
-        options={US_STATES.map((s) => ({ value: s.name, label: s.name }))}
-      />
-    );
-  }
-
-  return (
-    <input
-      id={id}
-      className="field-input"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="State / province"
-    />
-  );
+  return <StateSelect id={id} country={country} value={value} onChange={onChange} />;
 }

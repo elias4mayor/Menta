@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
 import { MultiSelect } from "@/components/MultiSelect";
 import { CountrySelect } from "@/components/CountrySelect";
+import { StateSelect } from "@/components/StateSelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { GuardianLinks } from "@/components/GuardianLinks";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
@@ -26,10 +27,16 @@ export function ParentOnboarding({ name }: { name: string }) {
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState("");
   const [country, setCountry] = useState("United States");
+  const [state, setState] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleCountryChange(next: string) {
+    setCountry(next);
+    setState("");
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +50,7 @@ export function ParentOnboarding({ name }: { name: string }) {
           phone: phone || undefined,
           relationship: relationship || undefined,
           country: country || undefined,
+          state: state || undefined,
           goals,
         }),
       });
@@ -87,9 +95,15 @@ export function ParentOnboarding({ name }: { name: string }) {
                     options={RELATIONSHIPS.map((r) => ({ value: r, label: r }))}
                   />
                 </div>
-                <div>
-                  <label className="field-label" htmlFor="parent-country">Country</label>
-                  <CountrySelect id="parent-country" value={country} onChange={setCountry} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="field-label" htmlFor="parent-country">Country</label>
+                    <CountrySelect id="parent-country" value={country} onChange={handleCountryChange} />
+                  </div>
+                  <div>
+                    <label className="field-label" htmlFor="parent-state">State / province</label>
+                    <StateSelect id="parent-state" country={country} value={state} onChange={setState} />
+                  </div>
                 </div>
                 <div>
                   <label className="field-label" htmlFor="parent-phone">Phone</label>

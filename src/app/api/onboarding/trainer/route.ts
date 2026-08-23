@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     certifications,
     trainingPhilosophy,
     country,
+    state,
     goals,
   } = parsed.data;
 
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
       certifications: certifications || undefined,
       trainingPhilosophy: trainingPhilosophy || undefined,
       country: country || undefined,
+      state: state || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
       certifications: certifications || undefined,
       trainingPhilosophy: trainingPhilosophy || undefined,
       country: country || undefined,
+      state: state || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },

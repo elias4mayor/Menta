@@ -183,6 +183,9 @@ model CoachProfile {
   /// Real ISO-3166-1 country name, from the same global country list
   /// CountrySelect uses everywhere else (src/lib/data/countries.json).
   country               String?
+  /// Real state/province name for `country`, from the same global
+  /// dataset StateSelect uses (src/lib/data/states.json).
+  state                 String?
   /// JSON-stringified array of the coach's selected onboarding goals —
   /// full sentences from src/lib/goals.ts's COACH list (e.g. "I want to
   /// improve my team's overall performance."), same freeform string-array
@@ -213,6 +216,8 @@ model TrainerProfile {
   /// Real ISO-3166-1 country name, from the same global country list
   /// CountrySelect uses everywhere else.
   country               String?
+  /// Real state/province name for `country` (src/lib/data/states.json).
+  state                 String?
   /// JSON-stringified array of selected onboarding goals — full sentences
   /// from src/lib/goals.ts's TRAINER list.
   goals                 String?
@@ -235,6 +240,8 @@ model ParentProfile {
   /// Real ISO-3166-1 country name, from the same global country list
   /// CountrySelect uses everywhere else.
   country               String?
+  /// Real state/province name for `country` (src/lib/data/states.json).
+  state                 String?
   /// JSON-stringified array of selected onboarding goals — full sentences
   /// from src/lib/goals.ts's PARENT list.
   goals                 String?

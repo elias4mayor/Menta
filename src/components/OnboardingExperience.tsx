@@ -58,6 +58,14 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // Country determines which states/provinces (and eventually cities) are
+  // even valid, so switching it invalidates whatever was already picked.
+  function handleCountryChange(next: string) {
+    setCountry(next);
+    setState("");
+    setCity("");
+  }
+
   useEffect(() => () => {
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
   }, []);
@@ -228,7 +236,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                 </div>
                 <div>
                   <label className="field-label" htmlFor="onb-country">Country</label>
-                  <CountrySelect id="onb-country" value={country} onChange={setCountry} />
+                  <CountrySelect id="onb-country" value={country} onChange={handleCountryChange} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

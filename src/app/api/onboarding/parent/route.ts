@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { phone, relationship, country, goals } = parsed.data;
+  const { phone, relationship, country, state, goals } = parsed.data;
 
   await prisma.parentProfile.upsert({
     where: { userId: user.id },
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       phone: phone || undefined,
       relationship: relationship || undefined,
       country: country || undefined,
+      state: state || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       phone: phone || undefined,
       relationship: relationship || undefined,
       country: country || undefined,
+      state: state || undefined,
       goals: goals ? JSON.stringify(goals) : undefined,
       onboardingCompletedAt: new Date(),
     },

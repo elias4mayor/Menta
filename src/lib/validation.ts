@@ -1,4 +1,29 @@
 import { z } from "zod";
+import { countryCodeForName, statesForCountry } from "@/lib/geo";
+
+/**
+ * Cross-field check reused by every onboarding schema that collects
+ * country + state: if a state/province was submitted, it must actually
+ * belong to that country in the real dataset (src/lib/data/states.json).
+ * Client-side StateSelect already only offers valid options — this is the
+ * server independently enforcing the same rule rather than trusting the
+ * client did.
+ */
+function refineStateMatchesCountry<T extends { country?: string; state?: string }>(
+  data: T,
+  ctx: z.RefinementCtx
+) {
+  if (!data.state) return;
+  const countryCode = data.country ? countryCodeForName(data.country) : undefined;
+  const valid = countryCode ? statesForCountry(countryCode).some((s) => s.name === data.state) : false;
+  if (!valid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["state"],
+      message: "That state/province isn't valid for the selected country.",
+    });
+  }
+}
 
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
@@ -31,48 +56,59 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(10, "Use at least 10 characters"),
 });
 
-export const onboardingSchema = z.object({
-  sport: z.string().trim().min(1).max(60),
-  position: z.string().trim().max(60).optional().or(z.literal("")),
-  graduationYear: z.coerce.number().int().min(2024).max(2040).optional(),
-  schoolName: z.string().trim().max(160).optional().or(z.literal("")),
-  city: z.string().trim().max(120).optional().or(z.literal("")),
-  state: z.string().trim().max(60).optional().or(z.literal("")),
-  country: z.string().trim().max(60).optional().or(z.literal("")),
-  trainingDaysPerWeek: z.coerce.number().int().min(1).max(7).optional(),
-  goals: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
-});
+export const onboardingSchema = z
+  .object({
+    sport: z.string().trim().min(1).max(60),
+    position: z.string().trim().max(60).optional().or(z.literal("")),
+    graduationYear: z.coerce.number().int().min(2024).max(2040).optional(),
+    schoolName: z.string().trim().max(160).optional().or(z.literal("")),
+    city: z.string().trim().max(120).optional().or(z.literal("")),
+    state: z.string().trim().max(60).optional().or(z.literal("")),
+    country: z.string().trim().max(60).optional().or(z.literal("")),
+    trainingDaysPerWeek: z.coerce.number().int().min(1).max(7).optional(),
+    goals: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
+  })
+  .superRefine(refineStateMatchesCountry);
 
-export const coachOnboardingSchema = z.object({
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-  sport: z.string().trim().max(60).optional().or(z.literal("")),
-  coachingRole: z.string().trim().max(60).optional().or(z.literal("")),
-  yearsCoaching: z.coerce.number().int().min(0).max(70).optional(),
-  organizationName: z.string().trim().max(160).optional().or(z.literal("")),
-  schoolName: z.string().trim().max(160).optional().or(z.literal("")),
-  country: z.string().trim().max(60).optional().or(z.literal("")),
-  focusAreas: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
-});
+export const coachOnboardingSchema = z
+  .object({
+    phone: z.string().trim().max(30).optional().or(z.literal("")),
+    sport: z.string().trim().max(60).optional().or(z.literal("")),
+    coachingRole: z.string().trim().max(60).optional().or(z.literal("")),
+    yearsCoaching: z.coerce.number().int().min(0).max(70).optional(),
+    organizationName: z.string().trim().max(160).optional().or(z.literal("")),
+    schoolName: z.string().trim().max(160).optional().or(z.literal("")),
+    country: z.string().trim().max(60).optional().or(z.literal("")),
+    state: z.string().trim().max(60).optional().or(z.literal("")),
+    focusAreas: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
+  })
+  .superRefine(refineStateMatchesCountry);
 
-export const trainerOnboardingSchema = z.object({
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-  businessName: z.string().trim().max(160).optional().or(z.literal("")),
-  sport: z.string().trim().max(60).optional().or(z.literal("")),
-  specialties: z.array(z.string().trim().min(1).max(60)).max(15).optional(),
-  trainingLocation: z.string().trim().max(160).optional().or(z.literal("")),
-  yearsExperience: z.coerce.number().int().min(0).max(70).optional(),
-  certifications: z.string().trim().max(300).optional().or(z.literal("")),
-  trainingPhilosophy: z.string().trim().max(500).optional().or(z.literal("")),
-  country: z.string().trim().max(60).optional().or(z.literal("")),
-  goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
-});
+export const trainerOnboardingSchema = z
+  .object({
+    phone: z.string().trim().max(30).optional().or(z.literal("")),
+    businessName: z.string().trim().max(160).optional().or(z.literal("")),
+    sport: z.string().trim().max(60).optional().or(z.literal("")),
+    specialties: z.array(z.string().trim().min(1).max(60)).max(15).optional(),
+    trainingLocation: z.string().trim().max(160).optional().or(z.literal("")),
+    yearsExperience: z.coerce.number().int().min(0).max(70).optional(),
+    certifications: z.string().trim().max(300).optional().or(z.literal("")),
+    trainingPhilosophy: z.string().trim().max(500).optional().or(z.literal("")),
+    country: z.string().trim().max(60).optional().or(z.literal("")),
+    state: z.string().trim().max(60).optional().or(z.literal("")),
+    goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
+  })
+  .superRefine(refineStateMatchesCountry);
 
-export const parentOnboardingSchema = z.object({
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-  relationship: z.string().trim().max(60).optional().or(z.literal("")),
-  country: z.string().trim().max(60).optional().or(z.literal("")),
-  goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
-});
+export const parentOnboardingSchema = z
+  .object({
+    phone: z.string().trim().max(30).optional().or(z.literal("")),
+    relationship: z.string().trim().max(60).optional().or(z.literal("")),
+    country: z.string().trim().max(60).optional().or(z.literal("")),
+    state: z.string().trim().max(60).optional().or(z.literal("")),
+    goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
+  })
+  .superRefine(refineStateMatchesCountry);
 
 export const profileUpdateSchema = z.object({
   sport: z.string().trim().max(60).optional(),
