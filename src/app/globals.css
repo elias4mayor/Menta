@@ -2177,3 +2177,96 @@ h4 {
     transform: none;
   }
 }
+
+/* ============================================================
+   APPLE DESIGN REFINEMENTS
+   ============================================================
+   Targeted additions from .agents/skills/apple-design/SKILL.md, applied
+   only where MENTA had a genuine gap — not a parallel motion system.
+   Existing primitives (.reveal, .dash-in, .depth-visual, --ease/
+   --ease-cinematic) are untouched and reused as-is. */
+
+/* 1. Response — press feedback. MENTA had hover states everywhere but no
+   :active feedback anywhere (skill §1/§10: "highlight on touch-down").
+   Declared after the existing :hover rules so a press (:active) visually
+   wins over a simultaneous :hover during the interaction — a "settle
+   down" that reads as the physical inverse of hover's "lift up". Plain
+   CSS transition, not a spring: these are simple presses, not something
+   a user drags/redirects mid-motion, so the interruptibility case the
+   skill makes for springs (§3-4) doesn't apply here. */
+.btn-primary:active,
+.btn-secondary:active,
+.card-hover:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease-out;
+}
+
+/* 2. Materials — the sticky topbar/bottom-nav already use a real
+   translucent "material" (background + backdrop-filter), just via
+   inline styles that couldn't be targeted by the reduced-transparency
+   query below. Moved to classes so both the material itself and its
+   accessibility fallback live in one place. Visual treatment
+   unchanged from what AppShell already had. */
+.topbar-material {
+  background: var(--topbar-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+.bottomnav-material {
+  background: var(--bottomnav-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* Scroll-edge softening (skill §12: "scroll edge effects, not hard
+   dividers") — the hairline is kept (still real structure), paired with
+   a soft shadow bleed so content reads as fading under glass rather
+   than stopping at a stark line. CSS-only, no scroll listener. */
+.chrome-edge-bottom {
+  box-shadow: 0 1px 0 var(--border-soft), 0 12px 24px -20px rgba(0, 0, 0, 0.08);
+}
+
+.chrome-edge-top {
+  box-shadow: 0 -1px 0 var(--border-soft), 0 -12px 24px -20px rgba(0, 0, 0, 0.08);
+}
+
+/* Marketing nav's blur specifically — background/padding/border stay
+   inline since they're already scroll-reactive (see MarketingNav.tsx's
+   `scrolled` state); only the constant backdrop-filter moved here so
+   the reduced-transparency query below can reach it. */
+.marketing-nav-material {
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* 3. Accessibility signals the skill calls out that MENTA didn't have at
+   all yet (§14) — reduced-motion was already extensive (10+ blocks);
+   these two are net-new. */
+@media (prefers-reduced-transparency: reduce) {
+  .topbar-material,
+  .bottomnav-material,
+  .marketing-nav-material {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg);
+  }
+
+  .logo-intro-mark {
+    backdrop-filter: none;
+    background: var(--bg);
+  }
+}
+
+@media (prefers-contrast: more) {
+  /* Every component already reads border color through these three
+     tokens (see the :root doc comment above), so strengthening them
+     once here raises contrast site-wide without touching each
+     component individually. */
+  :root,
+  .app-shell {
+    --border: rgba(0, 0, 0, 0.24);
+    --border-soft: rgba(0, 0, 0, 0.16);
+    --border-strong: rgba(0, 0, 0, 0.38);
+  }
+}

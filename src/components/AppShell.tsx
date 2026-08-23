@@ -274,7 +274,7 @@ export function AppShell({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="relative block px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300"
+                      className="relative block px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300 active:scale-[0.97]"
                       style={{
                         color: active ? "var(--text-1)" : "var(--text-2)",
                         background: active ? "var(--nav-hover-bg)" : "transparent",
@@ -320,12 +320,7 @@ export function AppShell({
 
       <div className="flex-1 flex flex-col min-w-0">
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 dash-in dash-in-2"
-          style={{
-            borderBottom: "1px solid var(--border-soft)",
-            background: "var(--topbar-bg)",
-            backdropFilter: "blur(16px)",
-          }}
+          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 dash-in dash-in-2 topbar-material chrome-edge-bottom"
         >
           <Link href="/dashboard" className="flex items-center">
             <Image
@@ -341,7 +336,7 @@ export function AppShell({
           <div className="flex items-center gap-4">
             <Link
               href="/notifications"
-              className="relative text-text-2 hover:text-text-1 transition-colors"
+              className="relative text-text-2 hover:text-text-1 transition-colors active:scale-90"
               aria-label="Notifications"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -372,12 +367,7 @@ export function AppShell({
       </div>
 
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2"
-        style={{
-          borderTop: "1px solid var(--border-soft)",
-          background: "var(--bottomnav-bg)",
-          backdropFilter: "blur(16px)",
-        }}
+        className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 bottomnav-material chrome-edge-top"
       >
         {mobileItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -385,7 +375,7 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors"
+              className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors active:scale-95"
               style={{ color: active ? "var(--text-1)" : "var(--text-3)" }}
             >
               {item.label}
