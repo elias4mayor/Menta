@@ -43,7 +43,7 @@ export default async function TrainPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Training</div>
       <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Workout library</GlowWaveText></h1>
       <TrainingView

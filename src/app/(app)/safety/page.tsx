@@ -38,7 +38,7 @@ export default async function SafetyPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">MENTA Safety</div>
       <h1 className="text-3xl font-semibold mb-4"><GlowWaveText intensity="strong">Safety &amp; preparedness</GlowWaveText></h1>
 

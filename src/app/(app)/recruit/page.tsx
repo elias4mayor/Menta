@@ -91,7 +91,7 @@ export default async function RecruitPage() {
   }));
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Recruiting</div>
       <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Your recruiting dashboard</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-8 max-w-2xl">

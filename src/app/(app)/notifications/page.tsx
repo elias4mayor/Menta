@@ -12,7 +12,7 @@ export default async function NotificationsPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Notifications</div>
       <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Updates</GlowWaveText></h1>
       <NotificationList

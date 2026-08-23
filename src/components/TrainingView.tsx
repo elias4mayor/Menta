@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { WORKOUT_CATEGORIES } from "@/lib/sports";
 import { WorkoutGenerator } from "@/components/WorkoutGenerator";
+import { EmptyState } from "@/components/EmptyState";
 
 type Exercise = { name: string; sets?: string; reps?: string; notes?: string };
 
@@ -216,10 +217,12 @@ export function TrainingView({
       )}
 
       {filtered.length === 0 ? (
-        <div className="card p-6">
-          <p className="text-text-2 text-sm">
-            {showTemplates ? "No templates saved yet." : "No workouts yet. Add one to start your library."}
-          </p>
+        <div className="card">
+          {showTemplates ? (
+            <EmptyState title="No templates saved yet" description="Templates you save from a workout will appear here for reuse." />
+          ) : (
+            <EmptyState title="No workouts yet" description="Use Add workout above to build one manually or generate a plan." />
+          )}
         </div>
       ) : (
         <ul className="space-y-3">

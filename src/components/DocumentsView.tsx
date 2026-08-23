@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DOCUMENT_CATEGORIES } from "@/lib/validation";
 import { DOCUMENT_CATEGORY_LABELS } from "@/lib/documents";
+import { EmptyState } from "@/components/EmptyState";
 
 type DocItem = {
   id: string;
@@ -159,11 +160,11 @@ export function DocumentsView({
       )}
 
       {sorted.length === 0 ? (
-        <div className="card p-6">
-          <p className="text-text-2 text-sm">
-            No documents yet. Add your first one — a physical, insurance card, or anything else worth keeping
-            organized and easy to find.
-          </p>
+        <div className="card">
+          <EmptyState
+            title="No documents yet"
+            description="Use + Add Document above to keep a physical, insurance card, or anything else worth having on hand."
+          />
         </div>
       ) : (
         <ul className="space-y-3">

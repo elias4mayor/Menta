@@ -22,7 +22,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="w-full flex justify-center">
-      <div className="w-full max-w-2xl min-h-[70vh] flex flex-col justify-center py-6">
+      <div className="w-full max-w-2xl min-h-[70vh] flex flex-col justify-center py-6 dash-in dash-in-1">
         <div className="mono text-text-3 mb-2 text-center">Profile</div>
         <h1 className="text-3xl font-semibold mb-6 text-center">{user.name}</h1>
         <div className="flex justify-center mb-8">

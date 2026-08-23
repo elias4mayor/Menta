@@ -170,40 +170,40 @@ function navSectionsForRole(role: string): NavSection[] {
   ];
 }
 
-function mobileItemsForRole(role: string): { href: string; label: string }[] {
+function mobileItemsForRole(role: string): { href: string; label: string; icon: string }[] {
   if (role === "COACH") {
     return [
-      { href: "/dashboard", label: "Home" },
-      { href: "/team", label: "Team" },
-      { href: "/ai-coach", label: "AI" },
-      { href: "/messages", label: "Msgs" },
-      { href: "/profile", label: "You" },
+      { href: "/dashboard", label: "Home", icon: "home" },
+      { href: "/team", label: "Team", icon: "team" },
+      { href: "/ai-coach", label: "AI", icon: "spark" },
+      { href: "/messages", label: "Msgs", icon: "messages" },
+      { href: "/profile", label: "You", icon: "profile" },
     ];
   }
   if (role === "TRAINER") {
     return [
-      { href: "/dashboard", label: "Home" },
-      { href: "/team", label: "Groups" },
-      { href: "/ai-coach", label: "AI" },
-      { href: "/messages", label: "Msgs" },
-      { href: "/profile", label: "You" },
+      { href: "/dashboard", label: "Home", icon: "home" },
+      { href: "/team", label: "Groups", icon: "team" },
+      { href: "/ai-coach", label: "AI", icon: "spark" },
+      { href: "/messages", label: "Msgs", icon: "messages" },
+      { href: "/profile", label: "You", icon: "profile" },
     ];
   }
   if (role === "PARENT") {
     return [
-      { href: "/dashboard", label: "Home" },
-      { href: "/ai-coach", label: "AI" },
-      { href: "/messages", label: "Msgs" },
-      { href: "/calendar", label: "Cal" },
-      { href: "/profile", label: "You" },
+      { href: "/dashboard", label: "Home", icon: "home" },
+      { href: "/ai-coach", label: "AI", icon: "spark" },
+      { href: "/messages", label: "Msgs", icon: "messages" },
+      { href: "/calendar", label: "Cal", icon: "calendar" },
+      { href: "/profile", label: "You", icon: "profile" },
     ];
   }
   return [
-    { href: "/dashboard", label: "Home" },
-    { href: "/ai-coach", label: "AI" },
-    { href: "/team", label: "Team" },
-    { href: "/messages", label: "Msgs" },
-    { href: "/profile", label: "You" },
+    { href: "/dashboard", label: "Home", icon: "home" },
+    { href: "/ai-coach", label: "AI", icon: "spark" },
+    { href: "/team", label: "Team", icon: "team" },
+    { href: "/messages", label: "Msgs", icon: "messages" },
+    { href: "/profile", label: "You", icon: "profile" },
   ];
 }
 
@@ -384,6 +384,7 @@ export function AppShell({
               className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors active:scale-95"
               style={{ color: active ? "var(--text-1)" : "var(--text-3)" }}
             >
+              <NavIcon name={item.icon} className="shrink-0" />
               {item.label}
             </Link>
           );

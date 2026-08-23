@@ -8,7 +8,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8 dash-in dash-in-1">
       <div>
         <div className="mono text-text-3 mb-2">Settings</div>
         <h1 className="text-3xl font-semibold"><GlowWaveText intensity="strong">Account</GlowWaveText></h1>

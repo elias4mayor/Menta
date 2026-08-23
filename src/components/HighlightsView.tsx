@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/EmptyState";
 
 type HighlightClip = {
   id: string;
@@ -34,13 +34,13 @@ export function HighlightsView({ initialHighlights }: { initialHighlights: Highl
 
   if (highlights.length === 0) {
     return (
-      <div className="card p-6">
-        <p className="text-text-2 text-sm">
-          No highlight reels yet. Open a film, mark a few clips, select them, and create a reel.
-        </p>
-        <Link href="/film" className="text-xs text-text-2 hover:text-text-1 mt-3 inline-block">
-          Go to film library →
-        </Link>
+      <div className="card">
+        <EmptyState
+          title="No highlight reels yet"
+          description="Open a film, mark a few clips, select them, and create a reel."
+          actionLabel="Go to film library"
+          actionHref="/film"
+        />
       </div>
     );
   }

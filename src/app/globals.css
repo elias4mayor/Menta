@@ -34,6 +34,16 @@
      (used in ~30 places across the whole product, onboarding included)
      so tuning the homepage's motion never risks retiming anything else. */
   --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Duration tokens — new. Existing transitions across the file mostly
+     hardcode their own ms value rather than reading through a shared
+     token; retrofitting all of them isn't necessary to fix that going
+     forward, so this establishes the scale for new/refined motion (see
+     the entrance-animation and empty-state work that reads these) without
+     retiming ~30 already-tuned existing transitions at once. */
+  --duration-fast: 180ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-cinematic: 900ms;
   /* Real system-font stack first (San Francisco on macOS/iOS via
      -apple-system/BlinkMacSystemFont, Segoe UI on Windows), then the other
      real system faces Apple's own stack falls back to (Helvetica Neue,
@@ -957,6 +967,12 @@ h4 {
   background-position: center;
   transform: scale(1.05);
   transition: opacity 1.4s var(--ease), transform 6.5s linear;
+}
+
+.live-gallery .lg-slide.lg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .live-gallery .lg-slide.active {

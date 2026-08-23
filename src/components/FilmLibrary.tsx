@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/EmptyState";
 
 type FilmItem = {
   id: string;
@@ -67,12 +68,12 @@ export function FilmLibrary({
       )}
 
       {filtered.length === 0 ? (
-        <div className="card p-6">
-          <p className="text-text-2 text-sm">
-            {films.length === 0
-              ? "No film yet. Upload your first clip to start building your library."
-              : "Nothing in this category."}
-          </p>
+        <div className="card">
+          {films.length === 0 ? (
+            <EmptyState title="No film yet" description="Use Upload film above to start building your library." />
+          ) : (
+            <EmptyState title="Nothing in this category" description="Try a different category, or upload film tagged for it." />
+          )}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
