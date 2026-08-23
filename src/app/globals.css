@@ -1805,7 +1805,8 @@ h4 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-3);
-  animation: onbStatusCycle 2.2s var(--ease) both;
+  /* Matches STATUS_INTERVAL_MS in OnboardingExperience.tsx. */
+  animation: onbStatusCycle 1.5s var(--ease) both;
 }
 
 @keyframes onbStatusCycle {
@@ -1824,40 +1825,70 @@ h4 {
   }
 }
 
-.onb-motivation {
+/* The "technical metadata" readout on the building screen — real areas of
+   that role's MENTA (see OnboardingBuildingStep.tsx), styled with the same
+   --font-mono/.mono treatment already used for dashboard stat labels
+   elsewhere, not a new visual language. One row visible at a time (same
+   key-remount-triggers-animation pattern as .onb-status-line below), each
+   fading gray → dark → out per the label's own color transition. */
+.onb-checklist {
   position: relative;
   z-index: 1;
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
+  min-height: 24px;
+  width: min(300px, 78vw);
+  margin: 16px auto 0;
 }
 
-.onb-motivation-line {
+.onb-checklist-row {
   position: absolute;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: clamp(18px, 3.4vw, 24px);
-  letter-spacing: -0.005em;
-  max-width: 34ch;
-  color: var(--text-1);
-  animation: onbMotivationCycle 4.4s var(--ease) both;
+  inset: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  opacity: 0;
+  animation: onbChecklistRowIn 1.5s var(--ease) both;
 }
 
-@keyframes onbMotivationCycle {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  12%,
-  80% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.onb-checklist-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: onbChecklistLabelColor 1.5s var(--ease) both;
+}
+
+.onb-checklist-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+@keyframes onbChecklistRowIn {
+  0%,
   100% {
     opacity: 0;
-    transform: translateY(-8px);
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+}
+
+@keyframes onbChecklistLabelColor {
+  0% {
+    color: var(--text-3);
+  }
+  60%,
+  100% {
+    color: var(--text-1);
   }
 }
 
@@ -1904,9 +1935,16 @@ h4 {
     opacity: 1;
     transform: none;
   }
-  .onb-status-line,
-  .onb-motivation-line {
+  .onb-status-line {
     animation: none;
+  }
+  .onb-checklist-row {
+    animation: none;
+    opacity: 1;
+  }
+  .onb-checklist-label {
+    animation: none;
+    color: var(--text-1);
   }
 }
 
@@ -1963,6 +2001,12 @@ h4 {
 
 .mi-glow.mi-glow-on {
   opacity: 1;
+  /* Subtle continuous breathe once the glow has finished fading in — reuses
+     the same 9s ease-in-out loop .onb-ambient already breathes with, so
+     this reads as the same product's ambient light, not a second effect.
+     Only touches transform (not opacity), so it can't fight the opacity
+     transition above. Delay roughly matches that transition's own 1.2s. */
+  animation: onbAmbientBreathe 9s ease-in-out 1.2s infinite;
 }
 
 .mi-logo {
@@ -1975,14 +2019,17 @@ h4 {
   left: 50%;
   transform: translate(-50%, -50%) scale(0.96);
   /* Raw asset is light-colored, built for the old dark background — same
-     invert(1) this logo gets everywhere else it sits on white. */
-  filter: invert(1);
+     invert(1) this logo gets everywhere else it sits on white. blur(6px)
+     is the "slight blur → sharp" part of the reveal, alongside the
+     existing opacity/scale — a physical materialize, not a plain fade. */
+  filter: blur(6px) invert(1);
   transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), top 0.9s var(--ease),
-    height 0.9s var(--ease);
+    height 0.9s var(--ease), filter 0.9s var(--ease);
 }
 
 .mi-logo.mi-logo-on {
   opacity: 0.92;
+  filter: blur(0) invert(1);
 }
 
 .mi-logo.mi-logo-small {
@@ -2053,6 +2100,42 @@ h4 {
   font-size: clamp(13px, 2vw, 15px);
   letter-spacing: 0.14em;
   color: var(--text-3);
+}
+
+/* Word-by-word reveal for .mi-line when it's built from <StaggerWords> —
+   each word its own inline-block span so the translateY actually renders
+   (a plain inline element's transform is a no-op in most browsers). */
+.mi-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: miWordIn 0.5s var(--ease) both;
+}
+
+@keyframes miWordIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The personalized "Let's build your next level, {firstName}." line under
+   "Welcome to MENTA." — delayed past that headline's own word-stagger
+   (3 words × 55ms + 500ms ≈ 660ms) so it reads as a second beat, not a
+   simultaneous one. Not uppercase/tracked as wide as .mi-line-sub's other
+   use (.mi-categories) — this is a warmer, sentence-case aside. */
+.mi-personal {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+  font-size: clamp(15px, 2.2vw, 17px);
+  color: var(--text-2);
+  opacity: 0;
+  animation: onbFadeIn 0.6s var(--ease) 0.6s both;
 }
 
 .mi-categories {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Select } from "@/components/Select";
@@ -10,24 +10,21 @@ import { CountrySelect } from "@/components/CountrySelect";
 import { StateField } from "@/components/StateField";
 import { CitySelect } from "@/components/CitySelect";
 import { GlowWaveText } from "@/components/GlowWaveText";
+import { OnboardingBuildingStep } from "@/components/OnboardingBuildingStep";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
-import { pickMotivationalMessages } from "@/lib/motivational-messages";
 import { SCHOOL_TYPES } from "@/lib/schools";
 
 type Step = "sport" | "school" | "goals" | "review" | "building" | "reveal";
 
 const QUESTION_STEPS: Step[] = ["sport", "school", "goals", "review"];
 
-const STATUS_LINES = ["SAVING YOUR PROFILE", "SETTING YOUR GOALS", "PREPARING YOUR DASHBOARD", "READY"];
-
 const TRANSITION_MS = 260;
-const BUILD_MIN_MS = 3400;
-// Matches the @keyframes onbStatusCycle / onbMotivationCycle durations in
-// globals.css — kept in sync so each line's fade-out lines up with the
-// next one's arrival instead of overlapping or leaving a gap.
-const STATUS_INTERVAL_MS = 2200;
-const MOTIVATION_INTERVAL_MS = 4400;
+// Must match OnboardingBuildingStep's own internal pacing (5 status lines
+// at 1300ms + a closing "ready" hold) closely enough that its final beat
+// lands right before this timer fires and hands off to "reveal" — see
+// durationMs on that component.
+const BUILD_MIN_MS = 7000;
 
 /**
  * The full first-launch onboarding experience: one dark, continuous
@@ -339,7 +336,7 @@ export function OnboardingExperience({ name }: { name: string }) {
             </>
           )}
 
-          {step === "building" && <BuildingStep goals={goals} />}
+          {step === "building" && <OnboardingBuildingStep role="ATHLETE" durationMs={BUILD_MIN_MS} />}
 
           {step === "reveal" && (
             <>
@@ -411,39 +408,3 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BuildingStep({ goals }: { goals: string[] }) {
-  const [statusIndex, setStatusIndex] = useState(0);
-  const [motivationIndex, setMotivationIndex] = useState(0);
-  const messages = useMemo(() => pickMotivationalMessages(goals), [goals]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setStatusIndex((i) => Math.min(i + 1, STATUS_LINES.length - 1));
-    }, STATUS_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setMotivationIndex((i) => (i + 1) % messages.length);
-    }, MOTIVATION_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [messages.length]);
-
-  return (
-    <>
-      <h1 className="onb-title">Building your MENTA.</h1>
-      <p className="onb-subtitle">We&rsquo;re putting everything together.</p>
-      <div className="onb-motivation">
-        <div key={motivationIndex} className="onb-motivation-line">
-          {messages[motivationIndex]}
-        </div>
-      </div>
-      <div className="onb-status">
-        <div key={statusIndex} className="onb-status-line">
-          {STATUS_LINES[statusIndex]}
-        </div>
-      </div>
-    </>
-  );
-}

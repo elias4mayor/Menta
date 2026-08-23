@@ -11,6 +11,7 @@ import { CitySelect } from "@/components/CitySelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
 import { SchoolCombobox } from "@/components/SchoolCombobox";
+import { OnboardingBuildingStep } from "@/components/OnboardingBuildingStep";
 import { SPORTS } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 import { SCHOOL_TYPES } from "@/lib/schools";
@@ -26,12 +27,16 @@ export const COACHING_ROLES = ["Head Coach", "Assistant Coach", "Strength Coach"
  * from Team.
  */
 const TRANSITION_MS = 260;
+// See BUILD_MIN_MS in OnboardingExperience.tsx — passed as durationMs to
+// OnboardingBuildingStep so its closing "ready" beat lands right before
+// this timer fires.
+const BUILD_MIN_MS = 6800;
 
 export function CoachOnboarding({ name }: { name: string }) {
   const router = useRouter();
   const firstName = name.split(" ")[0];
 
-  const [step, setStep] = useState<"info" | "team">("info");
+  const [step, setStep] = useState<"info" | "building" | "team">("info");
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -63,6 +68,14 @@ export function CoachOnboarding({ name }: { name: string }) {
     setSchoolName("");
   }
 
+  function goToBuilding() {
+    setPhase("exit");
+    transitionTimer.current = setTimeout(() => {
+      setStep("building");
+      setPhase("enter");
+    }, TRANSITION_MS);
+  }
+
   function goToTeam() {
     setPhase("exit");
     transitionTimer.current = setTimeout(() => {
@@ -70,6 +83,15 @@ export function CoachOnboarding({ name }: { name: string }) {
       setPhase("enter");
     }, TRANSITION_MS);
   }
+
+  // The real save already happened by the time we reach "building" (see
+  // submitProfile) — this is a paced hold on the cinematic screen, not a
+  // wait for the request itself, same trade-off the athlete flow makes.
+  useEffect(() => {
+    if (step !== "building") return;
+    const buildTimer = setTimeout(goToTeam, BUILD_MIN_MS);
+    return () => clearTimeout(buildTimer);
+  }, [step]);
 
   useEffect(() => () => {
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
@@ -102,7 +124,7 @@ export function CoachOnboarding({ name }: { name: string }) {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      goToTeam();
+      goToBuilding();
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -233,6 +255,8 @@ export function CoachOnboarding({ name }: { name: string }) {
                 </div>
               </form>
             </>
+          ) : step === "building" ? (
+            <OnboardingBuildingStep role="COACH" durationMs={BUILD_MIN_MS} />
           ) : (
             <>
               <h1 className="onb-title">Set up your team</h1>

@@ -10,6 +10,7 @@ import { StateSelect } from "@/components/StateSelect";
 import { CitySelect } from "@/components/CitySelect";
 import { PhoneInput } from "@/components/PhoneInput";
 import { TeamActions } from "@/components/TeamActions";
+import { OnboardingBuildingStep } from "@/components/OnboardingBuildingStep";
 import { SPORTS } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 
@@ -35,12 +36,14 @@ export const SPECIALTIES = [
  * member of. Skippable; can be done later from Team.
  */
 const TRANSITION_MS = 260;
+// See BUILD_MIN_MS in OnboardingExperience.tsx / CoachOnboarding.tsx.
+const BUILD_MIN_MS = 6800;
 
 export function TrainerOnboarding({ name }: { name: string }) {
   const router = useRouter();
   const firstName = name.split(" ")[0];
 
-  const [step, setStep] = useState<"info" | "group">("info");
+  const [step, setStep] = useState<"info" | "building" | "group">("info");
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -75,6 +78,14 @@ export function TrainerOnboarding({ name }: { name: string }) {
     setSpecialties((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
 
+  function goToBuilding() {
+    setPhase("exit");
+    transitionTimer.current = setTimeout(() => {
+      setStep("building");
+      setPhase("enter");
+    }, TRANSITION_MS);
+  }
+
   function goToGroup() {
     setPhase("exit");
     transitionTimer.current = setTimeout(() => {
@@ -82,6 +93,12 @@ export function TrainerOnboarding({ name }: { name: string }) {
       setPhase("enter");
     }, TRANSITION_MS);
   }
+
+  useEffect(() => {
+    if (step !== "building") return;
+    const buildTimer = setTimeout(goToGroup, BUILD_MIN_MS);
+    return () => clearTimeout(buildTimer);
+  }, [step]);
 
   useEffect(() => () => {
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
@@ -115,7 +132,7 @@ export function TrainerOnboarding({ name }: { name: string }) {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      goToGroup();
+      goToBuilding();
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -242,6 +259,8 @@ export function TrainerOnboarding({ name }: { name: string }) {
                 </div>
               </form>
             </>
+          ) : step === "building" ? (
+            <OnboardingBuildingStep role="TRAINER" durationMs={BUILD_MIN_MS} />
           ) : (
             <>
               <h1 className="onb-title">Connect with your athletes</h1>

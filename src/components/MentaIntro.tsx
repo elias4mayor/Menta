@@ -37,6 +37,11 @@ const T_CATEGORIES_WORDS = 7500;
 const T_BUILD = 9800;
 const T_REVEAL = 12000;
 const REVEAL_MS = 900;
+// Matches @keyframes miExit in globals.css — previously defined but never
+// actually triggered (each phase's content used to unmount instantly, with
+// only the *next* phase's enter animation playing). Content now runs this
+// exit before the next phase's content mounts, so nothing hard-cuts.
+const CONTENT_EXIT_MS = 240;
 
 /**
  * One-time, first-launch-only cinematic intro. Reached only via the
@@ -108,38 +113,7 @@ export function MentaIntro({
       />
 
       <div className="mi-stage">
-        {phase === "hello" && (
-          <div className="mi-content mi-enter">
-            <div className="mi-line">HELLO.</div>
-          </div>
-        )}
-
-        {phase === "welcome" && (
-          <div className="mi-content mi-enter">
-            <div className="mi-line">Welcome to MENTA.</div>
-          </div>
-        )}
-
-        {phase === "role" && (
-          <div className="mi-content mi-enter">
-            <div className="mi-line">{copy.message}</div>
-          </div>
-        )}
-
-        {phase === "categories" && (
-          <div className="mi-content mi-enter">
-            <div className="mi-line">ONE PLACE FOR WHAT&rsquo;S NEXT.</div>
-            <CategoryWords text={copy.categories} />
-          </div>
-        )}
-
-        {phase === "build" && (
-          <div className="mi-content mi-enter">
-            <div className="mi-line" style={{ fontSize: "clamp(22px, 4vw, 32px)" }}>
-              LET&rsquo;S BUILD YOUR MENTA.
-            </div>
-          </div>
-        )}
+        <IntroContent phase={phase} firstName={firstName} copy={copy} />
       </div>
 
       {/* Screen-reader-only announcement — the overlay itself is aria-hidden
@@ -147,6 +121,109 @@ export function MentaIntro({
           orients a non-visual first-time user before the real form
           appears. */}
       <span className="sr-only">{`Welcome to MENTA, ${firstName}.`}</span>
+    </div>
+  );
+}
+
+/**
+ * Renders whichever content-bearing phase is currently showing, and — new —
+ * actually runs the exit half of the fade before the next phase's content
+ * mounts, instead of the previous content vanishing the instant `phase`
+ * changes. (`.mi-content.mi-exit` / `@keyframes miExit` already existed in
+ * globals.css but nothing ever applied them; this is what wires them up.)
+ * Kept as its own component, not inlined in MentaIntro, so that internal
+ * exit-delay state doesn't affect the parent's absolute phase timers at all
+ * — logo/glow timing is untouched by this.
+ */
+function IntroContent({
+  phase,
+  firstName,
+  copy,
+}: {
+  phase: Phase;
+  firstName: string;
+  copy: { message: string; categories: string };
+}) {
+  const [displayed, setDisplayed] = useState<Phase>(phase);
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // `phase !== displayed` *is* the exiting state — no separate state needed
+  // (and setting one synchronously in this effect's body is exactly the
+  // cascading-render pattern react-hooks/set-state-in-effect flags). The
+  // effect's only setState call is the async one inside the timeout below.
+  useEffect(() => {
+    if (phase === displayed) return;
+    exitTimer.current = setTimeout(() => setDisplayed(phase), CONTENT_EXIT_MS);
+    return () => {
+      if (exitTimer.current) clearTimeout(exitTimer.current);
+    };
+  }, [phase, displayed]);
+
+  const isExiting = phase !== displayed;
+  const className = `mi-content ${isExiting ? "mi-exit" : "mi-enter"}`;
+
+  if (displayed === "hello") {
+    return (
+      <div className={className}>
+        <StaggerWords text="HELLO." />
+      </div>
+    );
+  }
+
+  if (displayed === "welcome") {
+    return (
+      <div className={className}>
+        <StaggerWords text="Welcome to MENTA." />
+        <div className="mi-line-sub mi-personal">{`Let’s build your next level, ${firstName}.`}</div>
+      </div>
+    );
+  }
+
+  if (displayed === "role") {
+    return (
+      <div className={className}>
+        <div className="mi-line">{copy.message}</div>
+      </div>
+    );
+  }
+
+  if (displayed === "categories") {
+    return (
+      <div className={className}>
+        <div className="mi-line">ONE PLACE FOR WHAT&rsquo;S NEXT.</div>
+        <CategoryWords text={copy.categories} />
+      </div>
+    );
+  }
+
+  if (displayed === "build") {
+    return (
+      <div className={className}>
+        <div className="mi-line" style={{ fontSize: "clamp(22px, 4vw, 32px)" }}>
+          LET&rsquo;S BUILD YOUR MENTA.
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// Word-by-word reveal for the two headline beats ("HELLO." / "Welcome to
+// MENTA.") — the prompt's "important introductory text" — via staggered
+// per-word opacity/translateY, not a typewriter effect. A plain space text
+// node between spans (not a non-breaking space) so long lines still wrap
+// naturally on narrow screens.
+function StaggerWords({ text }: { text: string }) {
+  const words = text.split(" ");
+  return (
+    <div className="mi-line">
+      {words.flatMap((word, i) => [
+        <span key={`w${i}`} className="mi-word" style={{ animationDelay: `${i * 55}ms` }}>
+          {word}
+        </span>,
+        i < words.length - 1 ? " " : null,
+      ])}
     </div>
   );
 }
