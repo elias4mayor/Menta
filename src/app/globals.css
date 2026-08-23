@@ -623,6 +623,43 @@ h4 {
   transition: border-color 0.25s var(--ease), box-shadow 0.3s var(--ease);
 }
 
+/* Single digit box for VerificationCodeInput. */
+.code-box {
+  width: 46px;
+  height: 56px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  color: var(--text-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.code-box:focus {
+  outline: none;
+  border-color: var(--text-1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+.code-box[data-error="true"] {
+  border-color: var(--danger);
+}
+
+.code-box:disabled {
+  opacity: 0.5;
+}
+
+@media (max-width: 400px) {
+  .code-box {
+    width: 40px;
+    height: 50px;
+    font-size: 19px;
+  }
+}
+
 /* Text link with a smooth glowing underline that sweeps in on hover —
    used on the split login/signup screens. */
 .auth-link {

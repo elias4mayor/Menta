@@ -22,6 +22,10 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(10, "Use at least 10 characters"),
 });
 
+export const verifyEmailSchema = z.object({
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(10, "Use at least 10 characters"),

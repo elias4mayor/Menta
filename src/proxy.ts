@@ -61,12 +61,17 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
 
   let hasValidSession = false;
+  let emailVerified = false;
   if (token) {
     const tokenHash = hashToken(token);
     const session = tokenHash
-      ? await prisma.session.findUnique({ where: { tokenHash } })
+      ? await prisma.session.findUnique({
+          where: { tokenHash },
+          select: { revokedAt: true, expiresAt: true, user: { select: { emailVerified: true } } },
+        })
       : null;
     hasValidSession = Boolean(session && !session.revokedAt && session.expiresAt > new Date());
+    emailVerified = Boolean(session?.user.emailVerified);
   }
 
   // The cookie is present but doesn't correspond to a real, active session
@@ -86,8 +91,30 @@ export async function proxy(request: NextRequest) {
     return withStaleCookieCleared(NextResponse.redirect(url));
   }
 
+  // A real, logged-in session that hasn't verified its email yet cannot
+  // reach any protected route until it does — /verify-email is itself
+  // excluded from PROTECTED_PREFIXES so this doesn't loop.
+  if (
+    PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) &&
+    hasValidSession &&
+    !emailVerified
+  ) {
+    return NextResponse.redirect(new URL("/verify-email", request.url));
+  }
+
   if (AUTH_ONLY_PREFIXES.some((p) => pathname.startsWith(p)) && hasValidSession) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(
+      new URL(emailVerified ? "/dashboard" : "/verify-email", request.url)
+    );
+  }
+
+  if (pathname.startsWith("/verify-email")) {
+    if (!hasValidSession) {
+      return withStaleCookieCleared(NextResponse.redirect(new URL("/login", request.url)));
+    }
+    if (emailVerified) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return withStaleCookieCleared(NextResponse.next());
@@ -115,5 +142,6 @@ export const config = {
     "/notifications/:path*",
     "/login",
     "/signup",
+    "/verify-email",
   ],
 };

@@ -39,7 +39,7 @@ export default function SignupPage() {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      router.push("/onboarding");
+      router.push("/verify-email");
       router.refresh();
     } catch {
       setError("Network error. Try again.");

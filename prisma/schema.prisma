@@ -45,6 +45,7 @@ model User {
   parentProfile              ParentProfile?
   sessions                   Session[]
   resetTokens                PasswordResetToken[]
+  emailVerificationCodes     EmailVerificationCode[]
   memberships                TeamMembership[]
   messages                   Message[]
   conversations              ConversationParticipant[]
@@ -109,6 +110,25 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
   expiresAt DateTime
   usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// A 6-digit signup email-verification code. Same shape as
+/// PasswordResetToken (hashed at rest, expiring, single-use) plus an
+/// attempts counter so a stolen/guessed code can be rate-limited by count,
+/// not just by time — a 6-digit space is small enough that pure time-based
+/// rate limiting alone isn't sufficient.
+model EmailVerificationCode {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  consumedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

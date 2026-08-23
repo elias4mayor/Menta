@@ -5,6 +5,7 @@ import { createSession } from "@/lib/session";
 import { signupSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { issueVerificationCode } from "@/lib/verification";
 
 export async function POST(request: Request) {
   const limited = rateLimit(clientKey(request, "signup"), {
@@ -50,8 +51,10 @@ export async function POST(request: Request) {
 
   await createSession(user.id, request.headers.get("user-agent"));
   await logAudit({ actorId: user.id, action: "auth.signup", targetType: "User", targetId: user.id });
+  const { sent } = await issueVerificationCode(user.id, user.email);
 
   return NextResponse.json({
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    emailSent: sent,
   });
 }

@@ -62,9 +62,13 @@ export async function GET(
   if (!user) {
     const existingByEmail = await prisma.user.findUnique({ where: { email: profile.email } });
     if (existingByEmail) {
+      // The OAuth provider already verified this email address, so linking
+      // it here is as good a verification signal as our own code flow —
+      // don't leave a pre-existing unverified account stuck behind
+      // /verify-email just because it's now also linked to a provider.
       user = await prisma.user.update({
         where: { id: existingByEmail.id },
-        data: { [idField]: profile.providerId },
+        data: { [idField]: profile.providerId, emailVerified: existingByEmail.emailVerified ?? new Date() },
       });
     } else {
       user = await prisma.user.create({
@@ -73,6 +77,7 @@ export async function GET(
           name: profile.name ?? profile.email.split("@")[0],
           role: "ATHLETE",
           [idField]: profile.providerId,
+          emailVerified: new Date(),
         },
       });
       isNewUser = true;
