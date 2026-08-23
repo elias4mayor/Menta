@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MentaLogoGL, supportsWebGL } from "@/components/MentaLogoGL";
 
 // Module-scope, not storage: resets on every fresh document load (hard
 // refresh, typing the URL, opening a new tab) so it's trivial to preview
@@ -27,6 +28,15 @@ type Phase = "hidden" | "boot" | "show" | "fade";
  */
 export function IntroBoot() {
   const [phase, setPhase] = useState<Phase>("hidden");
+  // Decided once, synchronously, before first paint of the overlay — the
+  // real fallback for no/broken WebGL is the original CSS-only reveal
+  // below, not a try/catch masking a silent failure inside the GL path.
+  const [useGL] = useState(() => (typeof window === "undefined" ? false : supportsWebGL()));
+  // Set if MentaLogoGL's shader fails to compile/link on a GPU/driver that
+  // does support WebGL in principle — a second, narrower fallback than
+  // useGL above, so a compile failure never leaves a blank canvas.
+  const [glFailed, setGlFailed] = useState(false);
+  const showGL = useGL && !glFailed;
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -93,15 +103,26 @@ export function IntroBoot() {
   const classNames = ["logo-intro-mark", "boot"];
   if (phase === "show" || phase === "fade") classNames.push("show");
   if (phase === "fade") classNames.push("fade");
+  // Solid-white stage only while the GL "product shot" is actually
+  // rendering — if it fails and falls back to the CSS reveal below, that
+  // reveal keeps its own established translucent-over-photo look instead
+  // of being orphaned on a white background it was never designed for.
+  if (showGL) classNames.push("gl");
 
   return (
     <div className={classNames.join(" ")} aria-hidden="true">
       <div className="intro-glow" />
-      <div className="intro-logo-wrap">
-        {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no responsive sizing needed for a one-time boot overlay */}
-        <img src="/logo.png" alt="" />
-        <div className="intro-logo-sheen" />
-      </div>
+      {showGL ? (
+        <div className="intro-logo-wrap intro-logo-wrap-gl">
+          <MentaLogoGL active={phase === "show" || phase === "fade"} onFail={() => setGlFailed(true)} />
+        </div>
+      ) : (
+        <div className="intro-logo-wrap">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local asset, no responsive sizing needed for a one-time boot overlay */}
+          <img src="/logo.png" alt="" />
+          <div className="intro-logo-sheen" />
+        </div>
+      )}
       <div className="intro-slogan">The Athlete Operating System.</div>
     </div>
   );
