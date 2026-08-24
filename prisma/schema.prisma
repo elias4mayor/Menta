@@ -40,9 +40,11 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   athleteProfile             AthleteProfile?
+  athleteSportContexts       AthleteSportContext[]
   coachProfile               CoachProfile?
   trainerProfile             TrainerProfile?
   parentProfile              ParentProfile?
+  doctorProfile              DoctorProfile?
   sessions                   Session[]
   resetTokens                PasswordResetToken[]
   emailVerificationCodes     EmailVerificationCode[]
@@ -85,6 +87,9 @@ model User {
   uploadedDocuments          Document[]                 @relation("DocumentUploader")
   documentRequestsMade       DocumentRequest[]          @relation("DocumentRequester")
   documentRequestsReceived   DocumentRequest[]          @relation("DocumentRequestAthlete")
+  providerAvailability       ProviderAvailability[]
+  careRequestsAsAthlete      CareRequest[]              @relation("CareRequestAthlete")
+  careRequestsAsProvider     CareRequest[]              @relation("CareRequestProvider")
 
   @@index([role])
 }
@@ -155,7 +160,20 @@ model EmailVerificationCode {
 model AthleteProfile {
   id                    String    @id @default(cuid())
   userId                String    @unique
+  /// DEPRECATED COMPATIBILITY MIRROR — as of MENTA's multi-sport
+  /// foundation, AthleteSportContext (the row where isPrimary=true and
+  /// isActive=true for this user) is the real source of truth for an
+  /// athlete's sport/position. This field is kept in sync with that row's
+  /// `sport` inside the same transaction, purely so the read sites that
+  /// predate multi-sport (dashboard "Now" card, /train's WorkoutGenerator
+  /// default, /recruit's summary line, /mind's competition label,
+  /// ParentDashboard's snapshot, buildAthleteContext() for MENTA AI, and
+  /// this profile's own edit form) keep working unchanged. Do not build
+  /// new functionality that reads or writes this field directly — read
+  /// AthleteSportContext instead. See src/lib/sport-context.ts.
   sport                 String?
+  /// DEPRECATED COMPATIBILITY MIRROR — see `sport` above. Mirrors the
+  /// primary AthleteSportContext's `position`.
   position              String?
   graduationYear        Int?
   heightCm              Int?
@@ -185,6 +203,38 @@ model AthleteProfile {
   updatedAt             DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// The long-term source of truth for an athlete's sport(s) — see the
+/// deprecation notice on AthleteProfile.sport/.position above. An athlete
+/// can have more than one context (multi-sport); exactly one is isPrimary
+/// among the isActive rows. Contexts are never hard-deleted — deactivating
+/// (isActive=false) preserves the row and every historical Workout/
+/// PerformanceEntry/Goal/RecruitingSchool/Film relationship pointing at it.
+/// Re-adding a previously deactivated sport reactivates the same row via
+/// the @@unique([userId, sport]) key instead of creating a duplicate.
+model AthleteSportContext {
+  id        String   @id @default(cuid())
+  userId    String
+  sport     String
+  position  String?
+  teamId    String?
+  isPrimary Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  workouts           Workout[]
+  performanceEntries PerformanceEntry[]
+  goals              Goal[]
+  recruitingSchools  RecruitingSchool[]
+  films              Film[]
+
+  @@unique([userId, sport])
+  @@index([userId])
 }
 
 /// A User with role=COACH gets this instead of AthleteProfile. Team/
@@ -261,6 +311,37 @@ model TrainerProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// A User with role=DOCTOR gets this instead of AthleteProfile. Covers any
+/// authorized medical provider type MENTA Care can route an athlete to
+/// besides an Athletic Trainer (that's role=TRAINER already) — Team Doctor,
+/// Physical Therapist, or a general Sports Medicine provider, distinguished
+/// by `title`, not by separate account roles.
+model DoctorProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  /// Team Doctor, Physical Therapist, Sports Medicine Provider, Other
+  title                 String?
+  /// JSON-stringified array (Orthopedics, Concussion management,
+  /// Return-to-play, Rehabilitation, General sports medicine, ...).
+  specialties           String?
+  /// Free text — license/board certification, shown to athletes/coaches as
+  /// a self-reported credential, not independently verified by MENTA.
+  credentials           String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else.
+  country               String?
+  /// Real state/province name for `country` (src/lib/data/states.json).
+  state                 String?
+  /// Real city name (see the same field's doc-comment on CoachProfile).
+  city                  String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 /// A User with role=PARENT gets this instead of AthleteProfile. Athlete
 /// connections themselves reuse GuardianLink (see src/app/api/guardian) —
 /// this table is only the parent's own identity fields.
@@ -315,17 +396,27 @@ model Team {
   safetyProtocols      TeamSafetyProtocol[]
   safetyChecklistItems TeamSafetyChecklistItem[]
   documents            Document[]
+  providerAvailability ProviderAvailability[]
+  careRequests         CareRequest[]
+  sportContexts        AthleteSportContext[]
 
   @@index([organizationId])
 }
 
-/// TeamRole: COACH, ATHLETE, TRAINER, PARENT, ADMIN
+/// TeamRole: COACH, ATHLETE, TRAINER, DOCTOR, PARENT, ADMIN
 model TeamMembership {
-  id       String   @id @default(cuid())
-  userId   String
-  teamId   String
-  teamRole String   @default("ATHLETE")
-  joinedAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  teamId     String
+  teamRole   String    @default("ATHLETE")
+  joinedAt   DateTime  @default(now())
+  /// Set by a coach/admin of this team once they've confirmed a
+  /// TRAINER/DOCTOR member is who they say they are — MENTA Care only
+  /// lists a provider to athletes once this is set. There's no
+  /// organization-level admin-approval queue yet (ATHLETIC_DIRECTOR has no
+  /// dashboard at all currently), so this narrower, real gate — the team's
+  /// own coach/admin vouches for them — is what actually ships this pass.
+  verifiedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -334,61 +425,135 @@ model TeamMembership {
   @@index([teamId])
 }
 
+/// Recurring weekly availability windows a TRAINER/DOCTOR sets for one
+/// team — expanded into concrete bookable slots by the /api/care API
+/// against existing CareRequest.scheduledStart/End, not stored per-slot.
+/// Start/end are plain local-clock minutes-from-midnight, same
+/// no-timezone-model simplification the rest of the app's DateTime fields
+/// already use (see CalendarEvent) — a real per-user timezone field would
+/// be a separate, larger change.
+model ProviderAvailability {
+  id          String   @id @default(cuid())
+  providerId  String
+  teamId      String
+  /// 0 = Sunday .. 6 = Saturday
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+  slotMinutes Int      @default(30)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  provider User @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  team     Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([teamId])
+}
+
+/// The whole MENTA Care lifecycle as one record, moving through `status`
+/// rather than separate request/appointment tables — CARE REQUESTED ->
+/// SCHEDULED -> SEEN -> FOLLOW_UP -> CLOSED, with DECLINED/CANCELLED as
+/// terminal off-ramps. `reasonNote` and `providerNote` are the private
+/// medical content: never sent to a coach- or parent-facing query, which
+/// select status/scheduledStart only (see src/lib/permissions.ts's Care
+/// helpers and the /api/care routes).
+/// Reason: INJURY, PAIN, RECOVERY, RETURN_TO_PLAY, TREATMENT, GENERAL, OTHER
+/// Status: REQUESTED, SCHEDULED, DECLINED, SEEN, FOLLOW_UP, CANCELLED, CLOSED
+model CareRequest {
+  id             String    @id @default(cuid())
+  athleteId      String
+  providerId     String
+  teamId         String
+  reason         String
+  reasonNote     String?
+  status         String    @default("REQUESTED")
+  requestedStart DateTime
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  providerNote   String?
+  followUpOfId   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  athlete    User          @relation("CareRequestAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  provider   User          @relation("CareRequestProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  team       Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  followUpOf CareRequest?  @relation("CareFollowUps", fields: [followUpOfId], references: [id])
+  followUps  CareRequest[] @relation("CareFollowUps")
+
+  @@index([athleteId])
+  @@index([providerId])
+  @@index([teamId])
+  @@index([status])
+}
+
 /// Status: ACTIVE, ACHIEVED, ABANDONED
 model Goal {
-  id         String    @id @default(cuid())
-  userId     String
-  title      String
-  category   String?
-  actionPlan String?
-  progress   Int       @default(0)
-  targetDate DateTime?
-  status     String    @default("ACTIVE")
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  category       String?
+  actionPlan     String?
+  progress       Int       @default(0)
+  targetDate     DateTime?
+  status         String    @default("ACTIVE")
+  /// Nullable — existing goals stay ungrouped/legacy rather than being
+  /// guessed into a sport. Only new goals created after multi-sport ships
+  /// (and explicitly attributed to the athlete's active sport) get one.
+  sportContextId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([sportContextId])
 }
 
 /// Category: STRENGTH, SPEED, AGILITY, CONDITIONING, MOBILITY, SKILL, RECOVERY
 model Workout {
-  id          String   @id @default(cuid())
-  title       String
-  category    String
-  description String?
+  id             String   @id @default(cuid())
+  title          String
+  category       String
+  description    String?
   /// JSON-stringified array of { name, sets?, reps?, notes? } — kept as a
   /// single field rather than a full Exercise table until a real workout
   /// builder needs to query into individual exercises.
-  exercises   String?
+  exercises      String?
   /// Set only for workouts generated by the onboarding plan generator
   /// (see src/lib/generate-plan.ts), so the dashboard can show "your plan"
   /// distinctly from workouts the athlete or a coach adds later — never
   /// used to hide or restrict a workout, purely a display grouping.
-  planTag     String?
-  teamId      String?
-  createdById String
+  planTag        String?
+  teamId         String?
+  createdById    String
   /// A coach/trainer assigning a workout to one specific roster member
   /// rather than the whole team — independent of teamId (both can be set
   /// together, e.g. "this team's workout, but specifically for #12").
-  assignedToId String?
+  assignedToId   String?
   /// A reusable workout a coach/trainer saved to copy from later, not a
   /// live assignment itself — "Use template" duplicates it into a real
   /// workout via the same POST /api/workouts every other workout goes
   /// through, so a template never grants any access a normal workout
   /// wouldn't already have.
-  isTemplate  Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  isTemplate     Boolean  @default(false)
+  /// Nullable — existing workouts stay ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId String?
+  createdAt      DateTime @default(now())
 
-  team        Team?               @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdBy   User                @relation("WorkoutCreator", fields: [createdById], references: [id])
-  assignedTo  User?               @relation("WorkoutAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
-  completions WorkoutCompletion[]
+  team         Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy    User                 @relation("WorkoutCreator", fields: [createdById], references: [id])
+  assignedTo   User?                @relation("WorkoutAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  completions  WorkoutCompletion[]
 
   @@index([teamId])
   @@index([createdById])
   @@index([assignedToId])
+  @@index([sportContextId])
 }
 
 model WorkoutCompletion {
@@ -411,19 +576,24 @@ model WorkoutCompletion {
 /// A dedicated per-sport stat-definition system (build plan §11/§58) is a
 /// later hardening pass once real usage shows which stats need structure.
 model PerformanceEntry {
-  id         String   @id @default(cuid())
-  userId     String
-  statName   String
-  value      Float
-  unit       String?
-  recordedAt DateTime @default(now())
-  note       String?
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  statName       String
+  value          Float
+  unit           String?
+  recordedAt     DateTime @default(now())
+  note           String?
+  /// Nullable — existing entries stay ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId String?
+  createdAt      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([userId, statName])
+  @@index([sportContextId])
 }
 
 model Conversation {
@@ -608,14 +778,19 @@ model Film {
   visibility       String   @default("PRIVATE")
   teamId           String?
   uploadedById     String
+  /// Nullable — existing film stays ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId   String?
   createdAt        DateTime @default(now())
 
-  team       Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  uploadedBy User   @relation("FilmUploader", fields: [uploadedById], references: [id])
-  clips      Clip[]
+  team         Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  uploadedBy   User                 @relation("FilmUploader", fields: [uploadedById], references: [id])
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  clips        Clip[]
 
   @@index([teamId])
   @@index([uploadedById])
+  @@index([sportContextId])
 }
 
 model Clip {
@@ -673,22 +848,27 @@ model HighlightItem {
 /// Division: freeform (e.g. "D1", "D2", "D3", "NAIA", "JUCO", "Other")
 /// Status: TARGET, INTERESTED, CONTACTED, RESPONDED, VISIT, OFFER, COMMITTED, NOT_PURSUING
 model RecruitingSchool {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  division  String?
-  location  String?
-  status    String   @default("TARGET")
-  priority  Int?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  division       String?
+  location       String?
+  status         String   @default("TARGET")
+  priority       Int?
+  notes          String?
+  /// Nullable — existing schools stay ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contacts   RecruitingContact[]
-  activities RecruitingActivity[]
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  contacts     RecruitingContact[]
+  activities   RecruitingActivity[]
 
   @@index([userId])
+  @@index([sportContextId])
 }
 
 /// Status: NOT_CONTACTED, CONTACTED, RESPONDED

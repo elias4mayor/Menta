@@ -11,6 +11,7 @@ const ROLES = [
   { value: "COACH", label: "Coach" },
   { value: "PARENT", label: "Parent / Guardian" },
   { value: "TRAINER", label: "Trainer" },
+  { value: "DOCTOR", label: "Doctor / Medical Provider" },
 ];
 
 export default function SignupPage() {

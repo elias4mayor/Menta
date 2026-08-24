@@ -12,6 +12,17 @@ export function rateLimit(
   key: string,
   { limit, windowMs }: { limit: number; windowMs: number }
 ): { allowed: boolean; retryAfterMs: number } {
+  // The permanent Playwright suite (e2e/) creates real accounts through the
+  // real signup/login endpoints, all from one machine — clientKey() has no
+  // way to tell those apart from a real attacker hammering the same route,
+  // so without this they'd blow through the same-IP limits the moment the
+  // suite runs more than a handful of signups. Only ever set by
+  // playwright.config.ts's webServer env, never in a normal dev or
+  // production start.
+  if (process.env.MENTA_E2E_DISABLE_RATE_LIMIT === "1") {
+    return { allowed: true, retryAfterMs: 0 };
+  }
+
   const now = Date.now();
   const bucket = buckets.get(key);
 

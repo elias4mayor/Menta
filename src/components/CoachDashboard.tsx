@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/session";
+import { CARE_OPERATIONAL_STATUS_LABELS, type CareStatus } from "@/lib/care";
 
 /**
  * Coach dashboard — Phase 1 scope: real data only (teams the coach
@@ -32,6 +33,18 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
     }),
     prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
+
+  // Operational status only — never CareRequest.reason/reasonNote/providerNote.
+  // A coach sees "care appointment scheduled," never why.
+  const teamIds = teams.map((t) => t.id);
+  const careStatuses =
+    teamIds.length > 0
+      ? await prisma.careRequest.findMany({
+          where: { teamId: { in: teamIds }, status: { in: ["REQUESTED", "SCHEDULED", "FOLLOW_UP"] } },
+          orderBy: { updatedAt: "desc" },
+          select: { id: true, status: true, scheduledStart: true, athlete: { select: { name: true } } },
+        })
+      : [];
 
   const focusAreas: string[] = coachProfile?.focusAreas ? JSON.parse(coachProfile.focusAreas) : [];
   const totalAthletes = teams.reduce((sum, t) => sum + t.memberships.filter((m) => m.teamRole === "ATHLETE").length, 0);
@@ -147,6 +160,28 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </div>
+
+      <div className="card p-5 mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="mono text-text-3">Care status</div>
+          <Link href="/care" className="text-xs text-text-2 hover:text-text-1">Care →</Link>
+        </div>
+        {careStatuses.length === 0 ? (
+          <p className="text-text-2 text-sm">Nothing active. You only ever see status here, never why.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {careStatuses.map((r) => (
+              <li key={r.id} className="flex items-center justify-between">
+                <span>{r.athlete.name}</span>
+                <span className="text-text-2">
+                  {CARE_OPERATIONAL_STATUS_LABELS[r.status as CareStatus]}
+                  {r.scheduledStart && ` · ${new Date(r.scheduledStart).toLocaleDateString()}`}
+                </span>
+              </li>
+            ))}
           </ul>
         )}
       </div>

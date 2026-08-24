@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type OnboardingRole = "ATHLETE" | "COACH" | "TRAINER" | "PARENT";
+export type OnboardingRole = "ATHLETE" | "COACH" | "TRAINER" | "PARENT" | "DOCTOR";
 
 // Fixed for the whole "building" screen — no longer part of the cycling
 // list (it used to be both the opening and, in a "…IS READY" form, the
@@ -13,6 +13,7 @@ const HEADLINE: Record<OnboardingRole, string> = {
   COACH: "BUILDING YOUR COACHING SYSTEM",
   TRAINER: "BUILDING YOUR PERFORMANCE SYSTEM",
   PARENT: "BUILDING YOUR ATHLETE SUPPORT SYSTEM",
+  DOCTOR: "BUILDING YOUR CARE SYSTEM",
 };
 
 // The cycling sub-line under the fixed headline — role-specific vocabulary,
@@ -45,6 +46,13 @@ const STATUS_LINES: Record<OnboardingRole, string[]> = {
     "PREPARING THEIR DEVELOPMENT PROFILE",
     "SETTING UP THEIR SUPPORT SYSTEM",
     "CREATING A CLEARER PICTURE",
+  ],
+  DOCTOR: [
+    "PREPARING YOUR PROVIDER PROFILE",
+    "SETTING UP YOUR AVAILABILITY",
+    "CONNECTING YOUR CARE QUEUE",
+    "PREPARING ATHLETE REQUESTS",
+    "SECURING PRIVATE CARE RECORDS",
   ],
 };
 
@@ -87,6 +95,13 @@ const CHECKLIST_ITEMS: Record<OnboardingRole, ChecklistItem[]> = {
     { label: "ATHLETE CONNECTION", status: "READY" },
     { label: "SUPPORT VIEW", status: "READY" },
     { label: "PROGRESS ACCESS", status: "READY" },
+  ],
+  DOCTOR: [
+    { label: "PROVIDER PROFILE", status: "COMPLETE" },
+    { label: "CREDENTIALS", status: "COMPLETE" },
+    { label: "AVAILABILITY", status: "READY" },
+    { label: "CARE QUEUE", status: "READY" },
+    { label: "PRIVATE RECORDS", status: "READY" },
   ],
 };
 

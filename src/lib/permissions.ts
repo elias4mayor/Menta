@@ -24,14 +24,18 @@ export const ROLES = [
   "ATHLETIC_DIRECTOR",
   "COACH",
   "TRAINER",
+  "DOCTOR",
   "ATHLETE",
   "PARENT",
 ] as const;
 
 export type Role = (typeof ROLES)[number];
 
-export const TEAM_ROLES = ["COACH", "ATHLETE", "TRAINER", "PARENT", "ADMIN"] as const;
+export const TEAM_ROLES = ["COACH", "ATHLETE", "TRAINER", "DOCTOR", "PARENT", "ADMIN"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
+
+/** Team roles MENTA Care can route an athlete's request to. */
+export const PROVIDER_TEAM_ROLES: TeamRole[] = ["TRAINER", "DOCTOR"];
 
 /** Internal MENTA staff roles — these get product/admin access, never a free pass to athlete data. */
 const STAFF_ROLES: Role[] = ["SUPER_ADMIN", "DEVELOPER", "MENTA_STAFF"];
@@ -209,4 +213,57 @@ export async function canRequestDocumentFrom(requester: SessionUser, athleteId: 
   }
 
   return false;
+}
+
+/**
+ * MENTA Care: a provider is only bookable once a coach/admin of that
+ * specific team has vouched for them (TeamMembership.verifiedAt) — role
+ * alone (TRAINER/DOCTOR) isn't enough, since anyone can join a team with
+ * an invite code. There's no org-level admin-approval queue yet
+ * (ATHLETIC_DIRECTOR has no dashboard at all currently); this is the real,
+ * narrower gate that ships this pass.
+ */
+export async function isVerifiedProvider(userId: string, teamId: string): Promise<boolean> {
+  const membership = await prisma.teamMembership.findUnique({
+    where: { userId_teamId: { userId, teamId } },
+  });
+  return Boolean(
+    membership &&
+      PROVIDER_TEAM_ROLES.includes(membership.teamRole as TeamRole) &&
+      membership.verifiedAt
+  );
+}
+
+/** An athlete may request care from a provider only if both share the named team and that provider is verified on it. */
+export async function canRequestCareFrom(
+  athleteId: string,
+  providerId: string,
+  teamId: string
+): Promise<boolean> {
+  const athleteMembership = await prisma.teamMembership.findUnique({
+    where: { userId_teamId: { userId: athleteId, teamId } },
+  });
+  if (!athleteMembership) return false;
+  return isVerifiedProvider(providerId, teamId);
+}
+
+/** Only the assigned provider (or SUPER_ADMIN) can accept/decline/reschedule/close a care request — never the athlete, coach, or parent. */
+export function canManageCareRequest(user: SessionUser, careRequest: { providerId: string }): boolean {
+  return user.role === "SUPER_ADMIN" || user.id === careRequest.providerId;
+}
+
+/** A coach sees operational status only for care requests on teams they coach/admin — never the reason, notes, or provider's private note. */
+export async function canViewTeamCareStatus(user: SessionUser, teamId: string): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+  return isTeamCoachOrAdmin(user.id, teamId);
+}
+
+/** A parent sees operational status only for an athlete they're an APPROVED guardian of. */
+export async function canViewAthleteCareStatus(viewer: SessionUser, athleteId: string): Promise<boolean> {
+  if (viewer.id === athleteId) return true;
+  if (viewer.role === "SUPER_ADMIN") return true;
+  const link = await prisma.guardianLink.findFirst({
+    where: { guardianId: viewer.id, athleteId, status: "APPROVED" },
+  });
+  return Boolean(link);
 }

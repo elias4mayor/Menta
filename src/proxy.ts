@@ -52,6 +52,7 @@ const PROTECTED_PREFIXES = [
   "/recruit",
   "/safety",
   "/notifications",
+  "/care",
 ];
 
 const AUTH_ONLY_PREFIXES = ["/login", "/signup"];
@@ -79,6 +80,7 @@ export async function proxy(request: NextRequest) {
                 coachProfile: { select: { onboardingCompletedAt: true } },
                 trainerProfile: { select: { onboardingCompletedAt: true } },
                 parentProfile: { select: { onboardingCompletedAt: true } },
+                doctorProfile: { select: { onboardingCompletedAt: true } },
               },
             },
           },
@@ -99,7 +101,9 @@ export async function proxy(request: NextRequest) {
             ? user.trainerProfile?.onboardingCompletedAt
             : user.role === "PARENT"
               ? user.parentProfile?.onboardingCompletedAt
-              : user.athleteProfile?.onboardingCompletedAt
+              : user.role === "DOCTOR"
+                ? user.doctorProfile?.onboardingCompletedAt
+                : user.athleteProfile?.onboardingCompletedAt
       );
     }
   }
@@ -149,6 +153,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
+  // The mirror image of the rule above: an athlete/coach/etc. who already
+  // finished onboarding shouldn't be dropped back into the multi-step
+  // wizard just because they navigated (or were bookmarked/linked) back to
+  // /onboarding — send them to their real dashboard instead. Can't loop
+  // with the rule above since onboardingCompleted is never true and false
+  // at once.
+  if (pathname.startsWith("/onboarding") && hasValidSession && emailVerified && onboardingCompleted) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   if (AUTH_ONLY_PREFIXES.some((p) => pathname.startsWith(p)) && hasValidSession) {
     const dest = !emailVerified ? "/verify-email" : !onboardingCompleted ? "/onboarding" : "/dashboard";
     return NextResponse.redirect(new URL(dest, request.url));
@@ -186,6 +200,7 @@ export const config = {
     "/recruit/:path*",
     "/safety/:path*",
     "/notifications/:path*",
+    "/care/:path*",
     "/login",
     "/signup",
     "/verify-email",

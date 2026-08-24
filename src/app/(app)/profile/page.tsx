@@ -5,6 +5,7 @@ import { CoachProfileForm } from "@/components/CoachProfileForm";
 import { TrainerProfileForm } from "@/components/TrainerProfileForm";
 import { ParentProfileForm } from "@/components/ParentProfileForm";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { YourSportsManager } from "@/components/YourSportsManager";
 import { isMinor } from "@/lib/permissions";
 
 function parseJsonArray(value: string | null | undefined): string[] {
@@ -93,21 +94,24 @@ async function ProfileFormForRole({ role, userId }: { role: string; userId: stri
   ]);
 
   return (
-    <ProfileForm
-      isMinor={isMinor(account?.dateOfBirth)}
-      initial={{
-        sport: profile?.sport ?? "",
-        position: profile?.position ?? "",
-        graduationYear: profile?.graduationYear ?? undefined,
-        heightCm: profile?.heightCm ?? undefined,
-        weightKg: profile?.weightKg ?? undefined,
-        schoolName: profile?.schoolName ?? "",
-        city: profile?.city ?? "",
-        state: profile?.state ?? "",
-        bio: profile?.bio ?? "",
-        gpa: profile?.gpa ?? undefined,
-        visibility: profile?.visibility ?? "PRIVATE",
-      }}
-    />
+    <>
+      <ProfileForm
+        isMinor={isMinor(account?.dateOfBirth)}
+        initial={{
+          sport: profile?.sport ?? "",
+          position: profile?.position ?? "",
+          graduationYear: profile?.graduationYear ?? undefined,
+          heightCm: profile?.heightCm ?? undefined,
+          weightKg: profile?.weightKg ?? undefined,
+          schoolName: profile?.schoolName ?? "",
+          city: profile?.city ?? "",
+          state: profile?.state ?? "",
+          bio: profile?.bio ?? "",
+          gpa: profile?.gpa ?? undefined,
+          visibility: profile?.visibility ?? "PRIVATE",
+        }}
+      />
+      <YourSportsManager />
+    </>
   );
 }

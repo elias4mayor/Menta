@@ -46,8 +46,14 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [sport, setSport] = useState("");
-  const [position, setPosition] = useState("");
+  // sportsList[0] is shown as the main "Sport" field; anything appended via
+  // "+ Add another sport" lives at index 1+. Which one is actually primary
+  // is a separate, explicit choice (primarySport) once there's more than
+  // one — never assumed to be index 0 just because it was entered first.
+  const [sportsList, setSportsList] = useState<{ sport: string; position: string }[]>([
+    { sport: "", position: "" },
+  ]);
+  const [primarySport, setPrimarySport] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [schoolType, setSchoolType] = useState("");
@@ -78,6 +84,26 @@ export function OnboardingExperience({ name }: { name: string }) {
     setSchoolName("");
   }
 
+  const filledSports = sportsList.filter((s) => s.sport.trim().length > 0);
+  const hasDuplicateSports = new Set(filledSports.map((s) => s.sport)).size !== filledSports.length;
+  const primaryEntry =
+    filledSports.length > 1
+      ? filledSports.find((s) => s.sport === primarySport) ?? filledSports[0]
+      : filledSports[0];
+  const canAdvanceSport = filledSports.length > 0 && !hasDuplicateSports;
+
+  function updateSportEntry(index: number, patch: Partial<{ sport: string; position: string }>) {
+    setSportsList((prev) => prev.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)));
+  }
+
+  function addSportSlot() {
+    setSportsList((prev) => [...prev, { sport: "", position: "" }]);
+  }
+
+  function removeSportSlot(index: number) {
+    setSportsList((prev) => prev.filter((_, i) => i !== index));
+  }
+
   useEffect(() => () => {
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
   }, []);
@@ -105,8 +131,11 @@ export function OnboardingExperience({ name }: { name: string }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sport,
-            position: position || undefined,
+            sport: primaryEntry.sport,
+            position: primaryEntry.position || undefined,
+            additionalSports: filledSports
+              .filter((s) => s.sport !== primaryEntry.sport)
+              .map((s) => ({ sport: s.sport, position: s.position || undefined })),
             graduationYear: graduationYear ? Number(graduationYear) : undefined,
             schoolName,
             schoolType,
@@ -157,7 +186,6 @@ export function OnboardingExperience({ name }: { name: string }) {
 
   const questionIndex = QUESTION_STEPS.indexOf(step);
   const showProgress = questionIndex >= 0;
-  const canAdvanceSport = sport.trim().length > 0;
 
   return (
     <div className="onb-root">
@@ -184,45 +212,98 @@ export function OnboardingExperience({ name }: { name: string }) {
           {step === "sport" && (
             <>
               <h1 className="onb-title">
-                <GlowWaveText intensity="strong">What sport do you play?</GlowWaveText>
+                <GlowWaveText intensity="strong">What sport do you compete in?</GlowWaveText>
               </h1>
               <p className="onb-micro">This is where your MENTA starts.</p>
               <div className="onb-fields space-y-4">
-                <div>
-                  <label className="field-label" htmlFor="onb-sport">Sport</label>
-                  <Select
-                    id="onb-sport"
-                    value={sport}
-                    onChange={(v) => {
-                      setSport(v);
-                      if (!rolesForSport(v).includes(position)) setPosition("");
-                    }}
-                    placeholder="Select a sport"
-                    options={SPORTS.map((s) => ({ value: s.name, label: s.name }))}
-                  />
-                </div>
-                {sport && (
-                  <div>
-                    <label className="field-label" htmlFor="onb-position">{roleLabel(sport)}</label>
-                    {rolesForSport(sport).length > 0 ? (
+                {sportsList.map((entry, index) => (
+                  <div
+                    key={index}
+                    className="space-y-4"
+                    style={index > 0 ? { marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border-soft)" } : undefined}
+                  >
+                    {index > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-3 text-sm">Another sport</span>
+                        <button
+                          type="button"
+                          className="text-xs text-text-3 hover:text-text-2"
+                          onClick={() => removeSportSlot(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    <div>
+                      <label className="field-label" htmlFor={`onb-sport-${index}`}>Sport</label>
                       <Select
-                        id="onb-position"
-                        value={position}
-                        onChange={setPosition}
-                        placeholder={`Select a ${roleLabel(sport).toLowerCase()}`}
-                        options={rolesForSport(sport).map((p) => ({ value: p, label: p }))}
+                        id={`onb-sport-${index}`}
+                        value={entry.sport}
+                        onChange={(v) =>
+                          updateSportEntry(index, {
+                            sport: v,
+                            position: rolesForSport(v).includes(entry.position) ? entry.position : "",
+                          })
+                        }
+                        placeholder="Select a sport"
+                        options={SPORTS.map((s) => ({ value: s.name, label: s.name }))}
                       />
-                    ) : (
-                      <input
-                        id="onb-position"
-                        className="field-input"
-                        value={position}
-                        onChange={(e) => setPosition(e.target.value)}
-                        placeholder={`Your ${roleLabel(sport).toLowerCase()}`}
-                      />
+                      {entry.sport && sportsList.some((s, i) => i < index && s.sport === entry.sport) && (
+                        <p className="text-sm mt-2" style={{ color: "var(--danger)" }}>
+                          You already added {entry.sport}.
+                        </p>
+                      )}
+                    </div>
+                    {entry.sport && (
+                      <div>
+                        <label className="field-label" htmlFor={`onb-position-${index}`}>{roleLabel(entry.sport)}</label>
+                        {rolesForSport(entry.sport).length > 0 ? (
+                          <Select
+                            id={`onb-position-${index}`}
+                            value={entry.position}
+                            onChange={(v) => updateSportEntry(index, { position: v })}
+                            placeholder={`Select a ${roleLabel(entry.sport).toLowerCase()}`}
+                            options={rolesForSport(entry.sport).map((p) => ({ value: p, label: p }))}
+                          />
+                        ) : (
+                          <input
+                            id={`onb-position-${index}`}
+                            className="field-input"
+                            value={entry.position}
+                            onChange={(e) => updateSportEntry(index, { position: e.target.value })}
+                            placeholder={`Your ${roleLabel(entry.sport).toLowerCase()}`}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
+                ))}
+
+                <button
+                  type="button"
+                  className="text-sm text-text-2 hover:text-text-1"
+                  disabled={!sportsList[sportsList.length - 1]?.sport}
+                  onClick={addSportSlot}
+                >
+                  + Add another sport
+                </button>
+
+                {filledSports.length > 1 && (
+                  <div>
+                    <label className="field-label" htmlFor="onb-primary-sport">Which is your primary sport?</label>
+                    <Select
+                      id="onb-primary-sport"
+                      value={primaryEntry?.sport ?? ""}
+                      onChange={setPrimarySport}
+                      placeholder="Choose your primary sport"
+                      options={filledSports.map((s) => ({
+                        value: s.sport,
+                        label: s.position ? `${s.sport} · ${s.position}` : s.sport,
+                      }))}
+                    />
+                  </div>
                 )}
+
                 <div>
                   <label className="field-label" htmlFor="onb-gradyear">Graduation year</label>
                   <input
@@ -332,8 +413,15 @@ export function OnboardingExperience({ name }: { name: string }) {
               </h1>
               <p className="onb-micro">Here&rsquo;s what we&rsquo;ve got — you can go back and change anything.</p>
               <div className="onb-fields space-y-2">
-                <ReviewRow label="Sport" value={sport || "—"} />
-                <ReviewRow label={sport ? roleLabel(sport) : "Position"} value={position || "—"} />
+                <ReviewRow
+                  label={filledSports.length > 1 ? "Sports" : "Sport"}
+                  value={
+                    filledSports.length
+                      ? filledSports.map((s) => (s.position ? `${s.sport} (${s.position})` : s.sport)).join(", ")
+                      : "—"
+                  }
+                />
+                {filledSports.length > 1 && <ReviewRow label="Primary sport" value={primaryEntry?.sport ?? "—"} />}
                 <ReviewRow label="School" value={schoolName || "—"} />
                 <ReviewRow label="School type" value={schoolType || "—"} />
                 <ReviewRow label="Location" value={[city, state].filter(Boolean).join(", ") || "—"} />
@@ -353,19 +441,26 @@ export function OnboardingExperience({ name }: { name: string }) {
                 <GlowWaveText intensity="strong">Your MENTA is ready.</GlowWaveText>
               </h1>
               <div className="onb-reveal-row"><b>{firstName}</b></div>
-              <div className="onb-reveal-row">{sport}{position ? ` · ${position}` : ""}</div>
+              <div className="onb-reveal-row">
+                {primaryEntry.sport}{primaryEntry.position ? ` · ${primaryEntry.position}` : ""}
+              </div>
+              {filledSports.length > 1 && (
+                <p className="onb-micro" style={{ marginTop: 4 }}>
+                  + {filledSports.length - 1} more sport{filledSports.length - 1 > 1 ? "s" : ""} added
+                </p>
+              )}
               {goals.length > 0 && (
                 <div className="onb-reveal-row" style={{ marginTop: 12 }}>
                   {goals.join(" · ")}
                 </div>
               )}
-              {sport && (
+              {primaryEntry.sport && (
                 <div className="onb-reveal-row" style={{ marginTop: 12 }}>
-                  Priority: {demandsFor(sport, position || undefined).developmentAreas.join(" · ")}
+                  Priority: {demandsFor(primaryEntry.sport, primaryEntry.position || undefined).developmentAreas.join(" · ")}
                 </div>
               )}
               <p className="onb-micro" style={{ marginTop: 16 }}>
-                A starter training plan for {sport} is ready in your Training library.
+                A starter training plan for {primaryEntry.sport} is ready in your Training library.
               </p>
               <div className="onb-actions">
                 <button type="button" className="btn-primary" onClick={enterDashboard} disabled={entering}>

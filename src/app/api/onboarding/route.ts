@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { sport, position, graduationYear, schoolName, schoolType, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
+  const { sport, position, additionalSports, graduationYear, schoolName, schoolType, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
 
   const countryCode = country ? countryCodeForName(country) : undefined;
 
@@ -50,33 +50,72 @@ export async function POST(request: Request) {
     }
   }
 
-  await prisma.athleteProfile.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      sport,
-      position: position || undefined,
-      graduationYear,
-      schoolName,
-      schoolType,
-      city: city || undefined,
-      state: state || undefined,
-      country: country || undefined,
-      trainingDaysPerWeek,
-      onboardingCompletedAt: new Date(),
-    },
-    update: {
-      sport,
-      position: position || undefined,
-      graduationYear,
-      schoolName,
-      schoolType,
-      city: city || undefined,
-      state: state || undefined,
-      country: country || undefined,
-      trainingDaysPerWeek,
-      onboardingCompletedAt: new Date(),
-    },
+  // Dedupe by sport name (primary wins over anything in additionalSports
+  // that repeats it) before writing AthleteSportContext rows — the schema's
+  // @@unique([userId, sport]) would reject a literal duplicate anyway, but
+  // failing the whole save on a client-side slip would be a bad first
+  // impression, so it's silently collapsed here instead.
+  const sportEntries = [
+    { sport, position: position || null, isPrimary: true },
+    ...(additionalSports ?? [])
+      .filter((s) => s.sport !== sport)
+      .map((s) => ({ sport: s.sport, position: s.position || null, isPrimary: false })),
+  ].filter((entry, index, all) => all.findIndex((e) => e.sport === entry.sport) === index);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.athleteProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        sport,
+        position: position || undefined,
+        graduationYear,
+        schoolName,
+        schoolType,
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+        trainingDaysPerWeek,
+        onboardingCompletedAt: new Date(),
+      },
+      update: {
+        sport,
+        position: position || undefined,
+        graduationYear,
+        schoolName,
+        schoolType,
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+        trainingDaysPerWeek,
+        onboardingCompletedAt: new Date(),
+      },
+    });
+
+    // Onboarding only ever runs once per athlete in the normal flow, but
+    // stays idempotent (upsert, and unsetting old primaries first) in case
+    // it's ever resubmitted — never leaves two primaries or a stale one.
+    await tx.athleteSportContext.updateMany({
+      where: { userId: user.id, isPrimary: true },
+      data: { isPrimary: false },
+    });
+    for (const entry of sportEntries) {
+      await tx.athleteSportContext.upsert({
+        where: { userId_sport: { userId: user.id, sport: entry.sport } },
+        create: {
+          userId: user.id,
+          sport: entry.sport,
+          position: entry.position,
+          isPrimary: entry.isPrimary,
+          isActive: true,
+        },
+        update: {
+          position: entry.position,
+          isPrimary: entry.isPrimary,
+          isActive: true,
+        },
+      });
+    }
   });
 
   if (goals && goals.length > 0) {

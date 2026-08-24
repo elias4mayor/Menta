@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { countryCodeForName, statesForCountry } from "@/lib/geo";
 import { SCHOOL_TYPES } from "@/lib/schools";
+import { CARE_REASONS, PROVIDER_TITLES } from "@/lib/care";
 
 /**
  * Cross-field check reused by every onboarding schema that collects
@@ -30,7 +31,7 @@ export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(10, "Use at least 10 characters"),
-  role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER"]).default("ATHLETE"),
+  role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER", "DOCTOR"]).default("ATHLETE"),
   dateOfBirth: z.string().optional(),
 });
 
@@ -61,6 +62,19 @@ export const onboardingSchema = z
   .object({
     sport: z.string().trim().min(1).max(60),
     position: z.string().trim().max(60).optional().or(z.literal("")),
+    /// The athlete's primary sport is always `sport`/`position` above
+    /// (preserves every existing call site's contract). Anything beyond
+    /// that first sport — added via onboarding's "+ Add another sport" —
+    /// lands here and becomes a non-primary, active AthleteSportContext.
+    additionalSports: z
+      .array(
+        z.object({
+          sport: z.string().trim().min(1).max(60),
+          position: z.string().trim().max(60).optional().or(z.literal("")),
+        })
+      )
+      .max(9)
+      .optional(),
     graduationYear: z.coerce.number().int().min(2024).max(2040).optional(),
     schoolName: z.string().trim().min(1, "School name is required").max(160),
     schoolType: z.enum(SCHOOL_TYPES, { message: "Select a school type" }),
@@ -115,6 +129,67 @@ export const parentOnboardingSchema = z
     goals: z.array(z.string().trim().min(1).max(200)).max(15).optional(),
   })
   .superRefine(refineStateMatchesCountry);
+
+export const doctorOnboardingSchema = z
+  .object({
+    phone: z.string().trim().max(30).optional().or(z.literal("")),
+    title: z.enum(PROVIDER_TITLES, { message: "Select a title" }),
+    specialties: z.array(z.string().trim().min(1).max(60)).max(15).optional(),
+    credentials: z.string().trim().max(300).optional().or(z.literal("")),
+    country: z.string().trim().max(60).optional().or(z.literal("")),
+    state: z.string().trim().max(60).optional().or(z.literal("")),
+    city: z.string().trim().max(120).optional().or(z.literal("")),
+  })
+  .superRefine(refineStateMatchesCountry);
+
+export const careRequestCreateSchema = z.object({
+  providerId: z.string().trim().min(1),
+  teamId: z.string().trim().min(1),
+  reason: z.enum(CARE_REASONS),
+  reasonNote: z.string().trim().max(1000).optional().or(z.literal("")),
+  requestedStart: z.string().datetime().or(z.string().min(1)),
+});
+
+export const careRequestUpdateSchema = z.object({
+  action: z.enum(["ACCEPT", "DECLINE", "RESCHEDULE", "SEEN", "FOLLOW_UP", "CLOSE", "CANCEL"]),
+  scheduledStart: z.string().min(1).optional(),
+  scheduledEnd: z.string().min(1).optional(),
+  providerNote: z.string().trim().max(2000).optional().or(z.literal("")),
+  followUpStart: z.string().min(1).optional(),
+});
+
+export const providerAvailabilitySchema = z.object({
+  teamId: z.string().trim().min(1),
+  dayOfWeek: z.coerce.number().int().min(0).max(6),
+  startMinute: z.coerce.number().int().min(0).max(1439),
+  endMinute: z.coerce.number().int().min(1).max(1440),
+  slotMinutes: z.coerce.number().int().min(10).max(240).default(30),
+});
+
+export const sportContextCreateSchema = z.object({
+  sport: z.string().trim().min(1).max(60),
+  position: z.string().trim().max(60).optional().or(z.literal("")),
+  teamId: z.string().trim().min(1).optional().or(z.literal("")),
+  makePrimary: z.boolean().optional(),
+});
+
+/// Either flips this context to primary (isPrimary:true, alone) or edits
+/// position/teamId — a single request does one or the other, never both,
+/// so a client can't smuggle a detail edit onto a primary-switch mid-flight.
+export const sportContextUpdateSchema = z
+  .object({
+    isPrimary: z.literal(true).optional(),
+    position: z.string().trim().max(60).nullable().optional(),
+    teamId: z.string().trim().min(1).nullable().optional(),
+  })
+  .refine(
+    (data) => data.isPrimary !== undefined || data.position !== undefined || data.teamId !== undefined,
+    { message: "No changes provided." }
+  )
+  .refine(
+    (data) => !(data.isPrimary !== undefined && (data.position !== undefined || data.teamId !== undefined)),
+    { message: "Send isPrimary alone, or position/teamId alone — not both." }
+  );
 
 export const profileUpdateSchema = z.object({
   sport: z.string().trim().max(60).optional(),

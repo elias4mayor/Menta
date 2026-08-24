@@ -10,6 +10,7 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 import { Avatar } from "@/components/Avatar";
 import { NavIcon } from "@/components/NavIcons";
 import { AskMenta } from "@/components/AskMenta";
+import { SportSwitcher } from "@/components/SportSwitcher";
 
 type NavItem = { href: string; label: string; icon: string };
 type NavSection = { label: string; items: NavItem[] };
@@ -74,6 +75,7 @@ function navSectionsForRole(role: string): NavSection[] {
         items: [
           { href: "/team", label: "Groups", icon: "team" },
           { href: "/train", label: "Training", icon: "train" },
+          { href: "/care/provider", label: "Care queue", icon: "safety" },
         ],
       },
       {
@@ -82,6 +84,38 @@ function navSectionsForRole(role: string): NavSection[] {
           { href: "/messages", label: "Messages", icon: "messages" },
           { href: "/calendar", label: "Calendar", icon: "calendar" },
         ],
+      },
+      {
+        label: "You",
+        items: [
+          { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/profile", label: "Profile", icon: "profile" },
+          { href: "/settings", label: "Settings", icon: "settings" },
+        ],
+      },
+    ];
+  }
+
+  if (role === "DOCTOR") {
+    return [
+      {
+        label: "Home",
+        items: [
+          { href: "/dashboard", label: "My MENTA", icon: "home" },
+          { href: "/ai-coach", label: "MENTA AI", icon: "spark" },
+        ],
+      },
+      {
+        label: "Care",
+        items: [
+          { href: "/care/provider", label: "Care queue", icon: "safety" },
+          { href: "/team", label: "Teams", icon: "team" },
+          { href: "/calendar", label: "Calendar", icon: "calendar" },
+        ],
+      },
+      {
+        label: "Communication",
+        items: [{ href: "/messages", label: "Messages", icon: "messages" }],
       },
       {
         label: "You",
@@ -107,6 +141,7 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "Athlete",
         items: [
           { href: "/safety", label: "Safety", icon: "safety" },
+          { href: "/care", label: "Care", icon: "safety" },
           { href: "/calendar", label: "Calendar", icon: "calendar" },
         ],
       },
@@ -163,6 +198,7 @@ function navSectionsForRole(role: string): NavSection[] {
       label: "You",
       items: [
         { href: "/documents", label: "Documents", icon: "documents" },
+        { href: "/care", label: "Care", icon: "safety" },
         { href: "/profile", label: "Profile", icon: "profile" },
         { href: "/settings", label: "Settings", icon: "settings" },
       ],
@@ -195,6 +231,15 @@ function mobileItemsForRole(role: string): { href: string; label: string; icon: 
       { href: "/ai-coach", label: "AI", icon: "spark" },
       { href: "/messages", label: "Msgs", icon: "messages" },
       { href: "/calendar", label: "Cal", icon: "calendar" },
+      { href: "/profile", label: "You", icon: "profile" },
+    ];
+  }
+  if (role === "DOCTOR") {
+    return [
+      { href: "/dashboard", label: "Home", icon: "home" },
+      { href: "/care/provider", label: "Care", icon: "safety" },
+      { href: "/team", label: "Teams", icon: "team" },
+      { href: "/messages", label: "Msgs", icon: "messages" },
       { href: "/profile", label: "You", icon: "profile" },
     ];
   }
@@ -340,6 +385,7 @@ export function AppShell({
             />
           </Link>
           <div className="flex items-center gap-4">
+            <SportSwitcher role={user.role} />
             <Link
               href="/notifications"
               className="relative text-text-2 hover:text-text-1 transition-colors active:scale-90"

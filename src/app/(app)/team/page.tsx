@@ -4,6 +4,8 @@ import { TeamActions } from "@/components/TeamActions";
 import { MessageButton } from "@/components/MessageButton";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { EmptyState } from "@/components/EmptyState";
+import { VerifyProviderButton } from "@/components/VerifyProviderButton";
+import { PROVIDER_TEAM_ROLES } from "@/lib/permissions";
 
 export default async function TeamPage() {
   const user = await requireUser();
@@ -49,15 +51,24 @@ export default async function TeamPage() {
                   )}
                   <div className="mono text-text-3 mb-2">Roster ({m.team.memberships.length})</div>
                   <ul className="space-y-1.5 text-sm">
-                    {m.team.memberships.map((tm) => (
-                      <li key={tm.id} className="flex items-center justify-between">
-                        <span>{tm.user.name}</span>
-                        <span className="flex items-center gap-3">
-                          <span className="text-text-3">{tm.teamRole}</span>
-                          {tm.userId !== user.id && <MessageButton userId={tm.userId} />}
-                        </span>
-                      </li>
-                    ))}
+                    {m.team.memberships.map((tm) => {
+                      const isProvider = PROVIDER_TEAM_ROLES.includes(tm.teamRole as "TRAINER" | "DOCTOR");
+                      return (
+                        <li key={tm.id} className="flex items-center justify-between">
+                          <span>{tm.user.name}</span>
+                          <span className="flex items-center gap-3">
+                            <span className="text-text-3">
+                              {tm.teamRole}
+                              {isProvider && !tm.verifiedAt && " · pending"}
+                            </span>
+                            {isCoachOrAdmin && isProvider && !tm.verifiedAt && (
+                              <VerifyProviderButton membershipId={tm.id} />
+                            )}
+                            {tm.userId !== user.id && <MessageButton userId={tm.userId} />}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );

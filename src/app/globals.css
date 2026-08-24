@@ -2548,3 +2548,102 @@ h4 {
     background: var(--bg);
   }
 }
+
+/* Sport Switcher — topbar trigger + popover, ATHLETE-only, shown only when
+   there's more than one active sport. Same cinematic-blur pop as
+   .ask-menta-panel, scaled down for a compact list rather than a chat panel. */
+.sport-switcher-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  max-width: 220px;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.sport-switcher-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sport-switcher-trigger:hover {
+  background: var(--nav-hover-bg);
+}
+
+@media (max-width: 767px) {
+  .sport-switcher-trigger {
+    max-width: 128px;
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+}
+
+.sport-switcher-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 41;
+  width: min(280px, calc(100vw - 48px));
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.28);
+  padding: 8px;
+  transform-origin: top right;
+  animation: sportSwitcherIn 0.22s var(--ease-cinematic) both;
+}
+
+@keyframes sportSwitcherIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sport-switcher-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: calc(var(--r-sm) - 2px);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  text-align: left;
+  transition: background 0.15s var(--ease);
+}
+
+.sport-switcher-option:hover,
+.sport-switcher-option:focus-visible {
+  background: var(--nav-hover-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sport-switcher-panel {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sport-switcher-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg);
+  }
+}

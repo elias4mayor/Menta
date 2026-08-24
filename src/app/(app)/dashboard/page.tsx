@@ -11,6 +11,7 @@ import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { TrainerDashboard } from "@/components/TrainerDashboard";
 import { ParentDashboard } from "@/components/ParentDashboard";
+import { DoctorDashboard } from "@/components/DoctorDashboard";
 import type { SessionUser } from "@/lib/session";
 
 function startOfDay(d: Date) {
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
   if (user.role === "COACH") return <CoachDashboard user={user} />;
   if (user.role === "TRAINER") return <TrainerDashboard user={user} />;
   if (user.role === "PARENT") return <ParentDashboard user={user} />;
+  if (user.role === "DOCTOR") return <DoctorDashboard user={user} />;
 
   return <AthleteDashboard user={user} />;
 }
