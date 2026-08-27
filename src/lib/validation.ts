@@ -271,14 +271,26 @@ export const createPerformanceEntrySchema = z.object({
   note: z.string().trim().max(300).optional(),
 });
 
+export const FILM_VISIBILITY_VALUES = [
+  "PRIVATE",
+  "COACH_STAFF",
+  "POSITION_GROUP",
+  "TEAM",
+  "SELECTED_ATHLETES",
+  "RECRUITING",
+  "PUBLIC",
+] as const;
+
 export const filmMetadataSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(1000).optional(),
   category: z.enum(["GAME", "PRACTICE", "TRAINING", "HIGHLIGHT"]).default("GAME"),
   opponent: z.string().trim().max(120).optional(),
+  opponentId: z.string().optional(),
   season: z.string().trim().max(40).optional(),
-  visibility: z.enum(["PRIVATE", "TEAM", "PUBLIC"]).default("PRIVATE"),
+  visibility: z.enum(FILM_VISIBILITY_VALUES).default("PRIVATE"),
   teamId: z.string().optional(),
+  positionGroupId: z.string().optional(),
   durationSec: z.coerce.number().min(0).optional(),
 });
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { TeamActions } from "@/components/TeamActions";
@@ -5,7 +6,7 @@ import { MessageButton } from "@/components/MessageButton";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { EmptyState } from "@/components/EmptyState";
 import { VerifyProviderButton } from "@/components/VerifyProviderButton";
-import { PROVIDER_TEAM_ROLES } from "@/lib/permissions";
+import { PROVIDER_TEAM_ROLES, hasTeamPermission, isTeamFilmStaff } from "@/lib/permissions";
 
 export default async function TeamPage() {
   const user = await requireUser();
@@ -20,6 +21,25 @@ export default async function TeamPage() {
       },
     },
   });
+
+  const canManageGroupsByTeam = new Map(
+    await Promise.all(
+      memberships.map(async (m) => [m.teamId, await hasTeamPermission(user.id, m.teamId, "MANAGE_POSITION_GROUPS")] as const)
+    )
+  );
+  const canAssignByTeam = new Map(
+    await Promise.all(
+      memberships.map(async (m) => [m.teamId, await hasTeamPermission(user.id, m.teamId, "CREATE_ASSIGNMENT")] as const)
+    )
+  );
+  const isFilmStaffByTeam = new Map(
+    await Promise.all(memberships.map(async (m) => [m.teamId, await isTeamFilmStaff(user.id, m.teamId)] as const))
+  );
+  const canManageNotesByTeam = new Map(
+    await Promise.all(
+      memberships.map(async (m) => [m.teamId, await hasTeamPermission(user.id, m.teamId, "MANAGE_COACH_NOTES")] as const)
+    )
+  );
 
   return (
     <div className="max-w-3xl mx-auto dash-in dash-in-1">
@@ -49,6 +69,28 @@ export default async function TeamPage() {
                       Invite code: <span className="text-text-1">{m.team.inviteCode}</span>
                     </p>
                   )}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+                    {canManageGroupsByTeam.get(m.teamId) && (
+                      <Link href={`/team/${m.team.id}/groups`} className="text-xs text-text-2 hover:text-text-1 underline">
+                        Position groups & permissions →
+                      </Link>
+                    )}
+                    {canAssignByTeam.get(m.teamId) && (
+                      <Link href={`/team/${m.team.id}/assignments`} className="text-xs text-text-2 hover:text-text-1 underline">
+                        Film assignments →
+                      </Link>
+                    )}
+                    {isFilmStaffByTeam.get(m.teamId) && (
+                      <Link href={`/team/${m.team.id}/review-requests`} className="text-xs text-text-2 hover:text-text-1 underline">
+                        Film questions →
+                      </Link>
+                    )}
+                    {isFilmStaffByTeam.get(m.teamId) && (
+                      <Link href={`/team/${m.team.id}/film-intelligence`} className="text-xs text-text-2 hover:text-text-1 underline">
+                        Film intelligence →
+                      </Link>
+                    )}
+                  </div>
                   <div className="mono text-text-3 mb-2">Roster ({m.team.memberships.length})</div>
                   <ul className="space-y-1.5 text-sm">
                     {m.team.memberships.map((tm) => {
@@ -63,6 +105,11 @@ export default async function TeamPage() {
                             </span>
                             {isCoachOrAdmin && isProvider && !tm.verifiedAt && (
                               <VerifyProviderButton membershipId={tm.id} />
+                            )}
+                            {canManageNotesByTeam.get(m.teamId) && tm.teamRole === "ATHLETE" && (
+                              <Link href={`/team/${m.team.id}/athletes/${tm.userId}/notes`} className="text-xs text-text-3 hover:text-text-1 underline">
+                                Notes
+                              </Link>
                             )}
                             {tm.userId !== user.id && <MessageButton userId={tm.userId} />}
                           </span>

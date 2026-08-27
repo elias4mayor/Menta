@@ -91,6 +91,12 @@ model User {
   googleClassroomIntegration GoogleClassroomIntegration?
   careRequestsAsAthlete      CareRequest[]              @relation("CareRequestAthlete")
   careRequestsAsProvider     CareRequest[]              @relation("CareRequestProvider")
+  filmSharedWithMe           FilmSharedWithUser[]       @relation("FilmSharedWithUser")
+  positionGroupMemberships   PositionGroupMembership[]
+  teamPermissionGrants       TeamPermissionGrant[]
+  filmAssignmentTargets      FilmAssignmentTarget[]
+  filmReviewRequestsAsAthlete FilmReviewRequest[]       @relation("FilmReviewRequestAthlete")
+  coachNotesAboutMe          CoachNote[]                @relation("CoachNoteAthlete")
 
   @@index([role])
 }
@@ -400,6 +406,17 @@ model Team {
   providerAvailability ProviderAvailability[]
   careRequests         CareRequest[]
   sportContexts        AthleteSportContext[]
+  positionGroups       PositionGroup[]
+  permissionGrants     TeamPermissionGrant[]
+  filmTagDefinitions   FilmTagDefinition[]
+  filmPlaylists        FilmPlaylist[]
+  filmAssignments      FilmAssignment[]
+  filmAnalysisTemplates FilmAnalysisTemplate[]
+  filmReports          FilmReport[]
+  opponents            Opponent[]
+  scoutReports         ScoutReport[]
+  filmShareGrantsSent     FilmShareGrant[] @relation("FilmShareGrantFrom")
+  filmShareGrantsReceived FilmShareGrant[] @relation("FilmShareGrantTo")
 
   @@index([organizationId])
 }
@@ -768,13 +785,18 @@ model GuardianLink {
 }
 
 /// Category: GAME, PRACTICE, TRAINING, HIGHLIGHT
-/// Visibility: PRIVATE, TEAM, PUBLIC
+/// Visibility: PRIVATE, COACH_STAFF, POSITION_GROUP, TEAM, SELECTED_ATHLETES, RECRUITING, PUBLIC
+/// Status: DRAFT, PUBLISHED, ARCHIVED
 model Film {
   id               String   @id @default(cuid())
   title            String
   description      String?
   category         String   @default("GAME")
   opponent         String?
+  /// Structured link alongside the free-text `opponent` above — added for
+  /// scouting (§17); the free-text field stays for existing/legacy rows
+  /// that never had a real Opponent record to point at.
+  opponentId       String?
   season           String?
   storageKey       String
   originalFilename String
@@ -782,21 +804,55 @@ model Film {
   sizeBytes        Int
   durationSec      Float?
   visibility       String   @default("PRIVATE")
+  status           String   @default("PUBLISHED")
   teamId           String?
+  /// Set only when visibility is POSITION_GROUP.
+  positionGroupId  String?
   uploadedById     String
   /// Nullable — existing film stays ungrouped/legacy rather than being
   /// guessed into a sport. See the identical note on Goal.sportContextId.
   sportContextId   String?
   createdAt        DateTime @default(now())
 
-  team         Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  uploadedBy   User                 @relation("FilmUploader", fields: [uploadedById], references: [id])
-  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
-  clips        Clip[]
+  team          Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?       @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
+  opponentRef   Opponent?            @relation(fields: [opponentId], references: [id], onDelete: SetNull)
+  uploadedBy    User                 @relation("FilmUploader", fields: [uploadedById], references: [id])
+  sportContext  AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  clips         Clip[]
+  sharedWith    FilmSharedWithUser[]
+  comments      FilmComment[]
+  annotations   FilmAnnotation[]
+  tagInstances  FilmTagInstance[]
+  playlistItems FilmPlaylistItem[]
+  reviewRequests FilmReviewRequest[]
+  analysisEntries FilmAnalysisEntry[]
+  shareGrants   FilmShareGrant[]
+  assignments   FilmAssignment[]
+  coachNotes    CoachNote[]
 
   @@index([teamId])
   @@index([uploadedById])
   @@index([sportContextId])
+  @@index([positionGroupId])
+  @@index([opponentId])
+}
+
+/// Explicit per-athlete film share — the SELECTED_ATHLETES visibility tier.
+/// A user in this table can view the film regardless of team/group
+/// membership; nobody else gets in through this table.
+model FilmSharedWithUser {
+  id        String   @id @default(cuid())
+  filmId    String
+  userId    String
+  sharedById String
+  createdAt DateTime @default(now())
+
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  user User @relation("FilmSharedWithUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([filmId, userId])
+  @@index([userId])
 }
 
 model Clip {
@@ -812,6 +868,14 @@ model Clip {
   film           Film            @relation(fields: [filmId], references: [id], onDelete: Cascade)
   createdBy      User            @relation("ClipCreator", fields: [createdById], references: [id])
   highlightItems HighlightItem[]
+  tagInstances   FilmTagInstance[]
+  comments       FilmComment[]
+  annotations    FilmAnnotation[]
+  playlistItems  FilmPlaylistItem[]
+  assignments    FilmAssignment[]
+  reviewRequests FilmReviewRequest[]
+  coachNotes     CoachNote[]
+  analysisEntries FilmAnalysisEntry[]
 
   @@index([filmId])
 }
@@ -839,6 +903,481 @@ model HighlightItem {
 
   @@unique([highlightId, clipId])
   @@index([highlightId])
+}
+
+// =====================================================================
+// Position Groups + granular permissions (MENTA Film Center foundation)
+//
+// TeamMembership.teamRole stays the coarse role (COACH/ATHLETE/etc.) —
+// unchanged, nothing here replaces it. PositionGroup is a coach-defined
+// subdivision of a team ("QB", "3-Point Shooters", "Freshman Development"
+// — free text, never a fixed enum, so every sport and every coach's own
+// naming works identically). TeamPermissionGrant adds fine-grained
+// capabilities (see PERMISSIONS in src/lib/permissions.ts) on top of the
+// coarse role, optionally scoped to one position group — a QB coach's
+// grants are scoped to the QB group; a head coach's are team-wide
+// (positionGroupId null). Effective access is always computed by
+// src/lib/position-groups.ts, never assumed from role name alone.
+// =====================================================================
+
+model PositionGroup {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team        Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  memberships PositionGroupMembership[]
+  films       Film[]
+  playlists   FilmPlaylist[]
+  assignments FilmAssignment[]
+  permissionGrants TeamPermissionGrant[]
+
+  @@index([teamId])
+}
+
+/// groupRole: COACH, ATHLETE, ANALYST — a user's standing within this
+/// specific group; independent of their team-wide teamRole (a TRAINER on
+/// the team could be an ANALYST inside one group, for example).
+model PositionGroupMembership {
+  id              String   @id @default(cuid())
+  positionGroupId String
+  userId          String
+  groupRole       String   @default("ATHLETE")
+  joinedAt        DateTime @default(now())
+
+  positionGroup PositionGroup @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([positionGroupId, userId])
+  @@index([userId])
+}
+
+/// One row = one user holds one named permission (src/lib/permissions.ts's
+/// PERMISSIONS list), either team-wide (positionGroupId null) or scoped to
+/// one group. Deliberately no DB-level unique constraint — SQLite treats
+/// NULL as distinct in unique indexes, which would silently allow
+/// duplicate team-wide grants; src/lib/position-groups.ts's grant/revoke
+/// helpers enforce no-duplicates at the application layer instead (same
+/// pattern already used elsewhere in this schema for nullable-key
+/// uniqueness). grantedById is who granted it, for audit purposes only.
+model TeamPermissionGrant {
+  id              String   @id @default(cuid())
+  teamId          String
+  userId          String
+  positionGroupId String?
+  permission      String
+  grantedById     String
+  createdAt       DateTime @default(now())
+
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup? @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, userId])
+  @@index([positionGroupId])
+}
+
+// =====================================================================
+// MENTA Film Center — tags, comments, annotations, playlists,
+// assignments, review requests, coach notes, analysis templates,
+// reports, scouting, and cross-team video exchange.
+// =====================================================================
+
+/// A coach-defined tag/event button, scoped to a team and (optionally) a
+/// sport — "Blitz", "3PT", "Kill", whatever the sport/coach calls it.
+/// Never a fixed enum; §12's whole point is that this is configurable.
+model FilmTagDefinition {
+  id          String   @id @default(cuid())
+  teamId      String
+  sport       String?
+  label       String
+  category    String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  instances FilmTagInstance[]
+
+  @@index([teamId])
+}
+
+/// One tagged moment on a film's timeline — optionally tied to a specific
+/// clip, athlete, and/or timestamp.
+model FilmTagInstance {
+  id              String   @id @default(cuid())
+  filmId          String
+  clipId          String?
+  tagDefinitionId String
+  timestampSec    Float?
+  athleteId       String?
+  createdById     String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  film          Film              @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip          Clip?             @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  tagDefinition FilmTagDefinition @relation(fields: [tagDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([filmId])
+  @@index([clipId])
+  @@index([tagDefinitionId])
+  @@index([athleteId])
+}
+
+/// Timestamped, optionally-threaded feedback on a film or clip.
+/// visibility: PRIVATE (coach-authored, not shown to the athlete unless
+/// converted — see §22) or SHARED (visible to whoever can view the film).
+model FilmComment {
+  id           String    @id @default(cuid())
+  filmId       String
+  clipId       String?
+  authorId     String
+  timestampSec Float?
+  body         String
+  visibility   String    @default("SHARED")
+  parentId     String?
+  createdAt    DateTime  @default(now())
+  editedAt     DateTime?
+  deletedAt    DateTime?
+
+  film   Film          @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip   Clip?         @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  parent FilmComment?  @relation("FilmCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies FilmComment[] @relation("FilmCommentReplies")
+
+  @@index([filmId])
+  @@index([clipId])
+  @@index([parentId])
+}
+
+/// Telestration/drawing layer. `data` is a JSON-encoded array of shapes
+/// (arrows/circles/lines/freehand paths/text/highlights with color +
+/// coordinates) — kept as one JSON blob per timestamp rather than a
+/// shape-per-row table, since annotations are always read/written as one
+/// complete drawing for a given moment, never queried shape-by-shape.
+model FilmAnnotation {
+  id           String   @id @default(cuid())
+  filmId       String
+  clipId       String?
+  createdById  String
+  timestampSec Float
+  data         String
+  visibility   String   @default("SHARED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  film Film  @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip Clip? @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@index([filmId])
+  @@index([clipId])
+}
+
+/// A general-purpose playlist — team- or position-group-scoped, unlike
+/// the existing per-user Highlight/HighlightItem (untouched above, still
+/// exactly how personal highlight reels work). ownerId is always set
+/// (who created it); teamId/positionGroupId are additionally set when
+/// it's shared at that scope rather than kept personal.
+model FilmPlaylist {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  ownerId         String
+  teamId          String?
+  positionGroupId String?
+  visibility      String   @default("PRIVATE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team          Team?          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup? @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  items         FilmPlaylistItem[]
+  assignments   FilmAssignment[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+  @@index([ownerId])
+}
+
+/// Exactly one of filmId/clipId is set — enforced at the application
+/// layer (src/lib/film-playlists.ts), matching the same nullable-
+/// alternative pattern Document already uses for ownerId/teamId.
+model FilmPlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  filmId     String?
+  clipId     String?
+  order      Int
+  note       String?
+  createdAt  DateTime @default(now())
+
+  playlist FilmPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  film     Film?        @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip     Clip?        @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId])
+}
+
+/// A coach assigns film/a playlist/a clip to a team, a position group, or
+/// specific athletes (via FilmAssignmentTarget) — exactly one of
+/// filmId/playlistId/clipId is set, enforced at the application layer.
+model FilmAssignment {
+  id              String    @id @default(cuid())
+  teamId          String
+  positionGroupId String?
+  assignedById    String
+  title           String
+  instructions    String?
+  filmId          String?
+  playlistId      String?
+  clipId          String?
+  dueAt           DateTime?
+  requiredViewing Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  team          Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?           @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  film          Film?                    @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  playlist      FilmPlaylist?            @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  clip          Clip?                    @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  targets       FilmAssignmentTarget[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+}
+
+/// status: ASSIGNED, WATCHED, REVIEWED, COMPLETED — one row per athlete
+/// per assignment, the "accountability" trail from §7 of the brief.
+model FilmAssignmentTarget {
+  id           String    @id @default(cuid())
+  assignmentId String
+  userId       String
+  status       String    @default("ASSIGNED")
+  comment      String?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  assignment FilmAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, userId])
+  @@index([userId])
+}
+
+/// An athlete-initiated question about a specific film moment (§21).
+/// coachId is who it's directed to (nullable = open to any authorized
+/// position coach). A single response is intentional — this is a direct
+/// question/answer, not a full thread (FilmComment already covers
+/// open-ended threaded discussion).
+model FilmReviewRequest {
+  id             String    @id @default(cuid())
+  filmId         String
+  clipId         String?
+  athleteId      String
+  coachId        String?
+  timestampSec   Float?
+  question       String
+  status         String    @default("OPEN")
+  response       String?
+  respondedById  String?
+  respondedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  film    Film  @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip    Clip? @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  athlete User  @relation("FilmReviewRequestAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([filmId])
+  @@index([athleteId])
+  @@index([coachId])
+}
+
+/// A coach's private, longitudinal notes about an athlete — never shown
+/// to the athlete unless a coach deliberately converts one into a shared
+/// FilmComment (§22). Can stand alone or reference a specific film/clip.
+model CoachNote {
+  id         String   @id @default(cuid())
+  coachId    String
+  athleteId  String
+  teamId     String?
+  filmId     String?
+  clipId     String?
+  body       String
+  visibility String   @default("PRIVATE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  athlete User  @relation("CoachNoteAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  film    Film? @relation(fields: [filmId], references: [id], onDelete: SetNull)
+  clip    Clip? @relation(fields: [clipId], references: [id], onDelete: SetNull)
+
+  @@index([athleteId])
+  @@index([coachId])
+}
+
+/// A coach-authored grading template — "QB Evaluation", "Goalkeeper
+/// Evaluation" — with its own set of categories (§13). Never hardcoded
+/// per sport; a coach builds their own.
+model FilmAnalysisTemplate {
+  id          String   @id @default(cuid())
+  teamId      String
+  sport       String?
+  name        String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  team       Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  categories FilmAnalysisCategory[]
+  entries    FilmAnalysisEntry[]
+
+  @@index([teamId])
+}
+
+model FilmAnalysisCategory {
+  id         String @id @default(cuid())
+  templateId String
+  label      String
+  order      Int
+
+  template FilmAnalysisTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  entries  FilmAnalysisEntry[]
+
+  @@index([templateId])
+}
+
+/// A single graded data point: this athlete, this category, this
+/// film/clip, this score — the raw material FilmReport aggregates.
+/// score is a coach's subjective 1-5 (or similar) rating, always
+/// presented in the UI as "Coach Assessment" (§25), never as an
+/// objective measurement.
+model FilmAnalysisEntry {
+  id          String   @id @default(cuid())
+  templateId  String
+  categoryId  String
+  filmId      String?
+  clipId      String?
+  athleteId   String?
+  score       Float?
+  notes       String?
+  gradedById  String
+  createdAt   DateTime @default(now())
+
+  template FilmAnalysisTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  category FilmAnalysisCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  film     Film?                @relation(fields: [filmId], references: [id], onDelete: SetNull)
+  clip     Clip?                @relation(fields: [clipId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([categoryId])
+  @@index([athleteId])
+  @@index([filmId])
+}
+
+/// reportType: TEAM, ATHLETE, POSITION, GAME, SEASON, OPPONENT.
+/// `summary` is a JSON snapshot computed at generation time from
+/// FilmTagInstance/FilmAnalysisEntry data — a snapshot rather than a
+/// live-recomputed view, so a report reads the same later even as new
+/// film comes in (an explicit "regenerate" creates a new report row).
+model FilmReport {
+  id              String   @id @default(cuid())
+  teamId          String
+  positionGroupId String?
+  title           String
+  reportType      String
+  generatedById   String
+  summary         String?
+  createdAt       DateTime @default(now())
+
+  team    Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sources FilmReportSource[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+}
+
+model FilmReportSource {
+  id       String  @id @default(cuid())
+  reportId String
+  filmId   String?
+  clipId   String?
+
+  report FilmReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+/// A structured opponent record — Film.opponent (free text) stays for
+/// legacy rows; new scouting work links here instead (§17).
+model Opponent {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  sport     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  team    Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  films   Film[]
+  reports ScoutReport[]
+
+  @@index([teamId])
+}
+
+model ScoutReport {
+  id          String   @id @default(cuid())
+  opponentId  String
+  teamId      String
+  title       String
+  tendencies  String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  opponent Opponent          @relation(fields: [opponentId], references: [id], onDelete: Cascade)
+  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tags     ScoutReportTag[]
+
+  @@index([opponentId])
+  @@index([teamId])
+}
+
+/// A coach's own free-text tendency notes — "Runs left on 2nd down" —
+/// never a fixed list, matching §17's requirement.
+model ScoutReportTag {
+  id            String  @id @default(cuid())
+  scoutReportId String
+  label         String
+  notes         String?
+
+  scoutReport ScoutReport @relation(fields: [scoutReportId], references: [id], onDelete: Cascade)
+
+  @@index([scoutReportId])
+}
+
+/// One team explicitly granting another team access to one piece of
+/// film/one playlist (§18) — the receiving team sees only what's granted
+/// here, never the sending team's broader library. revokedAt (soft
+/// revoke, not delete) preserves the audit trail of what was once shared.
+model FilmShareGrant {
+  id           String    @id @default(cuid())
+  filmId       String?
+  playlistId   String?
+  fromTeamId   String
+  toTeamId     String
+  grantedById  String
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  film       Film? @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  fromTeam   Team  @relation("FilmShareGrantFrom", fields: [fromTeamId], references: [id], onDelete: Cascade)
+  toTeam     Team  @relation("FilmShareGrantTo", fields: [toTeamId], references: [id], onDelete: Cascade)
+
+  @@index([fromTeamId])
+  @@index([toTeamId])
+  @@index([filmId])
 }
 
 /// Recruiting — Phase 2. Deliberately does NOT duplicate AthleteProfile

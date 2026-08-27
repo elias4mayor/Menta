@@ -58,6 +58,46 @@ export async function createTestAthlete(tag: string, sport: string, position: st
 }
 
 /**
+ * Creates a real, email-verified user with the given role and a real,
+ * valid session row — same minting approach as createTestAthlete, but
+ * without an AthleteProfile/AthleteSportContext, for tests that need a
+ * coach, a second athlete, or any other role as a plain team member.
+ */
+export async function createTestUser(tag: string, role: string) {
+  const email = `e2e-api-${E2E_RUN_ID}-${tag}-${Math.random().toString(36).slice(2, 8)}@example.test`;
+  const user = await testPrisma.user.create({
+    data: { name: `E2E API ${role}`, email, passwordHash: "x", role, emailVerified: new Date() },
+  });
+
+  const token = crypto.randomBytes(32).toString("hex");
+  await testPrisma.session.create({
+    data: { userId: user.id, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 3600_000) },
+  });
+
+  return { userId: user.id, email, cookie: `menta_session=${token}` };
+}
+
+/**
+ * A real Team row plus a TeamMembership for each given user — the minimum
+ * setup Film Center / position-group tests need instead of going through
+ * the create-team-then-join-by-invite-code UI flow.
+ */
+export async function createTestTeam(
+  createdById: string,
+  members: { userId: string; teamRole: string }[] = []
+) {
+  const team = await testPrisma.team.create({
+    data: {
+      name: `E2E Team ${E2E_RUN_ID}`,
+      inviteCode: `E2E${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      createdById,
+      memberships: { create: members },
+    },
+  });
+  return team;
+}
+
+/**
  * Deletes every e2e-created user, and everything hanging off them. Most
  * child tables cascade on User deletion, but AuditLog.actor and
  * Workout.createdBy intentionally don't (an audit trail and a coach's
