@@ -88,6 +88,7 @@ model User {
   documentRequestsMade       DocumentRequest[]          @relation("DocumentRequester")
   documentRequestsReceived   DocumentRequest[]          @relation("DocumentRequestAthlete")
   providerAvailability       ProviderAvailability[]
+  googleClassroomIntegration GoogleClassroomIntegration?
   careRequestsAsAthlete      CareRequest[]              @relation("CareRequestAthlete")
   careRequestsAsProvider     CareRequest[]              @relation("CareRequestProvider")
 
@@ -648,10 +649,15 @@ model CalendarEvent {
   createdById String
   visibility  String    @default("PRIVATE")
   createdAt   DateTime  @default(now())
+  /// Set only for events created by an integration sync (e.g. "GOOGLE_CLASSROOM"); null for events an athlete/coach created directly in MENTA.
+  source      String?
+  /// Stable id from the source system (e.g. a Google Classroom courseWork id) — lets sync upsert instead of duplicating on every run.
+  externalId  String?
 
   team      Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdBy User  @relation("EventCreator", fields: [createdById], references: [id])
 
+  @@unique([createdById, source, externalId])
   @@index([teamId])
   @@index([createdById])
 }
@@ -1072,6 +1078,97 @@ model AcademicGoal {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Status: CONNECTED, DISCONNECTED, ERROR
+/// One per MENTA user. accessTokenEnc/refreshTokenEnc are AES-256-GCM
+/// ciphertext (see src/lib/crypto.ts) — never the raw Google tokens, never
+/// returned in any API response. On disconnect we clear both and set
+/// status to DISCONNECTED rather than deleting the row, so already-synced
+/// courses/assignments stay attached to something and a reconnect updates
+/// this same row instead of orphaning history.
+model GoogleClassroomIntegration {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  googleUserId     String
+  googleEmail      String
+  accessTokenEnc   String?
+  refreshTokenEnc  String?
+  tokenExpiresAt   DateTime?
+  scope            String?
+  status           String    @default("CONNECTED")
+  connectedAt      DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastSyncedAt     DateTime?
+
+  user    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses GoogleClassroomCourse[]
+
+  @@index([userId])
+}
+
+/// Status mirrors Google Classroom's courseState: ACTIVE, ARCHIVED, PROVISIONED, DECLINED, SUSPENDED.
+model GoogleClassroomCourse {
+  id             String   @id @default(cuid())
+  integrationId  String
+  googleCourseId String
+  name           String
+  section        String?
+  description    String?
+  room           String?
+  courseState    String?
+  alternateLink  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  integration GoogleClassroomIntegration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  assignments GoogleClassroomAssignment[]
+
+  @@unique([integrationId, googleCourseId])
+  @@index([integrationId])
+}
+
+/// state mirrors Google's CourseWork state: PUBLISHED, DRAFT, DELETED.
+/// workType mirrors Google's CourseWorkType: ASSIGNMENT, SHORT_ANSWER_QUESTION, etc.
+model GoogleClassroomAssignment {
+  id                 String    @id @default(cuid())
+  courseId           String
+  googleCourseworkId String
+  title              String
+  description        String?
+  state              String?
+  workType           String?
+  dueDate            DateTime?
+  maxPoints          Float?
+  alternateLink      String?
+  creationTime       DateTime?
+  updateTime         DateTime?
+  syncedAt           DateTime  @default(now())
+
+  course      GoogleClassroomCourse         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions GoogleClassroomSubmission[]
+
+  @@unique([courseId, googleCourseworkId])
+  @@index([courseId])
+  @@index([courseId, dueDate])
+}
+
+/// state mirrors Google's SubmissionState: NEW, CREATED, TURNED_IN, RETURNED, RECLAIMED_BY_STUDENT.
+model GoogleClassroomSubmission {
+  id                 String    @id @default(cuid())
+  assignmentId       String
+  googleSubmissionId String
+  state              String?
+  assignedGrade      Float?
+  draftGrade         Float?
+  late               Boolean   @default(false)
+  updateTime         DateTime?
+  syncedAt           DateTime  @default(now())
+
+  assignment GoogleClassroomAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, googleSubmissionId])
+  @@index([assignmentId])
 }
 
 /// Category: ACADEMIC, GRADUATION, COURSEWORK, ELIGIBILITY_REVIEW, RECRUITING_PAPERWORK, DOCUMENTATION
