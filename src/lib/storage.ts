@@ -42,7 +42,7 @@ export const MAX_AVATAR_UPLOAD_BYTES = (Number(process.env.MAX_AVATAR_UPLOAD_MB)
 
 function resolveKeyPath(key: string): string {
   const resolved = path.resolve(STORAGE_ROOT, key);
-  if (!resolved.startsWith(STORAGE_ROOT)) {
+  if (resolved !== STORAGE_ROOT && !resolved.startsWith(STORAGE_ROOT + path.sep)) {
     throw new Error("Invalid storage key.");
   }
   return resolved;

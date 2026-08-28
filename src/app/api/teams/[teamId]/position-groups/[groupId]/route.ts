@@ -20,7 +20,7 @@ export async function PATCH(
   const { teamId, groupId } = await params;
 
   if (!(await requireGroup(teamId, groupId))) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  if (!(await hasTeamPermission(user.id, teamId, "MANAGE_POSITION_GROUPS"))) {
+  if (!(await hasTeamPermission(user.id, teamId, "MANAGE_POSITION_GROUPS", groupId))) {
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
@@ -44,7 +44,7 @@ export async function DELETE(
   const { teamId, groupId } = await params;
 
   if (!(await requireGroup(teamId, groupId))) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  if (!(await hasTeamPermission(user.id, teamId, "MANAGE_POSITION_GROUPS"))) {
+  if (!(await hasTeamPermission(user.id, teamId, "MANAGE_POSITION_GROUPS", groupId))) {
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 

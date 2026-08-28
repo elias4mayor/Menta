@@ -960,8 +960,8 @@ model PositionGroupMembership {
 /// PERMISSIONS list), either team-wide (positionGroupId null) or scoped to
 /// one group. Deliberately no DB-level unique constraint — SQLite treats
 /// NULL as distinct in unique indexes, which would silently allow
-/// duplicate team-wide grants; src/lib/position-groups.ts's grant/revoke
-/// helpers enforce no-duplicates at the application layer instead (same
+/// duplicate team-wide grants; src/lib/permissions.ts's grantTeamPermission/
+/// revokeTeamPermissionGrant helpers enforce no-duplicates at the application layer instead (same
 /// pattern already used elsewhere in this schema for nullable-key
 /// uniqueness). grantedById is who granted it, for audit purposes only.
 model TeamPermissionGrant {

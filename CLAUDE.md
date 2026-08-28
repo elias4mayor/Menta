@@ -60,6 +60,12 @@ mutation must check there, not just hide a button in the UI). `src/proxy.ts` (Ne
 the real check is always a DB-backed session lookup via `requireUser()` /
 `getSessionUser()` (`src/lib/auth-guards.ts`, `src/lib/session.ts`) inside the
 page/route itself, per Next's own guidance against slow proxy-layer data fetching.
+`src/proxy.ts` has since grown beyond that cheap-redirect description: it now does a
+real DB-backed session lookup (checking `revokedAt`/`expiresAt`) plus email-verification
+and onboarding-completion gating, not just cookie presence — see the file's own comment
+for why (a stale-cookie redirect-loop bug). Page/route-level `requireUser()`/
+`getSessionUser()` checks remain the actual enforcement boundary; don't rely on the
+proxy layer alone.
 
 **Auth is hand-rolled, not a SaaS.** bcrypt password hashing, opaque HMAC'd
 DB-backed session tokens (`Session` table, revocable, not a bare forgeable JWT),

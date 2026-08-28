@@ -40,11 +40,12 @@ export async function POST(request: Request) {
   }
 
   if (!isAiConfigured()) {
+    const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+    const envVar = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
     return NextResponse.json({
       configured: false,
       draft: null,
-      error:
-        "MENTA AI isn't connected yet — an administrator needs to set ANTHROPIC_API_KEY on the server. No draft was generated.",
+      error: `MENTA AI isn't connected yet — an administrator needs to set ${envVar} on the server (AI_PROVIDER is "${provider}"). No draft was generated.`,
     });
   }
 
