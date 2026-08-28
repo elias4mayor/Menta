@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { createSession } from "@/lib/session";
+import { createSession, destroyAllSessions } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import {
   OAUTH_PROVIDERS,
@@ -62,10 +62,40 @@ export async function GET(
   if (!user) {
     const existingByEmail = await prisma.user.findUnique({ where: { email: profile.email } });
     if (existingByEmail) {
+      // The OAuth provider already verified this email address, so linking
+      // it here is as good a verification signal as our own code flow —
+      // don't leave a pre-existing unverified account stuck behind
+      // /verify-email just because it's now also linked to a provider.
+      //
+      // But: signup creates a usable session before email verification, so
+      // an attacker can pre-register the victim's email with a password
+      // they control and simply never verify it — a known "pre-hijacking"
+      // pattern. If this account has a password that was never proven to
+      // belong to anyone (emailVerified was never set), we can't trust it
+      // just because it happens to share this email. This OAuth login is
+      // the first real ownership proof the account has had, so invalidate
+      // that unproven password and kick out any existing sessions rather
+      // than silently handing control of the account to whoever set it.
+      const hadUnverifiedPassword = Boolean(existingByEmail.passwordHash) && !existingByEmail.emailVerified;
+
       user = await prisma.user.update({
         where: { id: existingByEmail.id },
-        data: { [idField]: profile.providerId },
+        data: {
+          [idField]: profile.providerId,
+          emailVerified: existingByEmail.emailVerified ?? new Date(),
+          ...(hadUnverifiedPassword ? { passwordHash: null } : {}),
+        },
       });
+
+      if (hadUnverifiedPassword) {
+        await destroyAllSessions(existingByEmail.id);
+        await logAudit({
+          actorId: user.id,
+          action: "auth.oauth_link_invalidated_unverified_password",
+          targetType: "User",
+          targetId: user.id,
+        });
+      }
     } else {
       user = await prisma.user.create({
         data: {
@@ -73,6 +103,7 @@ export async function GET(
           name: profile.name ?? profile.email.split("@")[0],
           role: "ATHLETE",
           [idField]: profile.providerId,
+          emailVerified: new Date(),
         },
       });
       isNewUser = true;

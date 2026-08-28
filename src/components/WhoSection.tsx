@@ -31,9 +31,14 @@ export function WhoSection() {
   const selected = ROLES.find((r) => r.role === active);
 
   return (
-    <section className="px-6 md:px-10 pt-20 pb-4 text-center">
-      <div className="mono text-text-3 mb-6">Built for every role in an athlete&rsquo;s development</div>
-      <div className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto">
+    <section className="px-6 md:px-10 pt-20 pb-4 text-center border-t border-[var(--border-soft)]">
+      <div className="mono text-text-3 mb-6 reveal reveal-scale">
+        Built for every role in an athlete&rsquo;s development
+      </div>
+      <div
+        className="flex flex-wrap justify-center gap-2.5 max-w-2xl mx-auto reveal reveal-scale"
+        style={{ transitionDelay: "100ms" }}
+      >
         {ROLES.map((r) => (
           <button
             key={r.role}
@@ -41,7 +46,7 @@ export function WhoSection() {
             className="text-sm font-medium rounded-full px-5 py-2.5 border transition-all duration-300"
             style={
               active === r.role
-                ? { background: "var(--grad-signal)", color: "#08080a", borderColor: "transparent", fontWeight: 600 }
+                ? { background: "var(--grad-signal)", color: "var(--on-signal)", borderColor: "transparent", fontWeight: 600 }
                 : { background: "var(--surface)", color: "var(--text-2)", borderColor: "var(--border)" }
             }
           >

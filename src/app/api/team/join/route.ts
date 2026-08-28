@@ -30,7 +30,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You're already on this team." }, { status: 409 });
   }
 
-  const teamRole = user.role === "COACH" ? "COACH" : user.role === "TRAINER" ? "TRAINER" : user.role === "PARENT" ? "PARENT" : "ATHLETE";
+  const teamRole =
+    user.role === "COACH"
+      ? "COACH"
+      : user.role === "TRAINER"
+        ? "TRAINER"
+        : user.role === "DOCTOR"
+          ? "DOCTOR"
+          : user.role === "PARENT"
+            ? "PARENT"
+            : "ATHLETE";
 
   await prisma.$transaction(async (tx) => {
     await tx.teamMembership.create({ data: { userId: user.id, teamId: team.id, teamRole } });

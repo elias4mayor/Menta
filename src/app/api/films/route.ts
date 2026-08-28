@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { filmMetadataSchema } from "@/lib/validation";
 import { ALLOWED_VIDEO_TYPES, MAX_UPLOAD_BYTES, extensionForMimeType, saveFile } from "@/lib/storage";
+import { canUploadFilmToTeam } from "@/lib/permissions";
+import { visibleFilmWhere } from "@/lib/film-visibility";
 import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -13,15 +15,10 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   const films = await prisma.film.findMany({
-    where: {
-      OR: [
-        { uploadedById: user.id },
-        { visibility: "PUBLIC" },
-        { visibility: "TEAM", team: { memberships: { some: { userId: user.id } } } },
-      ],
-    },
+    where: await visibleFilmWhere(user.id),
     include: {
       team: true,
+      positionGroup: { select: { id: true, name: true } },
       uploadedBy: true,
       _count: { select: { clips: true } },
     },
@@ -37,10 +34,12 @@ export async function GET() {
       opponent: f.opponent,
       season: f.season,
       visibility: f.visibility,
+      status: f.status,
       mimeType: f.mimeType,
       sizeBytes: f.sizeBytes,
       durationSec: f.durationSec,
       teamName: f.team?.name ?? null,
+      positionGroupName: f.positionGroup?.name ?? null,
       uploadedByName: f.uploadedBy.name,
       isMine: f.uploadedById === user.id,
       clipCount: f._count.clips,
@@ -78,9 +77,11 @@ export async function POST(request: Request) {
     description: form.get("description") || undefined,
     category: form.get("category") || undefined,
     opponent: form.get("opponent") || undefined,
+    opponentId: form.get("opponentId") || undefined,
     season: form.get("season") || undefined,
     visibility: form.get("visibility") || undefined,
     teamId: form.get("teamId") || undefined,
+    positionGroupId: form.get("positionGroupId") || undefined,
     durationSec: form.get("durationSec") || undefined,
   });
   if (!parsed.success) {
@@ -99,6 +100,30 @@ export async function POST(request: Request) {
     }
   }
 
+  if (parsed.data.positionGroupId) {
+    if (!parsed.data.teamId) {
+      return NextResponse.json({ error: "A position group requires a team." }, { status: 400 });
+    }
+    const group = await prisma.positionGroup.findUnique({ where: { id: parsed.data.positionGroupId } });
+    if (!group || group.teamId !== parsed.data.teamId) {
+      return NextResponse.json({ error: "Invalid position group." }, { status: 400 });
+    }
+  }
+  if (parsed.data.visibility === "POSITION_GROUP" && !parsed.data.positionGroupId) {
+    return NextResponse.json({ error: "Choose a position group for this visibility." }, { status: 400 });
+  }
+
+  if (!(await canUploadFilmToTeam(user.id, parsed.data.teamId ?? null, parsed.data.positionGroupId ?? null))) {
+    return NextResponse.json({ error: "Not authorized to upload film for that team." }, { status: 403 });
+  }
+
+  if (parsed.data.opponentId) {
+    const opponent = await prisma.opponent.findUnique({ where: { id: parsed.data.opponentId } });
+    if (!opponent || opponent.teamId !== parsed.data.teamId) {
+      return NextResponse.json({ error: "Invalid opponent." }, { status: 400 });
+    }
+  }
+
   const key = `films/${crypto.randomUUID()}.${extensionForMimeType(file.type)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   await saveFile(key, buffer);
@@ -109,9 +134,11 @@ export async function POST(request: Request) {
       description: parsed.data.description,
       category: parsed.data.category,
       opponent: parsed.data.opponent,
+      opponentId: parsed.data.opponentId,
       season: parsed.data.season,
       visibility: parsed.data.visibility,
       teamId: parsed.data.teamId,
+      positionGroupId: parsed.data.positionGroupId,
       durationSec: parsed.data.durationSec,
       storageKey: key,
       originalFilename: file.name,

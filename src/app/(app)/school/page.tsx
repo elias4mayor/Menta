@@ -2,18 +2,22 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
+import { isGoogleClassroomConfigured } from "@/lib/integrations/google-classroom";
 import { AcademicGoals } from "@/components/AcademicGoals";
 import { AssignmentTracker } from "@/components/AssignmentTracker";
 import { AcademicTerms } from "@/components/AcademicTerms";
 import { EligibilityChecklist } from "@/components/EligibilityChecklist";
+import { GlowWaveText } from "@/components/GlowWaveText";
 import { StudyHelpChat } from "@/components/StudyHelpChat";
+import { GoogleClassroomCard } from "@/components/GoogleClassroomCard";
+import { GoogleClassroomCourses, type ClassroomAssignmentItem } from "@/components/GoogleClassroomCourses";
 
 const STUDY_HELP_TOPIC = "ACADEMICS";
 
 export default async function SchoolPage() {
   const user = await requireUser();
 
-  const [profile, assignments, academicGoals, academicTerms, eligibilityItems, studyHelpConversation] =
+  const [profile, assignments, academicGoals, academicTerms, eligibilityItems, studyHelpConversation, classroomIntegration] =
     await Promise.all([
       prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
       prisma.assignment.findMany({ where: { userId: user.id }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }] }),
@@ -25,7 +29,47 @@ export default async function SchoolPage() {
         orderBy: { createdAt: "desc" },
         include: { messages: { orderBy: { createdAt: "asc" } } },
       }),
+      prisma.googleClassroomIntegration.findUnique({
+        where: { userId: user.id },
+        include: {
+          courses: {
+            include: { assignments: { include: { submissions: true } } },
+          },
+        },
+      }),
     ]);
+
+  const classroomConnected = classroomIntegration?.status === "CONNECTED";
+  const classroomCourses = (classroomIntegration?.courses ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    section: c.section,
+    alternateLink: c.alternateLink,
+  }));
+  const classroomAssignments: ClassroomAssignmentItem[] = (classroomIntegration?.courses ?? [])
+    .flatMap((c) =>
+      c.assignments
+        .filter((a) => a.state === "PUBLISHED")
+        .map((a) => {
+          const latestSubmission = a.submissions[0] ?? null;
+          return {
+            id: a.id,
+            title: a.title,
+            dueDate: a.dueDate ? a.dueDate.toISOString() : null,
+            maxPoints: a.maxPoints,
+            alternateLink: a.alternateLink,
+            courseName: c.name,
+            grade: latestSubmission?.assignedGrade ?? null,
+            submissionState: latestSubmission?.state ?? null,
+          };
+        })
+    )
+    .sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    })
+    .slice(0, 10);
 
   const now = new Date();
   const upcomingCount = assignments.filter((a) => a.status !== "COMPLETED").length;
@@ -34,15 +78,29 @@ export default async function SchoolPage() {
   ).length;
   const completedCount = assignments.filter((a) => a.status === "COMPLETED").length;
 
+  const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
+
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-5xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Academics</div>
-      <h1 className="text-3xl font-semibold mb-2">Academics</h1>
+      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Academics</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-8 max-w-2xl">
         Academic information is currently entered manually. This is your own tracking, not an official
         school record — see the Eligibility section for how that distinction matters for eligibility
         decisions.
       </p>
+
+      <GoogleClassroomCard
+        configured={isGoogleClassroomConfigured()}
+        connected={classroomConnected}
+        googleEmail={classroomIntegration?.googleEmail ?? null}
+        lastSyncedAt={classroomIntegration?.lastSyncedAt ? classroomIntegration.lastSyncedAt.toISOString() : null}
+      />
+
+      {classroomConnected && (
+        <GoogleClassroomCourses courses={classroomCourses} assignments={classroomAssignments} />
+      )}
 
       {/* ACADEMIC OVERVIEW */}
       <section className="card p-5 sm:p-6 mb-8">
@@ -129,6 +187,7 @@ export default async function SchoolPage() {
         </div>
         <StudyHelpChat
           configured={isAiConfigured()}
+          envVar={aiEnvVar}
           initialConversationId={studyHelpConversation?.id ?? null}
           initialMessages={(studyHelpConversation?.messages ?? []).map((m) => ({
             id: m.id,

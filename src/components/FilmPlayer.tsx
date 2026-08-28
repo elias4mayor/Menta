@@ -22,9 +22,11 @@ function formatTime(sec: number): string {
 export function FilmPlayer({
   film,
   initialClips,
+  onVideoRef,
 }: {
   film: { id: string; title: string; description: string | null; durationSec: number | null; isMine: boolean };
   initialClips: Clip[];
+  onVideoRef?: (el: HTMLVideoElement | null) => void;
 }) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -150,7 +152,10 @@ export function FilmPlayer({
     <div>
       <div className="card overflow-hidden mb-4">
         <video
-          ref={videoRef}
+          ref={(el) => {
+            videoRef.current = el;
+            onVideoRef?.(el);
+          }}
           src={`/api/films/${film.id}/video`}
           controls
           className="w-full bg-black"

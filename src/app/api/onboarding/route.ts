@@ -3,10 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { onboardingSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { buildStarterWorkouts, ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
+import { countryCodeForName, stateCodeForName } from "@/lib/geo";
+import { isCityCountryMismatch } from "@/lib/geo-server";
+import { isSchoolStateMismatch } from "@/lib/schools-server";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  if (user.role !== "ATHLETE") {
+    return NextResponse.json(
+      { error: "This onboarding endpoint is for athlete accounts. See /api/onboarding/coach, /trainer, or /parent." },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = onboardingSchema.safeParse(body);
@@ -17,34 +27,122 @@ export async function POST(request: Request) {
     );
   }
 
-  const { sport, position, graduationYear, schoolName, city, state, goals } = parsed.data;
+  const { sport, position, additionalSports, graduationYear, schoolName, schoolType, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
 
-  await prisma.athleteProfile.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      sport,
-      position: position || undefined,
-      graduationYear,
-      schoolName: schoolName || undefined,
-      city: city || undefined,
-      state: state || undefined,
-      onboardingCompletedAt: new Date(),
-    },
-    update: {
-      sport,
-      position: position || undefined,
-      graduationYear,
-      schoolName: schoolName || undefined,
-      city: city || undefined,
-      state: state || undefined,
-      onboardingCompletedAt: new Date(),
-    },
+  const countryCode = country ? countryCodeForName(country) : undefined;
+
+  if (city && country) {
+    if (countryCode && (await isCityCountryMismatch(countryCode, city))) {
+      return NextResponse.json(
+        { error: "That city doesn't match the selected country." },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (schoolName) {
+    const schoolStateCode = countryCode === "US" && state ? stateCodeForName("US", state) : undefined;
+    if (isSchoolStateMismatch(schoolStateCode, schoolName)) {
+      return NextResponse.json(
+        { error: "That school doesn't match the selected state." },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Dedupe by sport name (primary wins over anything in additionalSports
+  // that repeats it) before writing AthleteSportContext rows — the schema's
+  // @@unique([userId, sport]) would reject a literal duplicate anyway, but
+  // failing the whole save on a client-side slip would be a bad first
+  // impression, so it's silently collapsed here instead.
+  const sportEntries = [
+    { sport, position: position || null, isPrimary: true },
+    ...(additionalSports ?? [])
+      .filter((s) => s.sport !== sport)
+      .map((s) => ({ sport: s.sport, position: s.position || null, isPrimary: false })),
+  ].filter((entry, index, all) => all.findIndex((e) => e.sport === entry.sport) === index);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.athleteProfile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        sport,
+        position: position || undefined,
+        graduationYear,
+        schoolName,
+        schoolType,
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+        trainingDaysPerWeek,
+        onboardingCompletedAt: new Date(),
+      },
+      update: {
+        sport,
+        position: position || undefined,
+        graduationYear,
+        schoolName,
+        schoolType,
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+        trainingDaysPerWeek,
+        onboardingCompletedAt: new Date(),
+      },
+    });
+
+    // Onboarding only ever runs once per athlete in the normal flow, but
+    // stays idempotent (upsert, and unsetting old primaries first) in case
+    // it's ever resubmitted — never leaves two primaries or a stale one.
+    await tx.athleteSportContext.updateMany({
+      where: { userId: user.id, isPrimary: true },
+      data: { isPrimary: false },
+    });
+    for (const entry of sportEntries) {
+      await tx.athleteSportContext.upsert({
+        where: { userId_sport: { userId: user.id, sport: entry.sport } },
+        create: {
+          userId: user.id,
+          sport: entry.sport,
+          position: entry.position,
+          isPrimary: entry.isPrimary,
+          isActive: true,
+        },
+        update: {
+          position: entry.position,
+          isPrimary: entry.isPrimary,
+          isActive: true,
+        },
+      });
+    }
   });
 
   if (goals && goals.length > 0) {
     await prisma.goal.createMany({
       data: goals.map((title) => ({ userId: user.id, title, category: "ONBOARDING" })),
+    });
+  }
+
+  // Real starter plan: deterministic workouts derived from the athlete's
+  // actual sport/position via src/lib/sports.ts's demand config — see
+  // src/lib/generate-plan.ts. Only generated once; re-running onboarding
+  // (e.g. editing answers before finishing) shouldn't pile up duplicates.
+  const alreadyHasPlan = await prisma.workout.findFirst({
+    where: { createdById: user.id, planTag: ONBOARDING_PLAN_TAG },
+    select: { id: true },
+  });
+  if (!alreadyHasPlan) {
+    const starterWorkouts = buildStarterWorkouts(sport, position || undefined);
+    await prisma.workout.createMany({
+      data: starterWorkouts.map((w) => ({
+        title: w.title,
+        category: w.category,
+        description: w.description,
+        exercises: JSON.stringify(w.exercises),
+        planTag: ONBOARDING_PLAN_TAG,
+        createdById: user.id,
+      })),
     });
   }
 

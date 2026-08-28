@@ -30,12 +30,24 @@ model User {
   // so at most one account can be linked to a given provider identity.
   googleId      String?   @unique
   facebookId    String?   @unique
+  /// Set together — a real uploaded profile photo via the local/object
+  /// storage abstraction (src/lib/storage.ts). Null means "no photo",
+  /// not "unknown" — the UI falls back to a computed initials avatar,
+  /// never a stock photo.
+  avatarKey     String?
+  avatarMime    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   athleteProfile             AthleteProfile?
+  athleteSportContexts       AthleteSportContext[]
+  coachProfile               CoachProfile?
+  trainerProfile             TrainerProfile?
+  parentProfile              ParentProfile?
+  doctorProfile              DoctorProfile?
   sessions                   Session[]
   resetTokens                PasswordResetToken[]
+  emailVerificationCodes     EmailVerificationCode[]
   memberships                TeamMembership[]
   messages                   Message[]
   conversations              ConversationParticipant[]
@@ -51,6 +63,7 @@ model User {
   blocksMade                 Block[]                    @relation("Blocker")
   blocksReceived             Block[]                    @relation("Blocked")
   createdWorkouts            Workout[]                  @relation("WorkoutCreator")
+  assignedWorkouts           Workout[]                  @relation("WorkoutAssignee")
   workoutCompletions         WorkoutCompletion[]
   performanceEntries         PerformanceEntry[]
   uploadedFilms              Film[]                     @relation("FilmUploader")
@@ -60,6 +73,7 @@ model User {
   recruitingContacts         RecruitingContact[]
   recruitingActivities       RecruitingActivity[]
   wellnessCheckIns           WellnessCheckIn[]
+  mindCheckIns               MindCheckIn[]
   academicGoals              AcademicGoal[]
   assignments                Assignment[]
   academicTerms              AcademicTerm[]
@@ -69,6 +83,20 @@ model User {
   safetyChecklistItems       SafetyChecklistItem[]
   createdTeamSafetyProtocols TeamSafetyProtocol[]       @relation("TeamSafetyProtocolCreator")
   createdTeamSafetyChecklist TeamSafetyChecklistItem[]  @relation("TeamSafetyChecklistCreator")
+  ownedDocuments             Document[]                 @relation("DocumentOwner")
+  uploadedDocuments          Document[]                 @relation("DocumentUploader")
+  documentRequestsMade       DocumentRequest[]          @relation("DocumentRequester")
+  documentRequestsReceived   DocumentRequest[]          @relation("DocumentRequestAthlete")
+  providerAvailability       ProviderAvailability[]
+  googleClassroomIntegration GoogleClassroomIntegration?
+  careRequestsAsAthlete      CareRequest[]              @relation("CareRequestAthlete")
+  careRequestsAsProvider     CareRequest[]              @relation("CareRequestProvider")
+  filmSharedWithMe           FilmSharedWithUser[]       @relation("FilmSharedWithUser")
+  positionGroupMemberships   PositionGroupMembership[]
+  teamPermissionGrants       TeamPermissionGrant[]
+  filmAssignmentTargets      FilmAssignmentTarget[]
+  filmReviewRequestsAsAthlete FilmReviewRequest[]       @relation("FilmReviewRequestAthlete")
+  coachNotesAboutMe          CoachNote[]                @relation("CoachNoteAthlete")
 
   @@index([role])
 }
@@ -100,21 +128,246 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+/// Real cities (152,307, from the same dr5hn/countries-states-cities-database
+/// dataset states.json came from — ODbL v1.0, attribution required),
+/// server-side only: never queried from the client, always through
+/// /api/geo/cities. Seeded from src/lib/data/cities-seed.json via
+/// prisma/seed-cities.mjs — that JSON file is the committed source of
+/// truth; this table is the queryable, indexed copy of it.
+model City {
+  id          String  @id @default(cuid())
+  name        String
+  countryCode String
+  stateCode   String?
+
+  @@index([countryCode, stateCode, name])
+  @@index([countryCode, name])
+}
+
+/// A 6-digit signup email-verification code. Same shape as
+/// PasswordResetToken (hashed at rest, expiring, single-use) plus an
+/// attempts counter so a stolen/guessed code can be rate-limited by count,
+/// not just by time — a 6-digit space is small enough that pure time-based
+/// rate limiting alone isn't sufficient.
+model EmailVerificationCode {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 /// Visibility: PRIVATE, TEAM, ORGANIZATION, RECRUITING, PUBLIC
 model AthleteProfile {
   id                    String    @id @default(cuid())
   userId                String    @unique
+  /// DEPRECATED COMPATIBILITY MIRROR — as of MENTA's multi-sport
+  /// foundation, AthleteSportContext (the row where isPrimary=true and
+  /// isActive=true for this user) is the real source of truth for an
+  /// athlete's sport/position. This field is kept in sync with that row's
+  /// `sport` inside the same transaction, purely so the read sites that
+  /// predate multi-sport (dashboard "Now" card, /train's WorkoutGenerator
+  /// default, /recruit's summary line, /mind's competition label,
+  /// ParentDashboard's snapshot, buildAthleteContext() for MENTA AI, and
+  /// this profile's own edit form) keep working unchanged. Do not build
+  /// new functionality that reads or writes this field directly — read
+  /// AthleteSportContext instead. See src/lib/sport-context.ts.
   sport                 String?
+  /// DEPRECATED COMPATIBILITY MIRROR — see `sport` above. Mirrors the
+  /// primary AthleteSportContext's `position`.
   position              String?
   graduationYear        Int?
   heightCm              Int?
   weightKg              Int?
   schoolName            String?
+  /// High School, Community College, Junior College (JUCO), 4-Year
+  /// University, Trade/Vocational School, or Other — always the athlete's
+  /// own explicit choice (src/lib/schools.ts's SCHOOL_TYPES), never
+  /// inferred from schoolName, since the real school datasets behind
+  /// search can't reliably distinguish those categories.
+  schoolType            String?
   city                  String?
   state                 String?
+  /// Free-text; the onboarding UI defaults it to "United States" via
+  /// CountrySelect but doesn't require it, so older rows without a value
+  /// aren't treated as broken.
+  country               String?
   bio                   String?
   gpa                   Float?
+  /// Real answer from onboarding ("how many days can you train"), not a
+  /// generated/assumed value — used as-is by the plan generator and
+  /// shown on the dashboard exactly as the athlete entered it.
+  trainingDaysPerWeek   Int?
   visibility            String    @default("PRIVATE")
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// The long-term source of truth for an athlete's sport(s) — see the
+/// deprecation notice on AthleteProfile.sport/.position above. An athlete
+/// can have more than one context (multi-sport); exactly one is isPrimary
+/// among the isActive rows. Contexts are never hard-deleted — deactivating
+/// (isActive=false) preserves the row and every historical Workout/
+/// PerformanceEntry/Goal/RecruitingSchool/Film relationship pointing at it.
+/// Re-adding a previously deactivated sport reactivates the same row via
+/// the @@unique([userId, sport]) key instead of creating a duplicate.
+model AthleteSportContext {
+  id        String   @id @default(cuid())
+  userId    String
+  sport     String
+  position  String?
+  teamId    String?
+  isPrimary Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  workouts           Workout[]
+  performanceEntries PerformanceEntry[]
+  goals              Goal[]
+  recruitingSchools  RecruitingSchool[]
+  films              Film[]
+
+  @@unique([userId, sport])
+  @@index([userId])
+}
+
+/// A User with role=COACH gets this instead of AthleteProfile. Team/
+/// Organization creation-or-join at onboarding reuses the existing Team,
+/// TeamMembership (teamRole="COACH"), and Organization models — this
+/// table holds only the coach's own identity/goal fields, not a second
+/// team system.
+model CoachProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  sport                 String?
+  /// Head Coach, Assistant Coach, Strength Coach, Position Coach, Other
+  coachingRole          String?
+  yearsCoaching         Int?
+  organizationName      String?
+  schoolName            String?
+  /// High School, Community College, Junior College (JUCO), 4-Year
+  /// University, Trade/Vocational School, or Other — see the identical
+  /// field on AthleteProfile for why this is always an explicit choice.
+  schoolType            String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else (src/lib/data/countries.json).
+  country               String?
+  /// Real state/province name for `country`, from the same global
+  /// dataset StateSelect uses (src/lib/data/states.json).
+  state                 String?
+  /// Real city name, searched server-side against the City table
+  /// (src/lib/data/cities-seed.json) via /api/geo/cities — free-typed
+  /// values are still accepted, so this isn't constrained to an exact
+  /// match the way country/state are.
+  city                  String?
+  /// JSON-stringified array of the coach's selected onboarding goals —
+  /// full sentences from src/lib/goals.ts's COACH list (e.g. "I want to
+  /// improve my team's overall performance."), same freeform string-array
+  /// pattern as Workout.exercises. Column predates this: it originally
+  /// held single-word focus areas from an earlier onboarding version:
+  /// the shape didn't change, only what onboarding now writes into it.
+  focusAreas            String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A User with role=TRAINER gets this instead of AthleteProfile.
+model TrainerProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  businessName          String?
+  sport                 String?
+  /// JSON-stringified array (Strength, Speed, Agility, Mobility, ...).
+  specialties           String?
+  trainingLocation      String?
+  yearsExperience       Int?
+  certifications        String?
+  trainingPhilosophy    String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else.
+  country               String?
+  /// Real state/province name for `country` (src/lib/data/states.json).
+  state                 String?
+  /// Real city name (see the same field's doc-comment on CoachProfile).
+  city                  String?
+  /// JSON-stringified array of selected onboarding goals — full sentences
+  /// from src/lib/goals.ts's TRAINER list.
+  goals                 String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A User with role=DOCTOR gets this instead of AthleteProfile. Covers any
+/// authorized medical provider type MENTA Care can route an athlete to
+/// besides an Athletic Trainer (that's role=TRAINER already) — Team Doctor,
+/// Physical Therapist, or a general Sports Medicine provider, distinguished
+/// by `title`, not by separate account roles.
+model DoctorProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  /// Team Doctor, Physical Therapist, Sports Medicine Provider, Other
+  title                 String?
+  /// JSON-stringified array (Orthopedics, Concussion management,
+  /// Return-to-play, Rehabilitation, General sports medicine, ...).
+  specialties           String?
+  /// Free text — license/board certification, shown to athletes/coaches as
+  /// a self-reported credential, not independently verified by MENTA.
+  credentials           String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else.
+  country               String?
+  /// Real state/province name for `country` (src/lib/data/states.json).
+  state                 String?
+  /// Real city name (see the same field's doc-comment on CoachProfile).
+  city                  String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// A User with role=PARENT gets this instead of AthleteProfile. Athlete
+/// connections themselves reuse GuardianLink (see src/app/api/guardian) —
+/// this table is only the parent's own identity fields.
+model ParentProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  phone                 String?
+  /// Parent, Guardian, Other
+  relationship          String?
+  /// Real ISO-3166-1 country name, from the same global country list
+  /// CountrySelect uses everywhere else.
+  country               String?
+  /// Real state/province name for `country` (src/lib/data/states.json).
+  state                 String?
+  /// Real city name (see the same field's doc-comment on CoachProfile).
+  city                  String?
+  /// JSON-stringified array of selected onboarding goals — full sentences
+  /// from src/lib/goals.ts's PARENT list.
+  goals                 String?
   onboardingCompletedAt DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -149,17 +402,39 @@ model Team {
   films                Film[]
   safetyProtocols      TeamSafetyProtocol[]
   safetyChecklistItems TeamSafetyChecklistItem[]
+  documents            Document[]
+  providerAvailability ProviderAvailability[]
+  careRequests         CareRequest[]
+  sportContexts        AthleteSportContext[]
+  positionGroups       PositionGroup[]
+  permissionGrants     TeamPermissionGrant[]
+  filmTagDefinitions   FilmTagDefinition[]
+  filmPlaylists        FilmPlaylist[]
+  filmAssignments      FilmAssignment[]
+  filmAnalysisTemplates FilmAnalysisTemplate[]
+  filmReports          FilmReport[]
+  opponents            Opponent[]
+  scoutReports         ScoutReport[]
+  filmShareGrantsSent     FilmShareGrant[] @relation("FilmShareGrantFrom")
+  filmShareGrantsReceived FilmShareGrant[] @relation("FilmShareGrantTo")
 
   @@index([organizationId])
 }
 
-/// TeamRole: COACH, ATHLETE, TRAINER, PARENT, ADMIN
+/// TeamRole: COACH, ATHLETE, TRAINER, DOCTOR, PARENT, ADMIN
 model TeamMembership {
-  id       String   @id @default(cuid())
-  userId   String
-  teamId   String
-  teamRole String   @default("ATHLETE")
-  joinedAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  teamId     String
+  teamRole   String    @default("ATHLETE")
+  joinedAt   DateTime  @default(now())
+  /// Set by a coach/admin of this team once they've confirmed a
+  /// TRAINER/DOCTOR member is who they say they are — MENTA Care only
+  /// lists a provider to athletes once this is set. There's no
+  /// organization-level admin-approval queue yet (ATHLETIC_DIRECTOR has no
+  /// dashboard at all currently), so this narrower, real gate — the team's
+  /// own coach/admin vouches for them — is what actually ships this pass.
+  verifiedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -168,44 +443,135 @@ model TeamMembership {
   @@index([teamId])
 }
 
+/// Recurring weekly availability windows a TRAINER/DOCTOR sets for one
+/// team — expanded into concrete bookable slots by the /api/care API
+/// against existing CareRequest.scheduledStart/End, not stored per-slot.
+/// Start/end are plain local-clock minutes-from-midnight, same
+/// no-timezone-model simplification the rest of the app's DateTime fields
+/// already use (see CalendarEvent) — a real per-user timezone field would
+/// be a separate, larger change.
+model ProviderAvailability {
+  id          String   @id @default(cuid())
+  providerId  String
+  teamId      String
+  /// 0 = Sunday .. 6 = Saturday
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+  slotMinutes Int      @default(30)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  provider User @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  team     Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([teamId])
+}
+
+/// The whole MENTA Care lifecycle as one record, moving through `status`
+/// rather than separate request/appointment tables — CARE REQUESTED ->
+/// SCHEDULED -> SEEN -> FOLLOW_UP -> CLOSED, with DECLINED/CANCELLED as
+/// terminal off-ramps. `reasonNote` and `providerNote` are the private
+/// medical content: never sent to a coach- or parent-facing query, which
+/// select status/scheduledStart only (see src/lib/permissions.ts's Care
+/// helpers and the /api/care routes).
+/// Reason: INJURY, PAIN, RECOVERY, RETURN_TO_PLAY, TREATMENT, GENERAL, OTHER
+/// Status: REQUESTED, SCHEDULED, DECLINED, SEEN, FOLLOW_UP, CANCELLED, CLOSED
+model CareRequest {
+  id             String    @id @default(cuid())
+  athleteId      String
+  providerId     String
+  teamId         String
+  reason         String
+  reasonNote     String?
+  status         String    @default("REQUESTED")
+  requestedStart DateTime
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  providerNote   String?
+  followUpOfId   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  athlete    User          @relation("CareRequestAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  provider   User          @relation("CareRequestProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  team       Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  followUpOf CareRequest?  @relation("CareFollowUps", fields: [followUpOfId], references: [id])
+  followUps  CareRequest[] @relation("CareFollowUps")
+
+  @@index([athleteId])
+  @@index([providerId])
+  @@index([teamId])
+  @@index([status])
+}
+
 /// Status: ACTIVE, ACHIEVED, ABANDONED
 model Goal {
-  id         String    @id @default(cuid())
-  userId     String
-  title      String
-  category   String?
-  actionPlan String?
-  progress   Int       @default(0)
-  targetDate DateTime?
-  status     String    @default("ACTIVE")
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  category       String?
+  actionPlan     String?
+  progress       Int       @default(0)
+  targetDate     DateTime?
+  status         String    @default("ACTIVE")
+  /// Nullable — existing goals stay ungrouped/legacy rather than being
+  /// guessed into a sport. Only new goals created after multi-sport ships
+  /// (and explicitly attributed to the athlete's active sport) get one.
+  sportContextId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([sportContextId])
 }
 
 /// Category: STRENGTH, SPEED, AGILITY, CONDITIONING, MOBILITY, SKILL, RECOVERY
 model Workout {
-  id          String   @id @default(cuid())
-  title       String
-  category    String
-  description String?
+  id             String   @id @default(cuid())
+  title          String
+  category       String
+  description    String?
   /// JSON-stringified array of { name, sets?, reps?, notes? } — kept as a
   /// single field rather than a full Exercise table until a real workout
   /// builder needs to query into individual exercises.
-  exercises   String?
-  teamId      String?
-  createdById String
-  createdAt   DateTime @default(now())
+  exercises      String?
+  /// Set only for workouts generated by the onboarding plan generator
+  /// (see src/lib/generate-plan.ts), so the dashboard can show "your plan"
+  /// distinctly from workouts the athlete or a coach adds later — never
+  /// used to hide or restrict a workout, purely a display grouping.
+  planTag        String?
+  teamId         String?
+  createdById    String
+  /// A coach/trainer assigning a workout to one specific roster member
+  /// rather than the whole team — independent of teamId (both can be set
+  /// together, e.g. "this team's workout, but specifically for #12").
+  assignedToId   String?
+  /// A reusable workout a coach/trainer saved to copy from later, not a
+  /// live assignment itself — "Use template" duplicates it into a real
+  /// workout via the same POST /api/workouts every other workout goes
+  /// through, so a template never grants any access a normal workout
+  /// wouldn't already have.
+  isTemplate     Boolean  @default(false)
+  /// Nullable — existing workouts stay ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId String?
+  createdAt      DateTime @default(now())
 
-  team        Team?               @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdBy   User                @relation("WorkoutCreator", fields: [createdById], references: [id])
-  completions WorkoutCompletion[]
+  team         Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy    User                 @relation("WorkoutCreator", fields: [createdById], references: [id])
+  assignedTo   User?                @relation("WorkoutAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  completions  WorkoutCompletion[]
 
   @@index([teamId])
   @@index([createdById])
+  @@index([assignedToId])
+  @@index([sportContextId])
 }
 
 model WorkoutCompletion {
@@ -228,19 +594,24 @@ model WorkoutCompletion {
 /// A dedicated per-sport stat-definition system (build plan §11/§58) is a
 /// later hardening pass once real usage shows which stats need structure.
 model PerformanceEntry {
-  id         String   @id @default(cuid())
-  userId     String
-  statName   String
-  value      Float
-  unit       String?
-  recordedAt DateTime @default(now())
-  note       String?
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  statName       String
+  value          Float
+  unit           String?
+  recordedAt     DateTime @default(now())
+  note           String?
+  /// Nullable — existing entries stay ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId String?
+  createdAt      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([userId, statName])
+  @@index([sportContextId])
 }
 
 model Conversation {
@@ -295,10 +666,15 @@ model CalendarEvent {
   createdById String
   visibility  String    @default("PRIVATE")
   createdAt   DateTime  @default(now())
+  /// Set only for events created by an integration sync (e.g. "GOOGLE_CLASSROOM"); null for events an athlete/coach created directly in MENTA.
+  source      String?
+  /// Stable id from the source system (e.g. a Google Classroom courseWork id) — lets sync upsert instead of duplicating on every run.
+  externalId  String?
 
   team      Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdBy User  @relation("EventCreator", fields: [createdById], references: [id])
 
+  @@unique([createdById, source, externalId])
   @@index([teamId])
   @@index([createdById])
 }
@@ -409,13 +785,18 @@ model GuardianLink {
 }
 
 /// Category: GAME, PRACTICE, TRAINING, HIGHLIGHT
-/// Visibility: PRIVATE, TEAM, PUBLIC
+/// Visibility: PRIVATE, COACH_STAFF, POSITION_GROUP, TEAM, SELECTED_ATHLETES, RECRUITING, PUBLIC
+/// Status: DRAFT, PUBLISHED, ARCHIVED
 model Film {
   id               String   @id @default(cuid())
   title            String
   description      String?
   category         String   @default("GAME")
   opponent         String?
+  /// Structured link alongside the free-text `opponent` above — added for
+  /// scouting (§17); the free-text field stays for existing/legacy rows
+  /// that never had a real Opponent record to point at.
+  opponentId       String?
   season           String?
   storageKey       String
   originalFilename String
@@ -423,16 +804,55 @@ model Film {
   sizeBytes        Int
   durationSec      Float?
   visibility       String   @default("PRIVATE")
+  status           String   @default("PUBLISHED")
   teamId           String?
+  /// Set only when visibility is POSITION_GROUP.
+  positionGroupId  String?
   uploadedById     String
+  /// Nullable — existing film stays ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId   String?
   createdAt        DateTime @default(now())
 
-  team       Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  uploadedBy User   @relation("FilmUploader", fields: [uploadedById], references: [id])
-  clips      Clip[]
+  team          Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?       @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
+  opponentRef   Opponent?            @relation(fields: [opponentId], references: [id], onDelete: SetNull)
+  uploadedBy    User                 @relation("FilmUploader", fields: [uploadedById], references: [id])
+  sportContext  AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  clips         Clip[]
+  sharedWith    FilmSharedWithUser[]
+  comments      FilmComment[]
+  annotations   FilmAnnotation[]
+  tagInstances  FilmTagInstance[]
+  playlistItems FilmPlaylistItem[]
+  reviewRequests FilmReviewRequest[]
+  analysisEntries FilmAnalysisEntry[]
+  shareGrants   FilmShareGrant[]
+  assignments   FilmAssignment[]
+  coachNotes    CoachNote[]
 
   @@index([teamId])
   @@index([uploadedById])
+  @@index([sportContextId])
+  @@index([positionGroupId])
+  @@index([opponentId])
+}
+
+/// Explicit per-athlete film share — the SELECTED_ATHLETES visibility tier.
+/// A user in this table can view the film regardless of team/group
+/// membership; nobody else gets in through this table.
+model FilmSharedWithUser {
+  id        String   @id @default(cuid())
+  filmId    String
+  userId    String
+  sharedById String
+  createdAt DateTime @default(now())
+
+  film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  user User @relation("FilmSharedWithUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([filmId, userId])
+  @@index([userId])
 }
 
 model Clip {
@@ -448,6 +868,14 @@ model Clip {
   film           Film            @relation(fields: [filmId], references: [id], onDelete: Cascade)
   createdBy      User            @relation("ClipCreator", fields: [createdById], references: [id])
   highlightItems HighlightItem[]
+  tagInstances   FilmTagInstance[]
+  comments       FilmComment[]
+  annotations    FilmAnnotation[]
+  playlistItems  FilmPlaylistItem[]
+  assignments    FilmAssignment[]
+  reviewRequests FilmReviewRequest[]
+  coachNotes     CoachNote[]
+  analysisEntries FilmAnalysisEntry[]
 
   @@index([filmId])
 }
@@ -477,6 +905,481 @@ model HighlightItem {
   @@index([highlightId])
 }
 
+// =====================================================================
+// Position Groups + granular permissions (MENTA Film Center foundation)
+//
+// TeamMembership.teamRole stays the coarse role (COACH/ATHLETE/etc.) —
+// unchanged, nothing here replaces it. PositionGroup is a coach-defined
+// subdivision of a team ("QB", "3-Point Shooters", "Freshman Development"
+// — free text, never a fixed enum, so every sport and every coach's own
+// naming works identically). TeamPermissionGrant adds fine-grained
+// capabilities (see PERMISSIONS in src/lib/permissions.ts) on top of the
+// coarse role, optionally scoped to one position group — a QB coach's
+// grants are scoped to the QB group; a head coach's are team-wide
+// (positionGroupId null). Effective access is always computed by
+// src/lib/position-groups.ts, never assumed from role name alone.
+// =====================================================================
+
+model PositionGroup {
+  id          String   @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team        Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  memberships PositionGroupMembership[]
+  films       Film[]
+  playlists   FilmPlaylist[]
+  assignments FilmAssignment[]
+  permissionGrants TeamPermissionGrant[]
+
+  @@index([teamId])
+}
+
+/// groupRole: COACH, ATHLETE, ANALYST — a user's standing within this
+/// specific group; independent of their team-wide teamRole (a TRAINER on
+/// the team could be an ANALYST inside one group, for example).
+model PositionGroupMembership {
+  id              String   @id @default(cuid())
+  positionGroupId String
+  userId          String
+  groupRole       String   @default("ATHLETE")
+  joinedAt        DateTime @default(now())
+
+  positionGroup PositionGroup @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([positionGroupId, userId])
+  @@index([userId])
+}
+
+/// One row = one user holds one named permission (src/lib/permissions.ts's
+/// PERMISSIONS list), either team-wide (positionGroupId null) or scoped to
+/// one group. Deliberately no DB-level unique constraint — SQLite treats
+/// NULL as distinct in unique indexes, which would silently allow
+/// duplicate team-wide grants; src/lib/permissions.ts's grantTeamPermission/
+/// revokeTeamPermissionGrant helpers enforce no-duplicates at the application layer instead (same
+/// pattern already used elsewhere in this schema for nullable-key
+/// uniqueness). grantedById is who granted it, for audit purposes only.
+model TeamPermissionGrant {
+  id              String   @id @default(cuid())
+  teamId          String
+  userId          String
+  positionGroupId String?
+  permission      String
+  grantedById     String
+  createdAt       DateTime @default(now())
+
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup? @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, userId])
+  @@index([positionGroupId])
+}
+
+// =====================================================================
+// MENTA Film Center — tags, comments, annotations, playlists,
+// assignments, review requests, coach notes, analysis templates,
+// reports, scouting, and cross-team video exchange.
+// =====================================================================
+
+/// A coach-defined tag/event button, scoped to a team and (optionally) a
+/// sport — "Blitz", "3PT", "Kill", whatever the sport/coach calls it.
+/// Never a fixed enum; §12's whole point is that this is configurable.
+model FilmTagDefinition {
+  id          String   @id @default(cuid())
+  teamId      String
+  sport       String?
+  label       String
+  category    String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  instances FilmTagInstance[]
+
+  @@index([teamId])
+}
+
+/// One tagged moment on a film's timeline — optionally tied to a specific
+/// clip, athlete, and/or timestamp.
+model FilmTagInstance {
+  id              String   @id @default(cuid())
+  filmId          String
+  clipId          String?
+  tagDefinitionId String
+  timestampSec    Float?
+  athleteId       String?
+  createdById     String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  film          Film              @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip          Clip?             @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  tagDefinition FilmTagDefinition @relation(fields: [tagDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([filmId])
+  @@index([clipId])
+  @@index([tagDefinitionId])
+  @@index([athleteId])
+}
+
+/// Timestamped, optionally-threaded feedback on a film or clip.
+/// visibility: PRIVATE (coach-authored, not shown to the athlete unless
+/// converted — see §22) or SHARED (visible to whoever can view the film).
+model FilmComment {
+  id           String    @id @default(cuid())
+  filmId       String
+  clipId       String?
+  authorId     String
+  timestampSec Float?
+  body         String
+  visibility   String    @default("SHARED")
+  parentId     String?
+  createdAt    DateTime  @default(now())
+  editedAt     DateTime?
+  deletedAt    DateTime?
+
+  film   Film          @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip   Clip?         @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  parent FilmComment?  @relation("FilmCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies FilmComment[] @relation("FilmCommentReplies")
+
+  @@index([filmId])
+  @@index([clipId])
+  @@index([parentId])
+}
+
+/// Telestration/drawing layer. `data` is a JSON-encoded array of shapes
+/// (arrows/circles/lines/freehand paths/text/highlights with color +
+/// coordinates) — kept as one JSON blob per timestamp rather than a
+/// shape-per-row table, since annotations are always read/written as one
+/// complete drawing for a given moment, never queried shape-by-shape.
+model FilmAnnotation {
+  id           String   @id @default(cuid())
+  filmId       String
+  clipId       String?
+  createdById  String
+  timestampSec Float
+  data         String
+  visibility   String   @default("SHARED")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  film Film  @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip Clip? @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@index([filmId])
+  @@index([clipId])
+}
+
+/// A general-purpose playlist — team- or position-group-scoped, unlike
+/// the existing per-user Highlight/HighlightItem (untouched above, still
+/// exactly how personal highlight reels work). ownerId is always set
+/// (who created it); teamId/positionGroupId are additionally set when
+/// it's shared at that scope rather than kept personal.
+model FilmPlaylist {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  ownerId         String
+  teamId          String?
+  positionGroupId String?
+  visibility      String   @default("PRIVATE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team          Team?          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup? @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  items         FilmPlaylistItem[]
+  assignments   FilmAssignment[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+  @@index([ownerId])
+}
+
+/// Exactly one of filmId/clipId is set — enforced at the application
+/// layer (src/lib/film-playlists.ts), matching the same nullable-
+/// alternative pattern Document already uses for ownerId/teamId.
+model FilmPlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  filmId     String?
+  clipId     String?
+  order      Int
+  note       String?
+  createdAt  DateTime @default(now())
+
+  playlist FilmPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  film     Film?        @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip     Clip?        @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@index([playlistId])
+}
+
+/// A coach assigns film/a playlist/a clip to a team, a position group, or
+/// specific athletes (via FilmAssignmentTarget) — exactly one of
+/// filmId/playlistId/clipId is set, enforced at the application layer.
+model FilmAssignment {
+  id              String    @id @default(cuid())
+  teamId          String
+  positionGroupId String?
+  assignedById    String
+  title           String
+  instructions    String?
+  filmId          String?
+  playlistId      String?
+  clipId          String?
+  dueAt           DateTime?
+  requiredViewing Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  team          Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?           @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  film          Film?                    @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  playlist      FilmPlaylist?            @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  clip          Clip?                    @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  targets       FilmAssignmentTarget[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+}
+
+/// status: ASSIGNED, WATCHED, REVIEWED, COMPLETED — one row per athlete
+/// per assignment, the "accountability" trail from §7 of the brief.
+model FilmAssignmentTarget {
+  id           String    @id @default(cuid())
+  assignmentId String
+  userId       String
+  status       String    @default("ASSIGNED")
+  comment      String?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  assignment FilmAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, userId])
+  @@index([userId])
+}
+
+/// An athlete-initiated question about a specific film moment (§21).
+/// coachId is who it's directed to (nullable = open to any authorized
+/// position coach). A single response is intentional — this is a direct
+/// question/answer, not a full thread (FilmComment already covers
+/// open-ended threaded discussion).
+model FilmReviewRequest {
+  id             String    @id @default(cuid())
+  filmId         String
+  clipId         String?
+  athleteId      String
+  coachId        String?
+  timestampSec   Float?
+  question       String
+  status         String    @default("OPEN")
+  response       String?
+  respondedById  String?
+  respondedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  film    Film  @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip    Clip? @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  athlete User  @relation("FilmReviewRequestAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@index([filmId])
+  @@index([athleteId])
+  @@index([coachId])
+}
+
+/// A coach's private, longitudinal notes about an athlete — never shown
+/// to the athlete unless a coach deliberately converts one into a shared
+/// FilmComment (§22). Can stand alone or reference a specific film/clip.
+model CoachNote {
+  id         String   @id @default(cuid())
+  coachId    String
+  athleteId  String
+  teamId     String?
+  filmId     String?
+  clipId     String?
+  body       String
+  visibility String   @default("PRIVATE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  athlete User  @relation("CoachNoteAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  film    Film? @relation(fields: [filmId], references: [id], onDelete: SetNull)
+  clip    Clip? @relation(fields: [clipId], references: [id], onDelete: SetNull)
+
+  @@index([athleteId])
+  @@index([coachId])
+}
+
+/// A coach-authored grading template — "QB Evaluation", "Goalkeeper
+/// Evaluation" — with its own set of categories (§13). Never hardcoded
+/// per sport; a coach builds their own.
+model FilmAnalysisTemplate {
+  id          String   @id @default(cuid())
+  teamId      String
+  sport       String?
+  name        String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  team       Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  categories FilmAnalysisCategory[]
+  entries    FilmAnalysisEntry[]
+
+  @@index([teamId])
+}
+
+model FilmAnalysisCategory {
+  id         String @id @default(cuid())
+  templateId String
+  label      String
+  order      Int
+
+  template FilmAnalysisTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  entries  FilmAnalysisEntry[]
+
+  @@index([templateId])
+}
+
+/// A single graded data point: this athlete, this category, this
+/// film/clip, this score — the raw material FilmReport aggregates.
+/// score is a coach's subjective 1-5 (or similar) rating, always
+/// presented in the UI as "Coach Assessment" (§25), never as an
+/// objective measurement.
+model FilmAnalysisEntry {
+  id          String   @id @default(cuid())
+  templateId  String
+  categoryId  String
+  filmId      String?
+  clipId      String?
+  athleteId   String?
+  score       Float?
+  notes       String?
+  gradedById  String
+  createdAt   DateTime @default(now())
+
+  template FilmAnalysisTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  category FilmAnalysisCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  film     Film?                @relation(fields: [filmId], references: [id], onDelete: SetNull)
+  clip     Clip?                @relation(fields: [clipId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([categoryId])
+  @@index([athleteId])
+  @@index([filmId])
+}
+
+/// reportType: TEAM, ATHLETE, POSITION, GAME, SEASON, OPPONENT.
+/// `summary` is a JSON snapshot computed at generation time from
+/// FilmTagInstance/FilmAnalysisEntry data — a snapshot rather than a
+/// live-recomputed view, so a report reads the same later even as new
+/// film comes in (an explicit "regenerate" creates a new report row).
+model FilmReport {
+  id              String   @id @default(cuid())
+  teamId          String
+  positionGroupId String?
+  title           String
+  reportType      String
+  generatedById   String
+  summary         String?
+  createdAt       DateTime @default(now())
+
+  team    Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sources FilmReportSource[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+}
+
+model FilmReportSource {
+  id       String  @id @default(cuid())
+  reportId String
+  filmId   String?
+  clipId   String?
+
+  report FilmReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+/// A structured opponent record — Film.opponent (free text) stays for
+/// legacy rows; new scouting work links here instead (§17).
+model Opponent {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  sport     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  team    Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  films   Film[]
+  reports ScoutReport[]
+
+  @@index([teamId])
+}
+
+model ScoutReport {
+  id          String   @id @default(cuid())
+  opponentId  String
+  teamId      String
+  title       String
+  tendencies  String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  opponent Opponent          @relation(fields: [opponentId], references: [id], onDelete: Cascade)
+  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tags     ScoutReportTag[]
+
+  @@index([opponentId])
+  @@index([teamId])
+}
+
+/// A coach's own free-text tendency notes — "Runs left on 2nd down" —
+/// never a fixed list, matching §17's requirement.
+model ScoutReportTag {
+  id            String  @id @default(cuid())
+  scoutReportId String
+  label         String
+  notes         String?
+
+  scoutReport ScoutReport @relation(fields: [scoutReportId], references: [id], onDelete: Cascade)
+
+  @@index([scoutReportId])
+}
+
+/// One team explicitly granting another team access to one piece of
+/// film/one playlist (§18) — the receiving team sees only what's granted
+/// here, never the sending team's broader library. revokedAt (soft
+/// revoke, not delete) preserves the audit trail of what was once shared.
+model FilmShareGrant {
+  id           String    @id @default(cuid())
+  filmId       String?
+  playlistId   String?
+  fromTeamId   String
+  toTeamId     String
+  grantedById  String
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  film       Film? @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  fromTeam   Team  @relation("FilmShareGrantFrom", fields: [fromTeamId], references: [id], onDelete: Cascade)
+  toTeam     Team  @relation("FilmShareGrantTo", fields: [toTeamId], references: [id], onDelete: Cascade)
+
+  @@index([fromTeamId])
+  @@index([toTeamId])
+  @@index([filmId])
+}
+
 /// Recruiting — Phase 2. Deliberately does NOT duplicate AthleteProfile
 /// (sport/position/height/weight/gradYear/school/gpa/city/state/bio/
 /// visibility already live there and are reused as-is; RECRUITING is
@@ -490,22 +1393,27 @@ model HighlightItem {
 /// Division: freeform (e.g. "D1", "D2", "D3", "NAIA", "JUCO", "Other")
 /// Status: TARGET, INTERESTED, CONTACTED, RESPONDED, VISIT, OFFER, COMMITTED, NOT_PURSUING
 model RecruitingSchool {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  division  String?
-  location  String?
-  status    String   @default("TARGET")
-  priority  Int?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  division       String?
+  location       String?
+  status         String   @default("TARGET")
+  priority       Int?
+  notes          String?
+  /// Nullable — existing schools stay ungrouped/legacy rather than being
+  /// guessed into a sport. See the identical note on Goal.sportContextId.
+  sportContextId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contacts   RecruitingContact[]
-  activities RecruitingActivity[]
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  contacts     RecruitingContact[]
+  activities   RecruitingActivity[]
 
   @@index([userId])
+  @@index([sportContextId])
 }
 
 /// Status: NOT_CONTACTED, CONTACTED, RESPONDED
@@ -599,6 +1507,46 @@ model WellnessCheckIn {
   @@index([userId, date])
 }
 
+/// Mental performance check-in — pressure, confidence, focus, and a
+/// self-set goal for the day/competition. Deliberately separate from
+/// WellnessCheckIn: physical recovery (sleep/soreness) and mental
+/// performance (pressure/confidence/focus) are different signals and get
+/// different framing in the UI (Recovery vs Mindset), even though the
+/// data-sensitivity handling is identical. See RecoveryCheckIn's model doc
+/// comment above for the pattern this follows — same rules apply here:
+///
+/// HIGH-SENSITIVITY DATA. Security assumptions:
+/// - Private by default. Never joined into, or exposed via, AthleteProfile,
+///   the /recruit pages, team rosters, search, notifications, or messages.
+///   Only src/app/api/mind/* and src/app/(app)/mind touch this model.
+/// - Not sent to any AI provider. src/lib/ai.ts's buildAthleteContext()
+///   deliberately does NOT query this table, for the same reason wellness
+///   data is excluded — no documented consent/privacy controls yet for
+///   sending health-adjacent data to a third-party model provider.
+/// - Field VALUES are never passed to logAudit()/console — only the fact
+///   that a create/update/delete/list happened.
+/// - This is a performance-journaling tool, not mental-health treatment or
+///   a diagnostic instrument — every surface says so, and nothing here
+///   claims to detect or treat anything clinical.
+model MindCheckIn {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime @default(now())
+  pressure   Int?
+  confidence Int?
+  focus      Int?
+  readiness  Int?
+  todayGoal  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
 /// Academics — Phase 2. Current GPA/school/graduation year stay on
 /// AthleteProfile (reused as-is, edited via /profile — not duplicated
 /// here). These four models hold what AthleteProfile genuinely can't: a
@@ -669,6 +1617,97 @@ model AcademicGoal {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Status: CONNECTED, DISCONNECTED, ERROR
+/// One per MENTA user. accessTokenEnc/refreshTokenEnc are AES-256-GCM
+/// ciphertext (see src/lib/crypto.ts) — never the raw Google tokens, never
+/// returned in any API response. On disconnect we clear both and set
+/// status to DISCONNECTED rather than deleting the row, so already-synced
+/// courses/assignments stay attached to something and a reconnect updates
+/// this same row instead of orphaning history.
+model GoogleClassroomIntegration {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  googleUserId     String
+  googleEmail      String
+  accessTokenEnc   String?
+  refreshTokenEnc  String?
+  tokenExpiresAt   DateTime?
+  scope            String?
+  status           String    @default("CONNECTED")
+  connectedAt      DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastSyncedAt     DateTime?
+
+  user    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses GoogleClassroomCourse[]
+
+  @@index([userId])
+}
+
+/// Status mirrors Google Classroom's courseState: ACTIVE, ARCHIVED, PROVISIONED, DECLINED, SUSPENDED.
+model GoogleClassroomCourse {
+  id             String   @id @default(cuid())
+  integrationId  String
+  googleCourseId String
+  name           String
+  section        String?
+  description    String?
+  room           String?
+  courseState    String?
+  alternateLink  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  integration GoogleClassroomIntegration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  assignments GoogleClassroomAssignment[]
+
+  @@unique([integrationId, googleCourseId])
+  @@index([integrationId])
+}
+
+/// state mirrors Google's CourseWork state: PUBLISHED, DRAFT, DELETED.
+/// workType mirrors Google's CourseWorkType: ASSIGNMENT, SHORT_ANSWER_QUESTION, etc.
+model GoogleClassroomAssignment {
+  id                 String    @id @default(cuid())
+  courseId           String
+  googleCourseworkId String
+  title              String
+  description        String?
+  state              String?
+  workType           String?
+  dueDate            DateTime?
+  maxPoints          Float?
+  alternateLink      String?
+  creationTime       DateTime?
+  updateTime         DateTime?
+  syncedAt           DateTime  @default(now())
+
+  course      GoogleClassroomCourse         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions GoogleClassroomSubmission[]
+
+  @@unique([courseId, googleCourseworkId])
+  @@index([courseId])
+  @@index([courseId, dueDate])
+}
+
+/// state mirrors Google's SubmissionState: NEW, CREATED, TURNED_IN, RETURNED, RECLAIMED_BY_STUDENT.
+model GoogleClassroomSubmission {
+  id                 String    @id @default(cuid())
+  assignmentId       String
+  googleSubmissionId String
+  state              String?
+  assignedGrade      Float?
+  draftGrade         Float?
+  late               Boolean   @default(false)
+  updateTime         DateTime?
+  syncedAt           DateTime  @default(now())
+
+  assignment GoogleClassroomAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, googleSubmissionId])
+  @@index([assignmentId])
 }
 
 /// Category: ACADEMIC, GRADUATION, COURSEWORK, ELIGIBILITY_REVIEW, RECRUITING_PAPERWORK, DOCUMENTATION
@@ -797,4 +1836,67 @@ model TeamSafetyChecklistItem {
   createdBy User @relation("TeamSafetyChecklistCreator", fields: [createdById], references: [id])
 
   @@index([teamId])
+}
+
+/// MENTA Documents — a secure records center, not a generic file uploader.
+/// Every document has exactly one of ownerId (a personal document, about
+/// one athlete) or teamId (a team-level document — roster, waiver, safety
+/// plan) set, never both. Access is enforced in src/lib/permissions.ts's
+/// canAccessDocument(), reused by every route that touches a document —
+/// never inferred from ownerId/teamId directly in a route handler. Medical-
+/// adjacent categories (MEDICAL_CLEARANCE, INJURY, INSURANCE, EMERGENCY)
+/// are not a separate model — they get the same strict ownership check as
+/// every other category, since this is an organization/reminder tool, not
+/// a medical record system with its own regulatory model.
+///
+/// Category (Athlete/Parent-owned): PHYSICAL, MEDICAL_CLEARANCE, INJURY,
+///   INSURANCE, EMERGENCY_INFO, ACADEMIC, RECRUITING, CAMP, CERTIFICATION, OTHER
+/// Category (Coach/Trainer-owned, no team/athlete): CERTIFICATION,
+///   CREDENTIALS, BACKGROUND_CHECK, INSURANCE, OTHER
+/// Category (team-owned): TEAM_PHYSICALS, ROSTER, SAFETY_PROTOCOL,
+///   EMERGENCY_PLAN, CERTIFICATION, WAIVER, INSURANCE, OTHER
+model Document {
+  id               String    @id @default(cuid())
+  name             String
+  category         String
+  storageKey       String
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  expiresAt        DateTime?
+  notes            String?
+  ownerId          String?
+  teamId           String?
+  uploadedById     String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  owner      User? @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  team       Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  @@index([ownerId])
+  @@index([teamId])
+}
+
+/// A coach/trainer/parent asking an athlete to upload something — "Please
+/// upload your 2026 physical." Not a document itself; fulfilledDocumentId
+/// links to the Document once the athlete responds.
+/// Status: PENDING, FULFILLED, DISMISSED
+model DocumentRequest {
+  id                  String    @id @default(cuid())
+  requestedById       String
+  athleteId           String
+  title               String
+  category            String
+  notes               String?
+  status              String    @default("PENDING")
+  fulfilledDocumentId String?
+  createdAt           DateTime  @default(now())
+  resolvedAt          DateTime?
+
+  requestedBy User @relation("DocumentRequester", fields: [requestedById], references: [id])
+  athlete     User @relation("DocumentRequestAthlete", fields: [athleteId], references: [id])
+
+  @@index([athleteId])
 }

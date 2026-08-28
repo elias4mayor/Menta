@@ -123,11 +123,10 @@ export function MarketingNav() {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-end px-6 md:px-10 transition-[padding,background-color,border-color] duration-300"
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-end px-6 md:px-10 transition-[padding,background-color,border-color] duration-300 marketing-nav-material"
         style={{
           padding: scrolled ? "14px 24px" : "22px 24px",
-          background: scrolled ? "rgba(8,8,10,0.78)" : "rgba(8,8,10,0.4)",
-          backdropFilter: "blur(20px) saturate(140%)",
+          background: "rgba(255,255,255,0.78)",
           borderBottom: scrolled ? "1px solid var(--border)" : "1px solid transparent",
         }}
       >
@@ -147,6 +146,7 @@ export function MarketingNav() {
                 width={863}
                 height={194}
                 className="h-9 w-auto"
+                style={{ filter: "invert(1)" }}
                 priority
               />
             </Link>
@@ -215,8 +215,8 @@ export function MarketingNav() {
       {mobileOpen && (
         <div
           id="mobile-menu"
-          className="md:hidden fixed inset-0 z-40 pt-20 overflow-y-auto"
-          style={{ background: "rgba(8,8,10,0.98)", backdropFilter: "blur(20px)" }}
+          className="md:hidden fixed inset-0 z-40 pt-20 overflow-y-auto marketing-nav-material"
+          style={{ background: "rgba(255,255,255,0.98)" }}
         >
           <div className="px-6 py-6 space-y-1">
             <Link href="/faq" onClick={closeAll} className="block py-3 text-base text-text-1">

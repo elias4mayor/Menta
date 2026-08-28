@@ -11,6 +11,7 @@ const ROLES = [
   { value: "COACH", label: "Coach" },
   { value: "PARENT", label: "Parent / Guardian" },
   { value: "TRAINER", label: "Trainer" },
+  { value: "DOCTOR", label: "Doctor / Medical Provider" },
 ];
 
 export default function SignupPage() {
@@ -39,7 +40,7 @@ export default function SignupPage() {
         setError(data.error ?? "Something went wrong.");
         return;
       }
-      router.push("/onboarding");
+      router.push("/verify-email");
       router.refresh();
     } catch {
       setError("Network error. Try again.");

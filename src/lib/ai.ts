@@ -1,10 +1,21 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { askGemini, isGeminiConfigured } from "@/lib/ai/gemini";
 import type { SessionUser } from "@/lib/session";
 
 export function isAiConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+
+  if (provider === "gemini") {
+    return isGeminiConfigured();
+  }
+
+  if (provider === "anthropic") {
+    return Boolean(process.env.ANTHROPIC_API_KEY);
+  }
+
+  return false;
 }
 
 const SYSTEM_PROMPT = `You are MENTA AI, the assistant inside the MENTA Athlete Operating System.
@@ -237,21 +248,54 @@ export async function askMentaAi(params: {
   system: string;
   history: { role: "user" | "assistant"; content: string }[];
 }): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+
+  const systemPrompt = `${SYSTEM_PROMPT}\n\nContext:\n${params.system}`;
+
+  if (provider === "gemini") {
+    return askGemini({
+      systemPrompt,
+      conversation: params.history,
+    });
   }
 
-  const client = new Anthropic({ apiKey });
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  if (provider === "anthropic") {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  const response = await client.messages.create({
-    model,
-    max_tokens: 1024,
-    system: `${SYSTEM_PROMPT}\n\nContext:\n${params.system}`,
-    messages: params.history.map((m) => ({ role: m.role, content: m.content })),
-  });
+    if (!apiKey) {
+      throw new Error("ANTHROPIC_API_KEY is not configured.");
+    }
 
-  const textBlock = response.content.find((block) => block.type === "text");
-  return textBlock && "text" in textBlock ? textBlock.text : "";
+    const client = new Anthropic({ apiKey });
+
+    const model =
+      process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: params.history.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+    });
+
+    const textBlock = response.content.find(
+      (block) => block.type === "text"
+    );
+
+    const text =
+      textBlock && "text" in textBlock
+        ? textBlock.text.trim()
+        : "";
+
+    if (!text) {
+      throw new Error("Anthropic returned an empty response.");
+    }
+
+    return text;
+  }
+
+  throw new Error(`Unsupported AI provider: ${provider}`);
 }

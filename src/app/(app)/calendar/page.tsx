@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { CalendarView } from "@/components/CalendarView";
+import { GlowWaveText } from "@/components/GlowWaveText";
 
 export default async function CalendarPage() {
   const user = await requireUser();
@@ -23,9 +24,9 @@ export default async function CalendarPage() {
   ]);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Calendar</div>
-      <h1 className="text-3xl font-semibold mb-8">Schedule</h1>
+      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Schedule</GlowWaveText></h1>
       <CalendarView
         initialEvents={events.map((e) => ({
           id: e.id,

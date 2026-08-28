@@ -12,10 +12,12 @@ const SUGGESTIONS = [
 
 export function AiChat({
   configured,
+  envVar,
   initialConversationId,
   initialMessages,
 }: {
   configured: boolean;
+  envVar: string;
   initialConversationId: string | null;
   initialMessages: Msg[];
 }) {
@@ -67,7 +69,7 @@ export function AiChat({
             <p className="text-text-2 text-sm">
               {configured
                 ? "Ask about training, recovery, recruiting, academics, or what to do today."
-                : "MENTA AI isn't connected yet. An administrator needs to set ANTHROPIC_API_KEY on the server before this becomes a real assistant."}
+                : `MENTA AI isn't connected yet. An administrator needs to set ${envVar} on the server before this becomes a real assistant.`}
             </p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (

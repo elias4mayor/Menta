@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { RecruitingSchools } from "@/components/RecruitingSchools";
 import { RecruitingOutreachPanel } from "@/components/RecruitingOutreachPanel";
+import { GlowWaveText } from "@/components/GlowWaveText";
+import { isAiConfigured } from "@/lib/ai";
 
 const SCHOOL_STATUSES = [
   "TARGET",
@@ -59,7 +61,9 @@ export default async function RecruitPage() {
     }),
   ]);
 
-  const aiConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
+  const aiConfigured = isAiConfigured();
+  const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
 
   const statusCounts = SCHOOL_STATUSES.reduce<Record<string, number>>((acc, s) => {
     acc[s] = schools.filter((school) => school.status === s).length;
@@ -90,9 +94,9 @@ export default async function RecruitPage() {
   }));
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-5xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Recruiting</div>
-      <h1 className="text-3xl font-semibold mb-2">Your recruiting dashboard</h1>
+      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Your recruiting dashboard</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-8 max-w-2xl">
         These are organizational and drafting tools — MENTA never guarantees a scholarship, offer,
         admission, or roster spot, and doesn&rsquo;t contact schools on your behalf. Everything here is
@@ -243,6 +247,7 @@ export default async function RecruitPage() {
           schools={schoolsForClient}
           initialActivities={activitiesForClient}
           aiConfigured={aiConfigured}
+          aiEnvVar={aiEnvVar}
         />
       </section>
     </div>

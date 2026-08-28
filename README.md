@@ -166,6 +166,32 @@ than the rest of the app:
   schema — verified for `WellnessCheckIn` specifically (a second account
   gets `404`, never another user's check-in data).
 
+## Mental performance data (Mindset feature)
+
+`MindCheckIn` (pressure, confidence, focus, readiness, today's mental goal,
+notes) follows the identical HIGH-SENSITIVITY handling as `WellnessCheckIn`
+above — same private-by-default scope, same "never sent to an AI provider"
+rule (the Mindset page's "AI mental-performance insights" section is
+hardcoded to "not connected" for the same reason Recovery's is), same
+values-never-logged rule in `src/app/api/mind/*`, and the same encryption-
+at-rest caveat for local SQLite. This is a performance-journaling tool, not
+a mental-health diagnostic instrument or treatment — every surface that
+shows this data says so, and there is deliberately no synthesized "mental
+performance score." Trends show the athlete's own raw 1–5 values over time;
+nothing here averages them into a single invented number.
+
+## Sport configuration
+
+`src/lib/sports.ts` is the single place sport-specific vocabulary (position/
+event lists, what to call a competitive outing) lives. `AthleteProfile.sport`
+is a free-text string, not an enum, so a sport not in the registry still
+works — it falls back to the generic "Other" configuration rather than
+breaking. Components (the profile form, the Mindset page) read from this
+registry instead of hardcoding football- or any single-sport-specific
+copy; adding a new sport's position list means adding an entry to
+`SPORTS` in that file, not touching every component that mentions a
+position or a game.
+
 ## Requires legal review before real users
 
 Per `MENTA-MASTER-BUILD-PLAN.md` §4 — none of the following should be treated

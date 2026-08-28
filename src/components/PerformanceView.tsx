@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/EmptyState";
 
 type Entry = {
   id: string;
@@ -83,8 +84,8 @@ export function PerformanceView({ initialEntries }: { initialEntries: Entry[] })
       )}
 
       {grouped.length === 0 ? (
-        <div className="card p-6">
-          <p className="text-text-2 text-sm">No stats logged yet. Add your first entry above.</p>
+        <div className="card">
+          <EmptyState title="No stats logged yet" description="Use Log a stat above to start tracking your numbers over time." />
         </div>
       ) : (
         <div className="space-y-4">

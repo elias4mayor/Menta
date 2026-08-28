@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Select } from "@/components/Select";
+import { SchoolCombobox } from "@/components/SchoolCombobox";
+import { SPORTS as SPORT_CONFIGS, rolesForSport, roleLabel } from "@/lib/sports";
 
 type ProfileData = {
   sport: string;
@@ -26,57 +29,10 @@ const WEIGHT_MAX = 300;
 const GPA_MIN = 0;
 const GPA_MAX = 5;
 
-const SPORTS = [
-  "Football",
-  "Basketball",
-  "Baseball",
-  "Soccer",
-  "Track & Field",
-  "Volleyball",
-  "Swimming",
-  "Wrestling",
-  "Tennis",
-  "Golf",
-  "Lacrosse",
-  "Hockey",
-  "Softball",
-  "Gymnastics",
-  "Other",
-];
-
-const POSITIONS_BY_SPORT: Record<string, string[]> = {
-  Football: [
-    "Quarterback",
-    "Running Back",
-    "Wide Receiver",
-    "Tight End",
-    "Offensive Line",
-    "Defensive Line",
-    "Linebacker",
-    "Cornerback",
-    "Safety",
-    "Kicker",
-    "Punter",
-    "Long Snapper",
-  ],
-  Basketball: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"],
-  Baseball: [
-    "Pitcher",
-    "Catcher",
-    "First Base",
-    "Second Base",
-    "Shortstop",
-    "Third Base",
-    "Outfield",
-    "Designated Hitter",
-  ],
-  Soccer: ["Goalkeeper", "Defender", "Midfielder", "Forward"],
-  Volleyball: ["Setter", "Outside Hitter", "Opposite", "Middle Blocker", "Libero", "Defensive Specialist"],
-};
-
-function positionsForSport(sport: string): string[] {
-  return POSITIONS_BY_SPORT[sport] ?? ["Other"];
-}
+// Sport, position/event lists, and role/competition vocabulary now live in
+// src/lib/sports.ts — the single sport-agnostic config every part of the
+// app reads from, instead of a football-shaped list duplicated per form.
+const SPORTS = SPORT_CONFIGS.map((s) => s.name);
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
@@ -131,8 +87,8 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
     // longer matches the new sport's list — only reset it when the current
     // position genuinely doesn't apply to the newly selected sport.
     setData((d) => {
-      const nextPositions = positionsForSport(sport);
-      const positionStillValid = !d.position || nextPositions.includes(d.position);
+      const nextPositions = rolesForSport(sport);
+      const positionStillValid = !d.position || nextPositions.length === 0 || nextPositions.includes(d.position);
       return { ...d, sport, position: positionStillValid ? d.position : "" };
     });
     setSaved(false);
@@ -191,7 +147,9 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
   }
 
   const sportOptions = withCurrentValue(SPORTS, data.sport);
-  const positionOptions = withCurrentValue(positionsForSport(data.sport), data.position);
+  const sportHasFixedRoles = rolesForSport(data.sport).length > 0;
+  const roleOptions = withCurrentValue(rolesForSport(data.sport), data.position);
+  const currentRoleLabel = roleLabel(data.sport);
   const stateOptions = withCurrentValue(US_STATES, data.state);
   const graduationYearOptions = withCurrentYear(GRADUATION_YEARS, data.graduationYear);
 
@@ -202,21 +160,33 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label" htmlFor="sport">Sport</label>
-            <select id="sport" className="field-select" value={data.sport} onChange={(e) => updateSport(e.target.value)}>
-              <option value="">Select a sport</option>
-              {sportOptions.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id="sport"
+              value={data.sport}
+              onChange={updateSport}
+              placeholder="Select a sport"
+              options={sportOptions.map((s) => ({ value: s, label: s }))}
+            />
           </div>
           <div>
-            <label className="field-label" htmlFor="position">Position</label>
-            <select id="position" className="field-select" value={data.position} onChange={(e) => update("position", e.target.value)}>
-              <option value="">Select a position</option>
-              {positionOptions.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+            <label className="field-label" htmlFor="position">{currentRoleLabel}</label>
+            {sportHasFixedRoles ? (
+              <Select
+                id="position"
+                value={data.position}
+                onChange={(v) => update("position", v)}
+                placeholder={`Select a ${currentRoleLabel.toLowerCase()}`}
+                options={roleOptions.map((p) => ({ value: p, label: p }))}
+              />
+            ) : (
+              <input
+                id="position"
+                className="field-input"
+                placeholder={data.sport === "Wrestling" ? "e.g. 138 lbs" : `Enter your ${currentRoleLabel.toLowerCase()}`}
+                value={data.position}
+                onChange={(e) => update("position", e.target.value)}
+              />
+            )}
           </div>
           <div>
             <label className="field-label" htmlFor="heightCm">Height (cm)</label>
@@ -256,30 +226,22 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="field-label" htmlFor="schoolName">School</label>
-            <input
+            <SchoolCombobox
               id="schoolName"
-              className="field-input"
-              maxLength={SCHOOL_MAX_LENGTH}
               value={data.schoolName}
-              onChange={(e) => update("schoolName", e.target.value)}
-              aria-invalid={Boolean(fieldErrors.schoolName)}
-              aria-describedby={fieldErrors.schoolName ? "schoolName-error" : undefined}
+              onChange={(v) => update("schoolName", v)}
             />
             {fieldErrors.schoolName && <p id="schoolName-error" className="text-xs mt-1" style={{ color: "var(--danger)" }}>{fieldErrors.schoolName}</p>}
           </div>
           <div>
             <label className="field-label" htmlFor="graduationYear">Graduation year</label>
-            <select
+            <Select
               id="graduationYear"
-              className="field-select"
-              value={data.graduationYear ?? ""}
-              onChange={(e) => update("graduationYear", e.target.value ? Number(e.target.value) : undefined)}
-            >
-              <option value="">Select a year</option>
-              {graduationYearOptions.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+              value={data.graduationYear !== undefined ? String(data.graduationYear) : ""}
+              onChange={(v) => update("graduationYear", v ? Number(v) : undefined)}
+              placeholder="Select a year"
+              options={graduationYearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+            />
           </div>
           <div>
             <label className="field-label" htmlFor="gpa">GPA</label>
@@ -318,12 +280,13 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
           </div>
           <div>
             <label className="field-label" htmlFor="state">State</label>
-            <select id="state" className="field-select" value={data.state} onChange={(e) => update("state", e.target.value)}>
-              <option value="">Select a state</option>
-              {stateOptions.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id="state"
+              value={data.state}
+              onChange={(v) => update("state", v)}
+              placeholder="Select a state"
+              options={stateOptions.map((s) => ({ value: s, label: s }))}
+            />
           </div>
         </div>
         <div>
@@ -349,13 +312,16 @@ export function ProfileForm({ initial, isMinor }: { initial: ProfileData; isMino
 
       <section className="space-y-2">
         <label className="field-label" htmlFor="visibility">Visibility</label>
-        <select id="visibility" className="field-select" value={data.visibility} onChange={(e) => update("visibility", e.target.value)}>
-          {VISIBILITY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value} disabled={isMinor && opt.value === "PUBLIC"}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="visibility"
+          value={data.visibility}
+          onChange={(v) => update("visibility", v)}
+          options={VISIBILITY_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+            disabled: isMinor && opt.value === "PUBLIC",
+          }))}
+        />
         {isMinor && (
           <p className="text-text-3 text-xs">
             Because this account is a minor, profile visibility is capped at Recruiting — visible to coaches, never fully public.
