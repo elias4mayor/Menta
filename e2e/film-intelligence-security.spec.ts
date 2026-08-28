@@ -170,6 +170,65 @@ test.describe("Film Intelligence security", () => {
     expect(createAssignmentOnA.status()).toBe(403);
   });
 
+  test("assignment targetUserIds are scoped — a client-supplied id from an unrelated team is silently dropped, not granted a target or notification", async ({ request }) => {
+    const coachA = await createTestUser("scope-coachA", "COACH");
+    const athleteA = await createTestAthlete("scope-athleteA", "Soccer", "Midfielder");
+    const athleteB = await createTestAthlete("scope-athleteB", "Soccer", "Midfielder");
+
+    const teamA = await createTestTeam(coachA.userId, [
+      { userId: coachA.userId, teamRole: "COACH" },
+      { userId: athleteA.userId, teamRole: "ATHLETE" },
+    ]);
+    // athleteB belongs only to an unrelated team — never a member of teamA.
+    await createTestTeam(athleteB.userId, [{ userId: athleteB.userId, teamRole: "ATHLETE" }]);
+
+    const film = await testPrisma.film.create({
+      data: {
+        title: "Scope test film",
+        storageKey: "x",
+        originalFilename: "x.mp4",
+        mimeType: "video/mp4",
+        sizeBytes: 1,
+        teamId: teamA.id,
+        uploadedById: coachA.userId,
+      },
+    });
+
+    // coachA is legitimately authorized to create assignments on teamA, but
+    // explicitly names a user from an unrelated team as a target — this is
+    // the exact client-supplied-targetUserIds attack the fix closes.
+    const res = await request.post(`/api/teams/${teamA.id}/assignments`, {
+      headers: { Cookie: coachA.cookie, "Content-Type": "application/json" },
+      data: {
+        title: "Scoped assignment",
+        filmId: film.id,
+        targetUserIds: [athleteA.userId, athleteB.userId],
+      },
+    });
+    expect(res.status(), await res.text()).toBe(200);
+    const { assignment } = await res.json();
+
+    const targetForA = await testPrisma.filmAssignmentTarget.findFirst({
+      where: { assignmentId: assignment.id, userId: athleteA.userId },
+    });
+    expect(targetForA).not.toBeNull();
+
+    const targetForB = await testPrisma.filmAssignmentTarget.findFirst({
+      where: { assignmentId: assignment.id, userId: athleteB.userId },
+    });
+    expect(targetForB).toBeNull();
+
+    const notificationForA = await testPrisma.notification.findFirst({
+      where: { userId: athleteA.userId, title: "New film assignment: Scoped assignment" },
+    });
+    expect(notificationForA).not.toBeNull();
+
+    const notificationForB = await testPrisma.notification.findFirst({
+      where: { userId: athleteB.userId, title: "New film assignment: Scoped assignment" },
+    });
+    expect(notificationForB).toBeNull();
+  });
+
   test("coach notes are private to staff — the athlete themselves and an unrelated coach both get denied", async ({ request }) => {
     const headCoach = await createTestUser("notes-coach", "COACH");
     const otherCoach = await createTestUser("notes-other-coach", "COACH");

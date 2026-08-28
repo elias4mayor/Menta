@@ -84,6 +84,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
       const members = await prisma.teamMembership.findMany({ where: { teamId, teamRole: "ATHLETE" }, select: { userId: true } });
       targetUserIds = members.map((m) => m.userId);
     }
+  } else {
+    // targetUserIds came from the client — never trust them directly.
+    // Validate every one is actually within this assignment's scope (the
+    // same scope the implicit-derivation branch above uses: the position
+    // group's members, or the team's athletes) before creating anything.
+    const scopedUserIds = positionGroupId
+      ? (await prisma.positionGroupMembership.findMany({ where: { positionGroupId }, select: { userId: true } })).map((m) => m.userId)
+      : (await prisma.teamMembership.findMany({ where: { teamId, teamRole: "ATHLETE" }, select: { userId: true } })).map((m) => m.userId);
+    const scopedUserIdSet = new Set(scopedUserIds);
+    targetUserIds = explicitTargetUserIds.filter((id) => scopedUserIdSet.has(id));
   }
   if (targetUserIds.length === 0) {
     return NextResponse.json({ error: "No athletes to assign this to." }, { status: 400 });

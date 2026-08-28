@@ -103,7 +103,13 @@ export async function proxy(request: NextRequest) {
               ? user.parentProfile?.onboardingCompletedAt
               : user.role === "DOCTOR"
                 ? user.doctorProfile?.onboardingCompletedAt
-                : user.athleteProfile?.onboardingCompletedAt
+                : user.role === "ATHLETE"
+                  ? user.athleteProfile?.onboardingCompletedAt
+                  : // Internal/staff roles (SUPER_ADMIN, DEVELOPER, MENTA_STAFF,
+                    // ORG_ADMIN, SCHOOL_ADMIN, ATHLETIC_DIRECTOR) have no
+                    // profile model and no onboarding route — there's nothing
+                    // for them to complete, so never gate them behind it.
+                    true
       );
     }
   }
