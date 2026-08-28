@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { isAiConfigured } from "@/lib/ai";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
@@ -91,7 +92,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
-    Promise.resolve(Boolean(process.env.ANTHROPIC_API_KEY)),
+    Promise.resolve(isAiConfigured()),
     prisma.workoutCompletion.count({
       where: { userId: user.id, completedAt: { gte: weekAgo } },
     }),
@@ -105,6 +106,9 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       orderBy: { createdAt: "asc" },
     }),
   ]);
+
+  const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
 
   const activeGoalsCount = goals.filter((g) => g.status === "ACTIVE").length;
   const todayEnd = endOfDay(now);
@@ -245,7 +249,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           <p className="text-text-2 text-sm mb-4">
             {aiConfigured
               ? "Ask about training, recovery, recruiting, or academics."
-              : "Set ANTHROPIC_API_KEY to turn on the live assistant."}
+              : `Set ${aiEnvVar} to turn on the live assistant.`}
           </p>
           <Link href="/ai-coach" className="btn-secondary w-full justify-center">
             Open MENTA AI

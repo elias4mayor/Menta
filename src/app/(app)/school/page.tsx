@@ -78,6 +78,9 @@ export default async function SchoolPage() {
   ).length;
   const completedCount = assignments.filter((a) => a.status === "COMPLETED").length;
 
+  const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
+
   return (
     <div className="max-w-5xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Academics</div>
@@ -184,6 +187,7 @@ export default async function SchoolPage() {
         </div>
         <StudyHelpChat
           configured={isAiConfigured()}
+          envVar={aiEnvVar}
           initialConversationId={studyHelpConversation?.id ?? null}
           initialMessages={(studyHelpConversation?.messages ?? []).map((m) => ({
             id: m.id,

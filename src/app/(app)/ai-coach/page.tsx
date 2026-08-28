@@ -13,6 +13,9 @@ export default async function AiCoachPage() {
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
 
+  const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
+
   return (
     <div className="max-w-2xl mx-auto h-[calc(100vh-8rem)] flex flex-col dash-in dash-in-1">
       <div className="mono text-text-3 mb-1">MENTA AI</div>
@@ -26,6 +29,7 @@ export default async function AiCoachPage() {
       </div>
       <AiChat
         configured={isAiConfigured()}
+        envVar={aiEnvVar}
         initialConversationId={conversation?.id ?? null}
         initialMessages={(conversation?.messages ?? []).map((m) => ({
           id: m.id,

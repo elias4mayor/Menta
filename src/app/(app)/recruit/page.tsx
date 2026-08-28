@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { RecruitingSchools } from "@/components/RecruitingSchools";
 import { RecruitingOutreachPanel } from "@/components/RecruitingOutreachPanel";
 import { GlowWaveText } from "@/components/GlowWaveText";
+import { isAiConfigured } from "@/lib/ai";
 
 const SCHOOL_STATUSES = [
   "TARGET",
@@ -60,7 +61,9 @@ export default async function RecruitPage() {
     }),
   ]);
 
-  const aiConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
+  const aiConfigured = isAiConfigured();
+  const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
 
   const statusCounts = SCHOOL_STATUSES.reduce<Record<string, number>>((acc, s) => {
     acc[s] = schools.filter((school) => school.status === s).length;
@@ -244,6 +247,7 @@ export default async function RecruitPage() {
           schools={schoolsForClient}
           initialActivities={activitiesForClient}
           aiConfigured={aiConfigured}
+          aiEnvVar={aiEnvVar}
         />
       </section>
     </div>

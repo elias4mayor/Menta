@@ -13,10 +13,12 @@ const SUGGESTIONS = [
 
 export function StudyHelpChat({
   configured,
+  envVar,
   initialConversationId,
   initialMessages,
 }: {
   configured: boolean;
+  envVar: string;
   initialConversationId: string | null;
   initialMessages: Msg[];
 }) {
@@ -68,7 +70,7 @@ export function StudyHelpChat({
             <p className="text-text-2 text-sm">
               {configured
                 ? "Ask MENTA AI to explain a concept, walk through examples, quiz you, or help plan your studying. It won't complete graded work for you."
-                : "MENTA AI Study Help isn't connected yet. An administrator needs to set ANTHROPIC_API_KEY on the server before this becomes a real tutor."}
+                : `MENTA AI Study Help isn't connected yet. An administrator needs to set ${envVar} on the server before this becomes a real tutor.`}
             </p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (

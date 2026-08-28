@@ -19,10 +19,12 @@ export function RecruitingOutreachPanel({
   schools,
   initialActivities,
   aiConfigured,
+  aiEnvVar,
 }: {
   schools: RecruitingSchoolItem[];
   initialActivities: RecruitingActivityItem[];
   aiConfigured: boolean;
+  aiEnvVar: string;
 }) {
   const router = useRouter();
   const [activities, setActivities] = useState(initialActivities);
@@ -85,7 +87,7 @@ export function RecruitingOutreachPanel({
 
         {!aiConfigured && (
           <p className="text-text-2 text-sm mb-3">
-            Set ANTHROPIC_API_KEY on the server to turn on draft generation. Until then this won&rsquo;t
+            Set {aiEnvVar} on the server to turn on draft generation. Until then this won&rsquo;t
             produce a real draft.
           </p>
         )}
