@@ -1,0 +1,57 @@
+name: E2E
+
+on:
+  push:
+    branches: [main, ci/e2e-isolated-test]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # Fresh SQLite file per run — prisma/dev.db is gitignored, so CI always
+      # starts from an empty database and applies migrations below.
+      DATABASE_URL: "file:./dev.db"
+      # Any 32+ byte value works here; this is a throwaway secret for an
+      # ephemeral CI database, not a real deployment.
+      SESSION_SECRET: "ci-e2e-session-secret-not-for-production-use-only"
+      APP_URL: "http://localhost:3000"
+      # RESEND_API_KEY is deliberately left unset: src/lib/email.ts's honest
+      # "not configured" fallback prints verification codes to the server
+      # console instead of sending real email, which e2e/fixtures.ts reads
+      # from playwright.config.ts's SERVER_LOG_PATH. Setting a real key here
+      # would break every signup/onboarding test.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
