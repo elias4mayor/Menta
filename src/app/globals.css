@@ -2407,8 +2407,38 @@ h4 {
    existing --ease/--ease-cinematic tokens, and the existing .dash-in
    entrance system. Nothing here duplicates an existing primitive. */
 
+/* Sidebar nav pill — each row animates its own highlight independently
+   (matches how native macOS/iOS sidebars actually behave — Finder, Mail,
+   Settings — rather than one indicator sliding between rows, which is a
+   tab-bar pattern, not a sidebar one). Reuses --duration-fast/--ease, the
+   same tokens every other transition in this file already uses. */
+.nav-rail-item {
+  transition: background-color var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
 .nav-rail-item-idle:hover {
   background: var(--nav-hover-bg);
+  transform: translateX(2px);
+}
+
+.nav-rail-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-rail-item-idle:hover {
+    transform: none;
+  }
+}
+
+/* Subtle separator between nav groups instead of relying on whitespace
+   alone — keeps grouping legible without another visible border/card. */
+.nav-section + .nav-section {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 18px;
+  margin-top: 2px;
 }
 
 .cockpit-grid {

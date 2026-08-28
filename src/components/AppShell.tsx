@@ -313,7 +313,7 @@ export function AppShell({
         </Link>
         <nav className="flex-1 space-y-6 overflow-y-auto">
           {navSections.map((section) => (
-            <div key={section.label}>
+            <div key={section.label} className="nav-section">
               <div className="mono text-text-3 px-3 mb-2.5" style={{ opacity: 0.75 }}>
                 {section.label}
               </div>
@@ -324,7 +324,7 @@ export function AppShell({
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-[var(--r-sm)] text-sm transition-all duration-300 active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
+                      className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-full text-sm active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
                       style={{
                         color: active ? "var(--text-1)" : "var(--text-2)",
                         background: active ? "var(--nav-hover-bg)" : "transparent",
