@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Template = { id: string; name: string; sport: string | null; categories: { id: string; label: string }[] };
 type Opponent = { id: string; name: string; sport: string | null; filmCount: number; reportCount: number };
@@ -179,17 +179,30 @@ function ReportsSection({
       {reports.length === 0 ? (
         <p className="text-text-2 text-sm mb-4">No reports yet.</p>
       ) : (
-        <ul className="space-y-3 mb-5">
+        <ul className="space-y-4 mb-5">
           {reports.map((r) => {
             const summary = r.summary ? JSON.parse(r.summary) : null;
+            const categoryAverages: [string, number][] = summary ? Object.entries(summary.averageByCategory ?? {}) : [];
             return (
               <li key={r.id} className="text-sm">
                 <div className="font-medium">{r.title} <span className="badge">{r.reportType}</span></div>
                 {summary && (
-                  <p className="text-text-3 text-xs mt-1">
-                    {summary.analysisEntryCount} graded entries
-                    {Object.keys(summary.tagCounts ?? {}).length > 0 && ` · ${Object.entries(summary.tagCounts as Record<string, number>).map(([k, v]) => `${k}: ${v}`).join(", ")}`}
-                  </p>
+                  <>
+                    <p className="text-text-3 text-xs mt-1">
+                      {summary.analysisEntryCount} graded entries
+                      {Object.keys(summary.tagCounts ?? {}).length > 0 && ` · ${Object.entries(summary.tagCounts as Record<string, number>).map(([k, v]) => `${k}: ${v}`).join(", ")}`}
+                    </p>
+                    {categoryAverages.length > 0 && (
+                      <ul className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
+                        {categoryAverages.map(([label, avg]) => (
+                          <li key={label} className="flex items-center justify-between text-xs text-text-2">
+                            <span className="truncate">{label}</span>
+                            <span className="mono text-text-3 shrink-0 ml-2">{avg}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
                 )}
               </li>
             );
@@ -227,6 +240,7 @@ function OpponentsSection({
   const [opponents, setOpponents] = useState(initialOpponents);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -258,7 +272,18 @@ function OpponentsSection({
         <ul className="space-y-1.5 mb-5 text-sm">
           {opponents.map((o) => (
             <li key={o.id}>
-              {o.name} <span className="text-text-3">— {o.filmCount} film, {o.reportCount} scout report{o.reportCount === 1 ? "" : "s"}</span>
+              <div className="flex items-center justify-between gap-3">
+                <span>
+                  {o.name} <span className="text-text-3">— {o.filmCount} film, {o.reportCount} scout report{o.reportCount === 1 ? "" : "s"}</span>
+                </span>
+                <button
+                  className="text-xs text-text-2 hover:text-text-1 shrink-0"
+                  onClick={() => setExpandedId((id) => (id === o.id ? null : o.id))}
+                >
+                  {expandedId === o.id ? "Hide" : "Scout reports"}
+                </button>
+              </div>
+              {expandedId === o.id && <OpponentScoutReports opponentId={o.id} canManage={canManage} />}
             </li>
           ))}
         </ul>
@@ -273,6 +298,113 @@ function OpponentsSection({
         </form>
       )}
     </section>
+  );
+}
+
+type ScoutReportTag = { id: string; label: string; notes: string | null };
+type ScoutReport = { id: string; title: string; tendencies: string | null; tags: ScoutReportTag[] };
+
+/** Fetched on expand rather than upfront with the opponent list — most opponents are never expanded in a given visit. */
+function OpponentScoutReports({ opponentId, canManage }: { opponentId: string; canManage: boolean }) {
+  const [reports, setReports] = useState<ScoutReport[] | null>(null);
+  const [title, setTitle] = useState("");
+  const [tendencies, setTendencies] = useState("");
+  const [tagsText, setTagsText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/opponents/${opponentId}/scout-reports`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setReports(data.reports ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setReports([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [opponentId]);
+
+  async function create(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const tags = tagsText
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .map((label) => ({ label }));
+      const res = await fetch(`/api/opponents/${opponentId}/scout-reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim(), tendencies: tendencies.trim() || undefined, tags }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Couldn't create scout report.");
+        return;
+      }
+      setReports((r) => [data.report, ...(r ?? [])]);
+      setTitle("");
+      setTendencies("");
+      setTagsText("");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 pl-3" style={{ borderLeft: "1px solid var(--border-soft)" }}>
+      {reports === null ? (
+        <p className="text-text-3 text-xs">Loading…</p>
+      ) : reports.length === 0 ? (
+        <p className="text-text-3 text-xs mb-2">No scout reports yet.</p>
+      ) : (
+        <ul className="space-y-2 mb-3">
+          {reports.map((r) => (
+            <li key={r.id} className="text-xs">
+              <div className="font-medium text-text-2">{r.title}</div>
+              {r.tendencies && <p className="text-text-3 mt-0.5">{r.tendencies}</p>}
+              {r.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {r.tags.map((t) => (
+                    <span key={t.id} className="badge">{t.label}</span>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {canManage && (
+        <form onSubmit={create} className="space-y-2 max-w-sm">
+          <input className="field-input" placeholder="Report title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <textarea
+            className="field-textarea"
+            rows={2}
+            placeholder="Tendencies (optional)"
+            value={tendencies}
+            onChange={(e) => setTendencies(e.target.value)}
+          />
+          <input
+            className="field-input"
+            placeholder="Tags, comma separated (optional)"
+            value={tagsText}
+            onChange={(e) => setTagsText(e.target.value)}
+          />
+          {error && <p className="text-xs" style={{ color: "var(--danger)" }}>{error}</p>}
+          <button type="submit" className="btn-secondary text-xs" disabled={saving}>
+            {saving ? "Saving…" : "Add scout report"}
+          </button>
+        </form>
+      )}
+    </div>
   );
 }
 

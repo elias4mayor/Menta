@@ -2,6 +2,8 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { askGemini, isGeminiConfigured } from "@/lib/ai/gemini";
+import { getMyDay } from "@/lib/my-day";
+import { getAthleteSignals } from "@/lib/athlete-signals";
 import type { SessionUser } from "@/lib/session";
 
 export function isAiConfigured(): boolean {
@@ -114,6 +116,73 @@ export async function buildAthleteContext(user: SessionUser): Promise<string> {
   );
 
   return lines.join("\n");
+}
+
+const DAILY_BRIEF_RULES = `You are generating MENTA's "Daily Brief" — a short, proactive summary of the athlete's day, described below.
+
+Additional non-negotiable rules for this task, on top of your ground rules above:
+- This is a scheduling and prioritization summary, not academic help. Do not explain, solve, or make progress on any assignment listed below — if the athlete wants actual help with one, tell them to open Study Help (MENTA's dedicated academic tool) for that, don't do it here.
+- Use ONLY the schedule/goals/training data given below. Never invent a time, a deadline, or an item that isn't listed.
+- Be concise — a short paragraph or a few short lines, not an essay. Structure it loosely as: what matters today, what's next, what to prioritize.
+- If there is nothing due today or upcoming, say so plainly and encouragingly rather than padding with generic advice.
+- End with one clear, specific, actionable suggestion drawn from the real data (e.g. which item to do first), not generic motivational filler.`;
+
+/**
+ * Deliberately a separate, additive composition on top of buildAthleteContext()
+ * rather than a change to that function's own output — buildAthleteContext()
+ * also backs draftRecruitingOutreach() below, and today's homework/film-review
+ * due-dates have no business leaking into a recruiting email draft. This
+ * layers today's/upcoming schedule (titles + times only, via the same
+ * getMyDay() the dashboard uses — never full assignment descriptions, grades,
+ * or notes) on top of the existing athlete context, for the Daily Brief only.
+ */
+export async function buildDailyBriefContext(user: SessionUser): Promise<string> {
+  const [athleteContext, myDay, signals] = await Promise.all([
+    buildAthleteContext(user),
+    getMyDay(user.id),
+    getAthleteSignals(user.id),
+  ]);
+
+  const lines: string[] = [athleteContext, ""];
+
+  // "Event" alone doesn't tell the AI whether something is personal or a
+  // whole-team commitment (e.g. "your team has practice tomorrow" vs. a
+  // one-off the athlete added themselves) — teamName comes from getMyDay()
+  // for free (no extra query), so surface it here instead of a bare kind label.
+  const describeKind = (i: (typeof myDay.today)[number]) =>
+    i.kind === "Event" && i.teamName ? `Team: ${i.teamName}` : i.kind;
+
+  lines.push(
+    myDay.today.length > 0
+      ? `Today: ${myDay.today.map((i) => `${i.title} (${describeKind(i)}, ${i.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})`).join("; ")}`
+      : "Nothing due or scheduled today."
+  );
+
+  lines.push(
+    myDay.upcoming.length > 0
+      ? `Upcoming: ${myDay.upcoming
+          .slice(0, 6)
+          .map((i) => `${i.title} (${describeKind(i)}, ${i.at.toLocaleDateString(undefined, { month: "short", day: "numeric" })})`)
+          .join("; ")}`
+      : "Nothing else on the horizon yet."
+  );
+
+  // Pre-computed, deterministic observations (src/lib/athlete-signals.ts) —
+  // the AI narrates these, it never calculates them itself.
+  if (signals.length > 0) {
+    lines.push(`Notable: ${signals.map((s) => s.message).join(" ")}`);
+  }
+
+  return lines.join("\n");
+}
+
+/** Generates one Daily Brief reply — a single, non-conversational turn, same pattern draftRecruitingOutreach() below uses. */
+export async function generateDailyBrief(user: SessionUser): Promise<string> {
+  const context = await buildDailyBriefContext(user);
+  return askMentaAi({
+    system: `${DAILY_BRIEF_RULES}\n\nAthlete context:\n${context}`,
+    history: [{ role: "user", content: "Generate my daily brief." }],
+  });
 }
 
 const RECRUITING_OUTREACH_RULES = `You are drafting a recruiting outreach message on behalf of the athlete described below.

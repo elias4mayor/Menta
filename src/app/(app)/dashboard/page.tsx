@@ -2,11 +2,13 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
+import { getMyDay } from "@/lib/my-day";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { PlanCard } from "@/components/PlanCard";
+import { DailyBrief } from "@/components/DailyBrief";
 import { demandsFor } from "@/lib/sports";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
@@ -42,48 +44,24 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
   const now = new Date();
 
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const [
     profile,
     teamMemberships,
-    todaysEvents,
-    upcomingEvents,
+    myDay,
     goals,
     notifications,
     aiConfigured,
     completionsThisWeek,
     latestPerformanceEntry,
     planWorkouts,
-    openAssignments,
-    openFilmTargets,
   ] = await Promise.all([
     prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
     prisma.teamMembership.findMany({
       where: { userId: user.id },
       include: { team: true },
     }),
-    prisma.calendarEvent.findMany({
-      where: {
-        startsAt: { gte: startOfDay(now), lte: endOfDay(now) },
-        OR: [
-          { createdById: user.id },
-          { team: { memberships: { some: { userId: user.id } } } },
-        ],
-      },
-      orderBy: { startsAt: "asc" },
-    }),
-    prisma.calendarEvent.findMany({
-      where: {
-        startsAt: { gt: endOfDay(now), lte: weekAhead },
-        OR: [
-          { createdById: user.id },
-          { team: { memberships: { some: { userId: user.id } } } },
-        ],
-      },
-      orderBy: { startsAt: "asc" },
-      take: 8,
-    }),
+    getMyDay(user.id, now),
     prisma.goal.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -107,17 +85,6 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       include: { completions: { where: { userId: user.id }, orderBy: { completedAt: "desc" } } },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.assignment.findMany({
-      where: { userId: user.id, status: { not: "COMPLETED" } },
-      orderBy: { dueDate: "asc" },
-      take: 10,
-    }),
-    prisma.filmAssignmentTarget.findMany({
-      where: { userId: user.id, status: { not: "COMPLETED" } },
-      include: { assignment: { select: { title: true, dueAt: true } } },
-      orderBy: { assignment: { dueAt: "asc" } },
-      take: 10,
-    }),
   ]);
 
   const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
@@ -137,15 +104,12 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
     }));
 
   const demands = profile?.sport ? demandsFor(profile.sport, profile.position) : null;
-  const nextEvent = upcomingEvents[0];
 
-  // MY DAY — every real thing that needs attention today, across the three
-  // sources that actually have due dates/times (calendar, academics, film
-  // review). Nothing here is fabricated: an item only appears if it's a
-  // real row with a real date in range.
-  const dueTodayAssignments = openAssignments.filter((a) => a.dueDate && a.dueDate <= todayEnd);
-  const dueTodayFilm = openFilmTargets.filter((t) => t.assignment.dueAt && t.assignment.dueAt <= todayEnd);
-  const todayItemCount = todaysEvents.length + dueTodayAssignments.length + dueTodayFilm.length;
+  // Everything below derives from the shared getMyDay() layer (src/lib/my-day.ts)
+  // instead of re-deriving from raw Calendar/Assignment/FilmAssignmentTarget rows —
+  // the same aggregation now also powers the AI's daily-brief context.
+  const todaysEvents = myDay.today.filter((i) => i.kind === "Event");
+  const todayItemCount = myDay.today.length;
   const heroHeadline =
     todaysEvents.length > 0
       ? todaysEvents[0].title
@@ -156,27 +120,19 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           : "Nothing scheduled today";
   // Anything today beyond the single headline item above — shown as a
   // compact secondary list inside the hero rather than a separate section,
-  // so "what's happening today" stays in one place.
-  const moreToday = [
-    ...todaysEvents.slice(1).map((e) => ({ id: e.id, label: e.title })),
-    ...dueTodayAssignments.map((a) => ({ id: a.id, label: a.title })),
-    ...dueTodayFilm.map((t) => ({ id: t.id, label: t.assignment.title })),
-  ].slice(0, 3);
+  // so "what's happening today" stays in one place. Chronological order
+  // (matches the rest of the page) rather than grouped-by-type.
+  const moreToday = myDay.today
+    .filter((item) => item.id !== todaysEvents[0]?.id)
+    .slice(0, 3)
+    .map((item) => ({ id: item.id, label: item.title }));
 
   // UPCOMING — one merged, chronological timeline instead of three separate
   // lists, combining only real calendar/academic/film-assignment rows that
   // are due after today.
-  const upcoming = [
-    ...upcomingEvents.map((e) => ({ id: e.id, date: e.startsAt, title: e.title, kind: "Event" })),
-    ...openAssignments
-      .filter((a) => a.dueDate && a.dueDate > todayEnd)
-      .map((a) => ({ id: a.id, date: a.dueDate as Date, title: a.title, kind: "Academic" })),
-    ...openFilmTargets
-      .filter((t) => t.assignment.dueAt && t.assignment.dueAt > todayEnd)
-      .map((t) => ({ id: t.id, date: t.assignment.dueAt as Date, title: t.assignment.title, kind: "Film" })),
-  ]
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 6);
+  const upcoming = myDay.upcoming.slice(0, 6);
+  const upcomingCalendarEvents = myDay.upcoming.filter((i) => i.kind === "Event");
+  const nextEvent = upcomingCalendarEvents[0];
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -196,7 +152,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           <h2 className="text-2xl font-semibold mb-1 line-clamp-2">{heroHeadline}</h2>
           <p className="text-text-2 text-sm mb-4">
             {todaysEvents.length > 0
-              ? new Date(todaysEvents[0].startsAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+              ? todaysEvents[0].at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
               : todayItemCount > 0
                 ? "Nothing on the calendar, but a few things need attention."
                 : "A good day to log a workout or check in on your goals."}
@@ -231,6 +187,8 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
               </Link>
             ))}
           </div>
+
+          <DailyBrief />
         </div>
 
         <div className="space-y-4 dash-in dash-in-4">
@@ -243,10 +201,10 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
             </div>
             {nextEvent ? (
               <ul className="space-y-3">
-                {upcomingEvents.slice(0, 3).map((event) => (
+                {upcomingCalendarEvents.slice(0, 3).map((event) => (
                   <li key={event.id} className="flex items-center gap-3 text-sm">
                     <span className="mono text-text-3 w-20 shrink-0">
-                      {new Date(event.startsAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                      {event.at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                     <span>{event.title}</span>
                   </li>
@@ -324,7 +282,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
                   {upcoming.map((item) => (
                     <li key={`${item.kind}-${item.id}`} className="flex items-center gap-3 text-sm">
                       <span className="mono text-text-3 w-20 shrink-0">
-                        {item.date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                        {item.at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                       </span>
                       <span className="flex-1 truncate">{item.title}</span>
                       <span className="badge shrink-0">{item.kind}</span>
