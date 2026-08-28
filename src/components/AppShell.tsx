@@ -39,6 +39,8 @@ function navSectionsForRole(role: string): NavSection[] {
         items: [
           { href: "/team", label: "Team", icon: "team" },
           { href: "/film", label: "Film", icon: "film" },
+          { href: "/train", label: "Training", icon: "train" },
+          { href: "/train/exercises", label: "Exercise Library", icon: "train" },
           { href: "/safety", label: "Safety", icon: "safety" },
           { href: "/school", label: "Academics", icon: "school" },
         ],
@@ -75,6 +77,7 @@ function navSectionsForRole(role: string): NavSection[] {
         items: [
           { href: "/team", label: "Groups", icon: "team" },
           { href: "/train", label: "Training", icon: "train" },
+          { href: "/train/exercises", label: "Exercise Library", icon: "train" },
           { href: "/care/provider", label: "Care queue", icon: "safety" },
         ],
       },
@@ -172,6 +175,7 @@ function navSectionsForRole(role: string): NavSection[] {
       label: "Development",
       items: [
         { href: "/train", label: "Training", icon: "train" },
+        { href: "/train/exercises", label: "Exercise Library", icon: "train" },
         { href: "/performance", label: "Performance", icon: "performance" },
         { href: "/film", label: "Film", icon: "film" },
         { href: "/recovery", label: "Recovery", icon: "recovery" },

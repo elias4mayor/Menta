@@ -67,7 +67,7 @@ export type GeneratedWorkout = {
 
 /* ---------------- Warm-up / cooldown pools (category-agnostic) ---------------- */
 
-const WARM_UP_POOL: Drill[] = [
+export const WARM_UP_POOL: Drill[] = [
   {
     name: "Dynamic Leg Swings",
     volume: "10 ea. dir/leg",
@@ -98,7 +98,7 @@ const WARM_UP_POOL: Drill[] = [
   },
 ];
 
-const COOLDOWN_POOL: Drill[] = [
+export const COOLDOWN_POOL: Drill[] = [
   {
     name: "Easy Walk",
     volume: "3–5 min",
@@ -117,7 +117,7 @@ const COOLDOWN_POOL: Drill[] = [
 
 /* ---------------- FOOTWORK (also the AGILITY-goal pool) ---------------- */
 
-const FOOTWORK_DRILLS: Drill[] = [
+export const FOOTWORK_DRILLS: Drill[] = [
   {
     name: "Ladder In-In-Out-Out",
     volume: "4 x through",
@@ -171,7 +171,7 @@ const FOOTWORK_DRILLS: Drill[] = [
 
 /* ---------------- Position-specific skill pools (Football) ---------------- */
 
-const QUARTERBACK_DRILLS: Drill[] = [
+export const QUARTERBACK_DRILLS: Drill[] = [
   {
     name: "3-Step Drop",
     volume: "6 reps",
@@ -237,7 +237,7 @@ const QUARTERBACK_DRILLS: Drill[] = [
   },
 ];
 
-const RECEIVER_DRILLS: Drill[] = [
+export const RECEIVER_DRILLS: Drill[] = [
   {
     name: "Release vs. Jam",
     volume: "6 reps each side",
@@ -282,7 +282,7 @@ const RECEIVER_DRILLS: Drill[] = [
   },
 ];
 
-const RUNNING_BACK_DRILLS: Drill[] = [
+export const RUNNING_BACK_DRILLS: Drill[] = [
   {
     name: "Cutback Drill",
     volume: "6 reps/direction",
@@ -327,7 +327,7 @@ const RUNNING_BACK_DRILLS: Drill[] = [
   },
 ];
 
-const DEFENSIVE_DRILLS: Drill[] = [
+export const DEFENSIVE_DRILLS: Drill[] = [
   {
     name: "Backpedal Technique",
     volume: "4 x 10 yd",
@@ -379,7 +379,7 @@ const DEFENSIVE_DRILLS: Drill[] = [
   },
 ];
 
-const GENERAL_ATHLETIC_DRILLS: Drill[] = [
+export const GENERAL_ATHLETIC_DRILLS: Drill[] = [
   {
     name: "Multi-Directional Coordination Ladder",
     volume: "4 x through",
@@ -426,7 +426,7 @@ const GENERAL_ATHLETIC_DRILLS: Drill[] = [
 
 /* ---------------- Generic non-SKILL category pools (all sports) ---------------- */
 
-const STRENGTH_DRILLS: Drill[] = [
+export const STRENGTH_DRILLS: Drill[] = [
   { name: "Back Squat", volume: "4 x 5", instructions: "Squat to at least parallel with a controlled tempo.", cue: "Chest up, knees track over your toes.", equipment: ["Barbell"] },
   { name: "Romanian Deadlift", volume: "3 x 8", instructions: "Hinge at the hips with a slight knee bend, bar close to the legs.", cue: "Push your hips back first — this is a hinge, not a squat.", equipment: ["Barbell"] },
   { name: "Goblet Squat", volume: "3 x 10", instructions: "Hold a dumbbell at chest height, squat with an upright torso.", cue: "Elbows brush the inside of your knees at the bottom.", equipment: ["Dumbbells"] },
@@ -435,34 +435,34 @@ const STRENGTH_DRILLS: Drill[] = [
   { name: "Core Circuit (Plank / Side Plank / Dead Bug)", volume: "3 x 30 sec ea.", instructions: "Cycle through the three positions with good bracing.", cue: "Breathe — don't hold your breath through the brace.", equipment: [] },
 ];
 
-const SPEED_DRILLS: Drill[] = [
+export const SPEED_DRILLS: Drill[] = [
   { name: "Sprint Starts", volume: "6 x 20 yd", instructions: "Explosive starts from a two-point stance, full recovery between reps.", cue: "First three steps stay low and drive forward, don't pop up early.", equipment: [] },
   { name: "Flying 20s", volume: "4 x 20 yd", instructions: "Build up speed over 15 yd, then sprint all-out through a 20 yd zone.", cue: "Relax your face and hands — tension slows top speed.", equipment: [] },
   { name: "A-Skips", volume: "3 x 20 yd", instructions: "Skip with high knee drive and active foot strike, drilling sprint mechanics.", cue: "Punch the ground down and back with each step.", equipment: [] },
   { name: "Resisted Sprints", volume: "5 x 15 yd", instructions: "Sprint against light resistance (band or sled) to build drive phase power.", cue: "Stay low and drive — don't let the resistance pull your hips up early.", equipment: ["Resistance Band", "Sled"] },
 ];
 
-const CONDITIONING_DRILLS: Drill[] = [
+export const CONDITIONING_DRILLS: Drill[] = [
   { name: "Interval Runs", volume: "6 x 400m", instructions: "Run each interval hard with equal rest between, matched to your sport's work-to-rest ratio.", cue: "Even pacing — don't blow up on the first rep.", equipment: [] },
   { name: "Shuttle Conditioning", volume: "8 x 40 yd shuttle", instructions: "Sprint down and back with a brief rest, mimicking repeated-sprint sport demands.", cue: "Sprint through the line every time, not just to it.", equipment: ["Cones"] },
   { name: "Tempo Run", volume: "20 min continuous", instructions: "Sustained moderate-pace run to build aerobic capacity.", cue: "Comfortably hard — you can speak in short sentences.", equipment: [] },
   { name: "Bike Intervals", volume: "8 x 1min on/off", instructions: "Alternate hard and easy effort on a stationary bike or outdoors.", cue: "Push the hard minutes — the easy minute is real recovery.", equipment: [] },
 ];
 
-const MOBILITY_DRILLS: Drill[] = [
+export const MOBILITY_DRILLS: Drill[] = [
   { name: "Hip Mobility Flow", volume: "10 min", instructions: "Move through 90/90 switches, hip circles, and world's greatest stretch.", cue: "Move slow and controlled — mobility isn't a race.", equipment: [] },
   { name: "Shoulder Mobility Circuit", volume: "8 min", instructions: "Band pull-aparts, wall slides, and shoulder CARs (controlled articular rotations).", cue: "Full range, no shrugging — keep the shoulder blades down.", equipment: ["Resistance Band"] },
   { name: "Foam Rolling", volume: "10 min", instructions: "Roll major muscle groups — quads, hamstrings, calves, upper back.", cue: "Slow rolls, pause on tender spots for a few breaths.", equipment: [] },
   { name: "Ankle & Thoracic Spine Mobility", volume: "8 min", instructions: "Ankle rocks against a wall and open-book thoracic rotations.", cue: "Keep your heel down through the ankle rocks.", equipment: [] },
 ];
 
-const RECOVERY_DRILLS: Drill[] = [
+export const RECOVERY_DRILLS: Drill[] = [
   { name: "Active Recovery Walk", volume: "20 min", instructions: "Easy-pace walk to promote blood flow without adding fatigue.", cue: "Nose-breathing pace — this should feel effortless.", equipment: [] },
   { name: "Full-Body Stretching Routine", volume: "15 min", instructions: "Static stretches for all major muscle groups, held without bouncing.", cue: "Stretch to mild tension and hold — don't force it.", equipment: [] },
   { name: "Foam Rolling", volume: "15 min", instructions: "Slow, thorough rolling of the muscles worked hardest this week.", cue: "Breathe through tender spots instead of tensing against them.", equipment: [] },
 ];
 
-const GENERIC_SKILL_POOL: Drill[] = [
+export const GENERIC_SKILL_POOL: Drill[] = [
   { name: "Sport-Specific Technique Repetition", volume: "10 min", instructions: "Repeat your sport's core technical movement at moderate speed, focusing on form.", cue: "Quality reps — stop before technique breaks down from fatigue.", equipment: [] },
   { name: "Film Study Session", volume: "15 min", instructions: "Watch recent film of your own play or a model athlete at your position.", cue: "Watch with a specific question in mind, not passively.", equipment: [] },
   { name: "Small-Sided Skill Game", volume: "15 min", instructions: "Play a small-sided, game-like version of your sport emphasizing the skill you're working on.", cue: "Let the constraint (space, numbers) force the skill you're training.", equipment: [] },

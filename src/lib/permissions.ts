@@ -226,6 +226,26 @@ export async function canUploadFilmToTeam(
   return hasTeamPermission(userId, teamId, "UPLOAD_FILM", positionGroupId);
 }
 
+/** Create a team-custom exercise in the MENTA TRAIN library — coach/admin, or an explicit MANAGE_EXERCISE_LIBRARY grant. Global (teamId null) exercises are never created through this check — they're seed data only. */
+export async function canManageTeamExercises(userId: string, teamId: string): Promise<boolean> {
+  return hasTeamPermission(userId, teamId, "MANAGE_EXERCISE_LIBRARY");
+}
+
+/** Create/edit/archive a team's MENTA TRAIN training programs — coach/admin, or an explicit MANAGE_TRAINING_PROGRAMS grant. */
+export async function canManageTrainingPrograms(userId: string, teamId: string): Promise<boolean> {
+  return hasTeamPermission(userId, teamId, "MANAGE_TRAINING_PROGRAMS");
+}
+
+/** Start/control a MENTA LIVE session and manage its groups — coach/admin, or an explicit RUN_LIVE_SESSION grant. */
+export async function canRunLiveSession(userId: string, teamId: string): Promise<boolean> {
+  return hasTeamPermission(userId, teamId, "RUN_LIVE_SESSION");
+}
+
+/** Log a TrainingSet on behalf of another athlete (no-phone mode) — coach/admin, or an explicit LOG_TRAINING_SETS grant. An athlete logging their own set bypasses this entirely (identity check, not a permission). */
+export async function canLogTrainingSetsForOthers(userId: string, teamId: string): Promise<boolean> {
+  return hasTeamPermission(userId, teamId, "LOG_TRAINING_SETS");
+}
+
 /** Edit/delete/re-tier a film — uploader, or MANAGE_FILM on the team (optionally scoped to the film's position group). */
 export async function canManageFilm(
   viewer: SessionUser,
@@ -419,6 +439,14 @@ export const PERMISSIONS = [
   "MANAGE_SCOUTING",
   /** Share this team's film/playlists with another team. */
   "MANAGE_FILM_SHARING",
+  /** Create/edit the team's own custom exercises in the MENTA TRAIN exercise library. */
+  "MANAGE_EXERCISE_LIBRARY",
+  /** Create/edit/archive MENTA TRAIN training programs (blocks + program exercises) for the team. */
+  "MANAGE_TRAINING_PROGRAMS",
+  /** Start/pause/resume/complete/cancel a MENTA LIVE session, and create/edit/advance its groups. */
+  "RUN_LIVE_SESSION",
+  /** Log a TrainingSet on behalf of another athlete (no-phone mode). An athlete logging their own set never needs this — that's an identity check, not a permission. */
+  "LOG_TRAINING_SETS",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

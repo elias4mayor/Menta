@@ -97,6 +97,14 @@ model User {
   filmAssignmentTargets      FilmAssignmentTarget[]
   filmReviewRequestsAsAthlete FilmReviewRequest[]       @relation("FilmReviewRequestAthlete")
   coachNotesAboutMe          CoachNote[]                @relation("CoachNoteAthlete")
+  createdExercises           Exercise[]
+  createdTrainingPrograms    TrainingProgram[]          @relation("TrainingProgramCreator")
+  createdTrainingSessions    TrainingSession[]          @relation("TrainingSessionCreator")
+  trainingGroupMemberships   TrainingGroupMember[]
+  athletePrescriptions       AthletePrescription[]      @relation("PrescriptionAthlete")
+  prescriptionsSet           AthletePrescription[]      @relation("PrescriptionSetter")
+  trainingSetsAsAthlete      TrainingSet[]              @relation("TrainingSetAthlete")
+  trainingSetsLogged         TrainingSet[]              @relation("TrainingSetLogger")
 
   @@index([role])
 }
@@ -417,6 +425,9 @@ model Team {
   scoutReports         ScoutReport[]
   filmShareGrantsSent     FilmShareGrant[] @relation("FilmShareGrantFrom")
   filmShareGrantsReceived FilmShareGrant[] @relation("FilmShareGrantTo")
+  exercises               Exercise[]
+  trainingPrograms        TrainingProgram[]
+  trainingSessions        TrainingSession[]
 
   @@index([organizationId])
 }
@@ -935,6 +946,8 @@ model PositionGroup {
   playlists   FilmPlaylist[]
   assignments FilmAssignment[]
   permissionGrants TeamPermissionGrant[]
+  trainingPrograms TrainingProgram[]
+  trainingSessions TrainingSession[]
 
   @@index([teamId])
 }
@@ -1899,4 +1912,352 @@ model DocumentRequest {
   athlete     User @relation("DocumentRequestAthlete", fields: [athleteId], references: [id])
 
   @@index([athleteId])
+}
+
+// =====================================================================
+// MENTA TRAIN — structured training programs, live weight-room sessions,
+// and the per-set training ledger.
+//
+// Deliberately parallel to, not a replacement for, Workout/
+// WorkoutCompletion above: those stay exactly as they are (a lightweight
+// personal/team "here's a workout, mark it done" tool with exercises as
+// a JSON blob). MENTA TRAIN is the structured, coach-run, live-session
+// system — TrainingProgram/TrainingBlock/ProgramExercise replace the
+// JSON-blob approach only for *new* programs built here; existing
+// Workout rows are never touched or migrated.
+//
+// TrainingGroup is deliberately its own session-scoped model, not a
+// reuse of PositionGroup: a position group ("QB", "OL") is a season-long
+// team subdivision, while a live session's station groups ("Group A at
+// the squat racks today") are ephemeral and can be reshuffled every
+// session. PositionGroup may still seed a session's default groups at
+// the application layer later — the schema doesn't need to know that.
+//
+// Real-time updates for live sessions use plain polling (the same
+// pattern src/components/ThreadView.tsx already uses for messages) — no
+// new realtime infrastructure. AI involvement (Daily Brief/Athlete
+// Signals integration, film-informed suggestions) is out of scope for
+// this phase; AthletePrescription numbers are always coach-authored and
+// deterministic — see its own doc comment below.
+// =====================================================================
+
+/// A library exercise. teamId null = a MENTA-curated global library entry
+/// (to be seeded from src/lib/workout-generator.ts's existing drill
+/// content in a later phase); teamId set = a team's own custom exercise —
+/// same nullable-scope pattern as FilmTagDefinition/Opponent above. sport
+/// is free text for the same reason Team.sport/FilmTagDefinition.sport
+/// are: a library entry isn't athlete-specific, so it has no
+/// AthleteSportContext to hang off (see the multi-sport note near the
+/// top of this file).
+///
+/// Category: STRENGTH, SPEED, AGILITY, CONDITIONING, MOBILITY, SKILL,
+/// RECOVERY (same vocabulary as Workout.category / src/lib/sports.ts's
+/// WorkoutCategory), plus WARMUP and COOLDOWN — added in the Phase 3
+/// seed migration once real warmup/cooldown drill content needed a home
+/// that isn't a stretch fit for any of the seven WorkoutCategory values.
+model Exercise {
+  id              String   @id @default(cuid())
+  teamId          String?
+  sport           String?
+  name            String
+  category        String
+  /// JSON-stringified string array of position names, e.g.
+  /// ["Wide Receiver","Tight End"] — added in the Phase 3 seed migration
+  /// once real position-specific drill content (QB/WR-TE/RB/DL-LB-CB-S)
+  /// needed a home. Same array-as-JSON-string choice as `equipment`
+  /// below, for the same reason: a drill can be relevant to more than
+  /// one position, and a real join table isn't justified yet.
+  positions       String?
+  movementPattern String?
+  /// JSON-stringified string array, e.g. ["Barbell","Rack"] — same
+  /// single-field-until-proven-necessary choice as Workout.exercises.
+  equipment       String?
+  instructions    String?
+  coachingCues    String?
+  /// External URL only for this phase — a Film-backed demo (per the
+  /// MENTA TRAIN plan's exercise-video requirement) needs a relation
+  /// added to the Film model, which is explicitly out of scope for this
+  /// migration; see the Phase 2 report for why that's deferred rather
+  /// than done here.
+  videoUrl        String?
+  createdById     String
+  createdAt       DateTime @default(now())
+
+  team             Team?             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  programExercises ProgramExercise[]
+  trainingSets     TrainingSet[]
+
+  @@index([teamId])
+  @@index([sport])
+  @@index([category])
+  @@index([createdById])
+}
+
+/// A coach-authored training program — always team-owned, optionally
+/// scoped to one PositionGroup (team-wide when null), same pattern as
+/// FilmAssignment.positionGroupId. sport is free text, same rationale as
+/// Exercise.sport above.
+///
+/// Status: DRAFT, ACTIVE, ARCHIVED
+model TrainingProgram {
+  id              String   @id @default(cuid())
+  teamId          String
+  positionGroupId String?
+  sport           String?
+  title           String
+  description     String?
+  status          String   @default("DRAFT")
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  team          Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?    @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
+  createdBy     User              @relation("TrainingProgramCreator", fields: [createdById], references: [id])
+  blocks        TrainingBlock[]
+  sessions      TrainingSession[]
+
+  @@index([teamId])
+  @@index([positionGroupId])
+  @@index([createdById])
+}
+
+/// One ordered section of a program ("Warmup", "Power", "Strength"...).
+/// blockType is an optional label for that same vocabulary — free text,
+/// coach-defined, never a fixed enum (matches PositionGroup.name's own
+/// "never a fixed enum" convention).
+model TrainingBlock {
+  id        String   @id @default(cuid())
+  programId String
+  title     String
+  blockType String?
+  order     Int
+  createdAt DateTime @default(now())
+
+  program           TrainingProgram   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises         ProgramExercise[]
+  currentInSessions TrainingSession[] @relation("SessionCurrentBlock")
+  currentInGroups   TrainingGroup[]   @relation("GroupCurrentBlock")
+
+  @@index([programId])
+}
+
+/// One exercise placed within a block, with the block's default/team
+/// prescription. targetReps is a string (not Int) on purpose — real
+/// programming needs "8-10", "AMRAP", "max", not just a number, the same
+/// reason src/lib/generate-plan.ts's PlanExercise.reps is already a
+/// string. supersetGroup is the simplest possible representation of a
+/// superset/circuit: program exercises sharing the same tag within a
+/// block are treated as one superset — no separate join model needed
+/// for v1.
+model ProgramExercise {
+  id                String   @id @default(cuid())
+  blockId           String
+  exerciseId        String
+  order             Int
+  targetSets        Int?
+  targetReps        String?
+  targetLoad        Float?
+  targetLoadPercent Float?
+  targetLoadUnit    String?
+  tempo             String?
+  restSec           Int?
+  durationSec       Float?
+  distanceMeters    Float?
+  rpeTarget         Float?
+  supersetGroup     String?
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  block                  TrainingBlock         @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  exercise               Exercise              @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  prescriptions          AthletePrescription[]
+  trainingSets           TrainingSet[]
+  currentInSessions      TrainingSession[]     @relation("SessionCurrentProgramExercise")
+  currentInGroups        TrainingGroup[]       @relation("GroupCurrentProgramExercise")
+
+  @@index([blockId])
+  @@index([exerciseId])
+}
+
+/// The deterministic, coach-controlled per-athlete override of a
+/// ProgramExercise's load/reps/sets — never AI-written ("AI can
+/// recommend, AI cannot silently prescribe" per the MENTA TRAIN plan).
+/// calculationBasis records how the number was arrived at, purely for
+/// transparency/audit — it carries no logic in this phase.
+///
+/// Basis: MANUAL, PERCENT_1RM, PREVIOUS_PERFORMANCE, COACH_OVERRIDE
+model AthletePrescription {
+  id                 String   @id @default(cuid())
+  programExerciseId  String
+  athleteId          String
+  prescribedLoad     Float?
+  prescribedLoadUnit String?
+  prescribedReps     String?
+  prescribedSets     Int?
+  calculationBasis   String?
+  setById            String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  programExercise ProgramExercise @relation(fields: [programExerciseId], references: [id], onDelete: Cascade)
+  athlete         User            @relation("PrescriptionAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  setBy           User            @relation("PrescriptionSetter", fields: [setById], references: [id])
+
+  @@unique([programExerciseId, athleteId])
+  @@index([athleteId])
+}
+
+/// A scheduled or live instance of a program for a team (or one of its
+/// position groups). teamId is required and set directly (not just
+/// reachable via program) so every session is unambiguously team-scoped
+/// even if programId is ever null (an ad hoc session with no saved
+/// program). currentBlockId/currentProgramExerciseId are the "where is
+/// this live session right now" pointers the MENTA TRAIN live-session
+/// engine will need — both SetNull on delete so editing/removing a block
+/// never corrupts session history, it just clears the live pointer.
+///
+/// Status: SCHEDULED, LIVE, PAUSED, COMPLETE, CANCELED
+model TrainingSession {
+  id                       String    @id @default(cuid())
+  teamId                   String
+  programId                String?
+  positionGroupId          String?
+  title                    String
+  status                   String    @default("SCHEDULED")
+  scheduledAt              DateTime?
+  startedAt                DateTime?
+  pausedAt                 DateTime?
+  completedAt              DateTime?
+  currentBlockId           String?
+  currentProgramExerciseId String?
+  createdById              String
+  createdAt                DateTime  @default(now())
+
+  team                   Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  program                TrainingProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  positionGroup          PositionGroup?   @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
+  currentBlock           TrainingBlock?   @relation("SessionCurrentBlock", fields: [currentBlockId], references: [id], onDelete: SetNull)
+  currentProgramExercise ProgramExercise? @relation("SessionCurrentProgramExercise", fields: [currentProgramExerciseId], references: [id], onDelete: SetNull)
+  createdBy              User             @relation("TrainingSessionCreator", fields: [createdById], references: [id])
+  groups                 TrainingGroup[]
+  groupMemberships       TrainingGroupMember[]
+  sets                   TrainingSet[]
+
+  @@index([teamId])
+  @@index([programId])
+  @@index([positionGroupId])
+  @@index([status])
+  @@index([currentBlockId])
+  @@index([currentProgramExerciseId])
+}
+
+/// A session-scoped station/group ("Group A", "Squat Racks") — see the
+/// file-level doc comment above for why this is its own model rather
+/// than a reuse of PositionGroup. stationLabel is a free-text hint at
+/// equipment/location; a real equipment-capacity model is deliberately
+/// deferred to a later phase.
+///
+/// currentBlockId/currentProgramExerciseId (Phase 6 / MENTA LIVE) mirror
+/// TrainingSession's own identically-named fields one level down — the
+/// session-level pair means "where the room started / the whole-room
+/// pointer," these mean "where THIS station actually is right now."
+/// Added because independent station rotation (Group A on squat while
+/// Group B is on bench) has no other field anywhere in this schema to
+/// record per-group progress; see the Phase 6 spec's schema audit.
+/// Both SetNull on delete for the same reason TrainingSession's pair are:
+/// editing/removing a block must clear the live pointer, never corrupt
+/// the group row itself.
+model TrainingGroup {
+  id                       String   @id @default(cuid())
+  sessionId                String
+  name                     String
+  stationLabel             String?
+  order                    Int?
+  currentBlockId           String?
+  currentProgramExerciseId String?
+  createdAt                DateTime @default(now())
+
+  session                TrainingSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  currentBlock           TrainingBlock?   @relation("GroupCurrentBlock", fields: [currentBlockId], references: [id], onDelete: SetNull)
+  currentProgramExercise ProgramExercise? @relation("GroupCurrentProgramExercise", fields: [currentProgramExerciseId], references: [id], onDelete: SetNull)
+  members                TrainingGroupMember[]
+  sets                   TrainingSet[]
+
+  @@index([sessionId])
+  @@index([currentBlockId])
+  @@index([currentProgramExerciseId])
+}
+
+/// Join table for TrainingGroup membership. sessionId is denormalized
+/// from groupId's own session so "one group per athlete per session" can
+/// be enforced with a plain unique index — the same denormalize-for-a-
+/// direct-constraint move ScoutReport.teamId (alongside opponentId)
+/// already makes above, needed here because a constraint reaching
+/// through a second table (group -> session) can't be expressed as a
+/// single-table unique index otherwise.
+model TrainingGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  sessionId String
+  athleteId String
+  createdAt DateTime @default(now())
+
+  group   TrainingGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  athlete User            @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, athleteId])
+  @@index([groupId])
+}
+
+/// The foundational granular training record — one logged set. teamId is
+/// denormalized from session.teamId specifically because this is the
+/// highest-write-volume, most-polled table in MENTA TRAIN (every set, by
+/// every athlete, in every live session) — a direct teamId means any
+/// authorization-scoped query never needs to join through session to
+/// stay team-scoped. exercise/programExercise use Restrict/SetNull
+/// respectively so a logged set never silently loses its "what exercise
+/// was this" fact even if the library entry or planned slot is later
+/// removed. completed defaults true; a missed/skipped attempt is
+/// recorded as completed=false rather than deleted, preserving history.
+/// editedAt follows FilmComment's convention for "was this corrected
+/// after logging" (a coach fixing a typo'd weight, say).
+model TrainingSet {
+  id                String    @id @default(cuid())
+  sessionId         String
+  teamId            String
+  exerciseId        String
+  programExerciseId String?
+  groupId           String?
+  athleteId         String
+  loggedById        String
+  setNumber         Int
+  reps              Int?
+  weight            Float?
+  weightUnit        String?
+  rpe               Float?
+  durationSec       Float?
+  distanceMeters    Float?
+  completed         Boolean   @default(true)
+  notes             String?
+  loggedAt          DateTime  @default(now())
+  editedAt          DateTime?
+
+  session         TrainingSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise        Exercise         @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  programExercise ProgramExercise? @relation(fields: [programExerciseId], references: [id], onDelete: SetNull)
+  group           TrainingGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  athlete         User             @relation("TrainingSetAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  loggedBy        User             @relation("TrainingSetLogger", fields: [loggedById], references: [id])
+
+  @@index([sessionId])
+  @@index([teamId])
+  @@index([athleteId])
+  @@index([exerciseId])
+  @@index([programExerciseId])
+  @@index([groupId])
+  @@index([sessionId, athleteId])
+  @@index([loggedAt])
 }

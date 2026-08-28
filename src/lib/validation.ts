@@ -627,3 +627,118 @@ export const updateTeamSafetyChecklistItemSchema = z.object({
   status: z.enum(SAFETY_CHECKLIST_STATUSES).optional(),
   notes: z.string().trim().max(1000).optional(),
 });
+
+/// MENTA TRAIN Program Builder (Phase 4). exerciseId/positionGroupId are
+/// validated for real (visibility + team ownership), not just shape, by
+/// the route handler — this schema only checks the request is
+/// well-formed. A whole-document save (program + all its blocks/
+/// exercises in one request) rather than granular per-block/per-exercise
+/// endpoints, matching how the builder UI edits one in-memory document
+/// and saves it as a unit; see the Phase 4 spec for why.
+export const programExerciseInputSchema = z.object({
+  exerciseId: z.string().min(1),
+  order: z.number().int().min(0),
+  targetSets: z.number().int().min(1).max(50).optional(),
+  targetReps: z.string().trim().max(40).optional(),
+  targetLoad: z.number().min(0).optional(),
+  targetLoadPercent: z.number().min(0).max(100).optional(),
+  targetLoadUnit: z.enum(["LB", "KG"]).optional(),
+  tempo: z.string().trim().max(20).optional(),
+  restSec: z.number().int().min(0).max(3600).optional(),
+  durationSec: z.number().min(0).optional(),
+  distanceMeters: z.number().min(0).optional(),
+  rpeTarget: z.number().min(0).max(10).optional(),
+  supersetGroup: z.string().trim().max(40).optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const trainingBlockInputSchema = z.object({
+  title: z.string().trim().min(1).max(80),
+  blockType: z.string().trim().max(40).optional(),
+  order: z.number().int().min(0),
+  exercises: z.array(programExerciseInputSchema).max(50),
+});
+
+export const trainingProgramInputSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(2000).optional(),
+  sport: z.string().trim().max(60).optional(),
+  positionGroupId: z.string().optional(),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+  blocks: z.array(trainingBlockInputSchema).max(20),
+});
+
+/// MENTA TRAIN Athlete Prescriptions (Phase 5). programExerciseId/
+/// athleteId are validated for real (program/team ownership) by the
+/// route handler, not just shape here. calculationBasis mirrors
+/// AthletePrescription's own doc comment in schema.prisma — MANUAL is
+/// the default for a coach directly typing or copying a number; there is
+/// no AI-computed basis yet.
+export const athletePrescriptionEntrySchema = z.object({
+  athleteId: z.string().min(1),
+  prescribedLoad: z.number().min(0).optional(),
+  prescribedLoadUnit: z.enum(["LB", "KG"]).optional(),
+  prescribedReps: z.string().trim().max(40).optional(),
+  prescribedSets: z.number().int().min(1).max(50).optional(),
+  calculationBasis: z.enum(["MANUAL", "PERCENT_1RM", "PREVIOUS_PERFORMANCE", "COACH_OVERRIDE"]).optional(),
+});
+
+export const athletePrescriptionInputSchema = z.object({
+  programExerciseId: z.string().min(1),
+  prescriptions: z.array(athletePrescriptionEntrySchema).min(1).max(200),
+});
+
+export const clearAthletePrescriptionsSchema = z.object({
+  programExerciseId: z.string().min(1),
+  athleteIds: z.array(z.string().min(1)).min(1).max(200),
+});
+
+/// MENTA LIVE (Phase 6). liveGroupInputSchema/createLiveSessionInputSchema
+/// describe the request shape only — every id inside is re-validated
+/// against real team/program/session relationships by src/lib/live-sessions.ts,
+/// never trusted just because it parses.
+export const liveGroupInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  stationLabel: z.string().trim().max(80).optional(),
+  athleteIds: z.array(z.string().min(1)).min(1).max(200),
+});
+
+export const createLiveSessionInputSchema = z
+  .object({
+    title: z.string().trim().min(1).max(160),
+    scheduledAt: z.string().datetime().optional(),
+    groups: z.array(liveGroupInputSchema).min(1).max(20).optional(),
+    athleteIds: z.array(z.string().min(1)).min(1).max(200).optional(),
+  })
+  .refine((data) => data.groups || data.athleteIds, { message: "Provide groups or athleteIds." });
+
+export const sessionStatusInputSchema = z.object({
+  status: z.enum(["LIVE", "PAUSED", "COMPLETE", "CANCELED"]),
+});
+
+export const createSessionGroupInputSchema = liveGroupInputSchema;
+
+export const updateSessionGroupInputSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  stationLabel: z.string().trim().max(80).optional(),
+  athleteIds: z.array(z.string().min(1)).min(1).max(200).optional(),
+});
+
+export const advanceInputSchema = z.object({
+  programExerciseId: z.string().min(1),
+});
+
+export const logSetInputSchema = z.object({
+  athleteId: z.string().min(1),
+  programExerciseId: z.string().min(1),
+  groupId: z.string().optional(),
+  setNumber: z.number().int().min(1).max(50),
+  reps: z.number().int().min(0).max(200).optional(),
+  weight: z.number().min(0).optional(),
+  weightUnit: z.enum(["LB", "KG"]).optional(),
+  rpe: z.number().min(0).max(10).optional(),
+  durationSec: z.number().min(0).optional(),
+  distanceMeters: z.number().min(0).optional(),
+  completed: z.boolean().optional(),
+  notes: z.string().trim().max(500).optional(),
+});

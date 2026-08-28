@@ -90,6 +90,9 @@ export default async function TeamPage() {
                         Film intelligence →
                       </Link>
                     )}
+                    <Link href={`/team/${m.team.id}/programs`} className="text-xs text-text-2 hover:text-text-1 underline">
+                      Training programs →
+                    </Link>
                   </div>
                   <div className="mono text-text-3 mb-2">Roster ({m.team.memberships.length})</div>
                   <ul className="space-y-1.5 text-sm">
