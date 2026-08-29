@@ -546,3 +546,71 @@ export async function listTeamSessions(teamId: string) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+function startOfDay(d: Date): Date {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function endOfDay(d: Date): Date {
+  const copy = new Date(d);
+  copy.setHours(23, 59, 59, 999);
+  return copy;
+}
+
+export type TeamTodaySession = {
+  id: string;
+  title: string;
+  status: "LIVE" | "SCHEDULED";
+  scheduledAt: Date | null;
+  startedAt: Date | null;
+  athleteCount: number;
+};
+
+/**
+ * Every session relevant to "today" for a whole team — the Coach Command
+ * Center's read, as opposed to src/lib/my-day.ts's getTodaySession()
+ * which is deliberately athlete-scoped (via TrainingGroupMember). This
+ * one is scoped by teamId directly since a coach isn't necessarily a
+ * participant in any session themselves. Same "what counts as today"
+ * rule as the athlete version, kept independently here rather than
+ * shared: LIVE always counts; SCHEDULED counts if scheduledAt falls
+ * today, or has no scheduledAt but was created today. Sorted LIVE-first,
+ * then earliest relevant timestamp — the caller decides how many to
+ * feature vs. summarize.
+ */
+export async function getTeamTodaySessions(teamId: string, now: Date): Promise<TeamTodaySession[]> {
+  const dayStart = startOfDay(now);
+  const dayEnd = endOfDay(now);
+
+  const sessions = await prisma.trainingSession.findMany({
+    where: {
+      teamId,
+      OR: [
+        { status: "LIVE" },
+        { status: "SCHEDULED", scheduledAt: { gte: dayStart, lte: dayEnd } },
+        { status: "SCHEDULED", scheduledAt: null, createdAt: { gte: dayStart, lte: dayEnd } },
+      ],
+    },
+    include: { _count: { select: { groupMemberships: true } } },
+  });
+
+  const sorted = [...sessions].sort((a, b) => {
+    const aLive = a.status === "LIVE" ? 0 : 1;
+    const bLive = b.status === "LIVE" ? 0 : 1;
+    if (aLive !== bLive) return aLive - bLive;
+    const aTime = (a.startedAt ?? a.scheduledAt ?? a.createdAt).getTime();
+    const bTime = (b.startedAt ?? b.scheduledAt ?? b.createdAt).getTime();
+    return aTime - bTime;
+  });
+
+  return sorted.map((s) => ({
+    id: s.id,
+    title: s.title,
+    status: s.status as "LIVE" | "SCHEDULED",
+    scheduledAt: s.scheduledAt,
+    startedAt: s.startedAt,
+    athleteCount: s._count.groupMemberships,
+  }));
+}

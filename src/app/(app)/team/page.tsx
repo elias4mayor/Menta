@@ -76,6 +76,12 @@ export default async function TeamPage() {
                       <div className="mono text-text-3 mb-2">Quick actions</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <NavTile
+                          href={`/team/${m.team.id}/train`}
+                          icon="spark"
+                          label="Training command center"
+                          description="What's happening today"
+                        />
+                        <NavTile
                           href={`/team/${m.team.id}/programs`}
                           icon="train"
                           label="Training programs"
