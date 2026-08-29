@@ -7,6 +7,8 @@ import { ParentProfileForm } from "@/components/ParentProfileForm";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { YourSportsManager } from "@/components/YourSportsManager";
 import { isMinor } from "@/lib/permissions";
+import { getSelfAthleteProfile } from "@/lib/athlete-profile";
+import { AthleteProfileView } from "@/components/AthleteProfileView";
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -20,6 +22,24 @@ function parseJsonArray(value: string | null | undefined): string[] {
 
 export default async function ProfilePage() {
   const user = await requireUser();
+
+  if (user.role === "ATHLETE") {
+    const profile = await getSelfAthleteProfile(user.id);
+    return (
+      <div className="w-full flex justify-center">
+        <div className="w-full py-6">
+          <AthleteProfileView profile={profile} mode="self" />
+          <div className="max-w-2xl mx-auto mt-10 pt-10 border-t border-[var(--border-soft)]">
+            <div className="flex justify-center mb-8">
+              <AvatarUpload userId={user.id} name={user.name} />
+            </div>
+            <div className="mono text-text-3 mb-4 text-center">Edit your profile</div>
+            <ProfileFormForRole role={user.role} userId={user.id} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex justify-center">
