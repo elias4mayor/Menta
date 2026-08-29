@@ -9,6 +9,7 @@ import { TodaysPriorities } from "@/components/TodaysPriorities";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { PlanCard } from "@/components/PlanCard";
 import { DailyBrief } from "@/components/DailyBrief";
+import { TodaysSessionCard } from "@/components/TodaysSessionCard";
 import { demandsFor } from "@/lib/sports";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
@@ -136,6 +137,13 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {/* TODAY'S TRAINING — the single most time-sensitive thing on this
+          page when it exists: a coach-run MENTA LIVE session the athlete
+          is actually assigned to. Placed above the hero panel on purpose
+          so it's the first thing seen, not one more card in the grid
+          below. Renders nothing heavy when there's no session today. */}
+      <TodaysSessionCard session={myDay.todaySession} />
+
       {/* NOW + STATUS — the hero panel answers "what should I care about right
           now", using only real queried fields (no fabricated readiness/
           mindset composite scores). NEXT + ACTION live in the context
