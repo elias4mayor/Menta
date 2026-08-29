@@ -56,8 +56,6 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
-          { href: "/profile", label: "Profile", icon: "profile" },
-          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -92,8 +90,6 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
-          { href: "/profile", label: "Profile", icon: "profile" },
-          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -124,8 +120,6 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
-          { href: "/profile", label: "Profile", icon: "profile" },
-          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -156,8 +150,6 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
-          { href: "/profile", label: "Profile", icon: "profile" },
-          { href: "/settings", label: "Settings", icon: "settings" },
         ],
       },
     ];
@@ -203,8 +195,6 @@ function navSectionsForRole(role: string): NavSection[] {
       items: [
         { href: "/documents", label: "Documents", icon: "documents" },
         { href: "/care", label: "Care", icon: "safety" },
-        { href: "/profile", label: "Profile", icon: "profile" },
-        { href: "/settings", label: "Settings", icon: "settings" },
       ],
     },
   ];
@@ -301,7 +291,7 @@ export function AppShell({
   return (
     <div className="app-shell min-h-screen flex bg-bg">
       <aside
-        className="hidden md:flex md:w-64 shrink-0 flex-col px-4 py-6 dash-in dash-in-1"
+        className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 shrink-0 flex-col px-4 py-6 dash-in dash-in-1"
         style={{ borderRight: "1px solid var(--border-soft)", background: "var(--sidebar-tint)" }}
       >
         <Link href="/dashboard" className="flex items-center px-2 mb-10">
@@ -355,20 +345,48 @@ export function AppShell({
             </div>
           ))}
         </nav>
-        <div className="pt-4 mt-4" style={{ borderTop: "1px solid var(--border-soft)" }}>
-          <div className="flex items-center gap-2 px-2 mb-2">
+        {/* Persistent account area — never inside the scrollable nav above,
+            so Profile/Settings/Sign out are always reachable without
+            scrolling past the nav list, regardless of how long it is. */}
+        <div className="pt-3 mt-3 shrink-0" style={{ borderTop: "1px solid var(--border-soft)" }}>
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 px-2 py-2 rounded-[var(--r-sm)] transition-colors"
+            style={{ color: "var(--text-1)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--nav-hover-bg)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
             <Avatar userId={user.id} name={user.name} size={28} />
-            <div>
-              <div className="text-sm">{user.name}</div>
+            <div className="min-w-0">
+              <div className="text-sm truncate">{user.name}</div>
               <div className="mono text-text-3">{user.role}</div>
             </div>
+          </Link>
+          <div className="flex items-center gap-1 mt-1">
+            <Link
+              href="/profile"
+              className="nav-rail-item nav-rail-item-idle flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-xs"
+              style={{ color: "var(--text-2)" }}
+            >
+              <NavIcon name="profile" className="shrink-0" />
+              Profile
+            </Link>
+            <Link
+              href="/settings"
+              className="nav-rail-item nav-rail-item-idle flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-xs"
+              style={{ color: "var(--text-2)" }}
+            >
+              <NavIcon name="settings" className="shrink-0" />
+              Settings
+            </Link>
           </div>
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            className="w-full text-left px-2 py-1.5 text-sm text-text-2 hover:text-text-1 transition-colors"
+            className="nav-rail-item nav-rail-item-idle w-full text-center mt-1 px-2 py-1.5 rounded-full text-xs"
+            style={{ color: "var(--text-2)" }}
           >
-            {loggingOut ? "Logging out…" : "Log out"}
+            {loggingOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </aside>

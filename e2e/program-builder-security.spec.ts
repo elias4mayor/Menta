@@ -311,4 +311,46 @@ test.describe("Program Builder security", () => {
     expect(prescription.prescribedLoad).toBe(235);
     expect(loggedSet.groupId).toBe(group.id);
   });
+
+  test("trainingMode and exercise modeDetails round-trip through create and read", async ({ request }) => {
+    const coach = await createTestUser(`${E2E_RUN_ID}-pb-modeCoach`, "COACH");
+    const team = await createTestTeam(coach.userId, [{ userId: coach.userId, teamRole: "COACH" }]);
+    const pose = await testPrisma.exercise.create({
+      data: { teamId: null, name: `${E2E_RUN_ID} Warrior II`, category: "SKILL", createdById: coach.userId },
+    });
+
+    const create = await request.post(`/api/teams/${team.id}/programs`, {
+      headers: { Cookie: coach.cookie, "Content-Type": "application/json" },
+      data: {
+        title: `${E2E_RUN_ID} Yoga Flow`,
+        trainingMode: "YOGA",
+        blocks: [
+          {
+            title: "Flow",
+            order: 0,
+            exercises: [
+              {
+                exerciseId: pose.id,
+                order: 0,
+                durationSec: 45,
+                restSec: 15,
+                modeDetails: { side: "ALTERNATING", breathing: "SLOW" },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(create.status(), await create.text()).toBe(200);
+    const { program } = await create.json();
+    expect(program.trainingMode).toBe("YOGA");
+    expect(program.blocks[0].exercises[0].modeDetails).toEqual({ side: "ALTERNATING", breathing: "SLOW" });
+
+    const read = await request.get(`/api/teams/${team.id}/programs/${program.id}`, { headers: { Cookie: coach.cookie } });
+    const { program: reread } = await read.json();
+    expect(reread.trainingMode).toBe("YOGA");
+    expect(reread.blocks[0].exercises[0].modeDetails).toEqual({ side: "ALTERNATING", breathing: "SLOW" });
+    expect(reread.blocks[0].exercises[0].durationSec).toBe(45);
+    expect(reread.blocks[0].exercises[0].restSec).toBe(15);
+  });
 });

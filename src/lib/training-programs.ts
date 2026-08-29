@@ -109,6 +109,7 @@ function blocksCreateInput(input: ProgramInput) {
         rpeTarget: ex.rpeTarget,
         supersetGroup: ex.supersetGroup,
         notes: ex.notes,
+        modeDetails: ex.modeDetails ? JSON.stringify(ex.modeDetails) : undefined,
       })),
     },
   }));
@@ -127,6 +128,7 @@ export async function createTeamProgram(teamId: string, createdById: string, inp
       sport: input.sport,
       positionGroupId: input.positionGroupId,
       status: input.status ?? "DRAFT",
+      trainingMode: input.trainingMode,
       createdById,
       blocks: { create: blocksCreateInput(input) },
     },
@@ -165,6 +167,7 @@ export async function replaceTeamProgram(teamId: string, programId: string, inpu
         sport: input.sport,
         positionGroupId: input.positionGroupId ?? null,
         status: input.status,
+        trainingMode: input.trainingMode,
         blocks: { create: blocksCreateInput(input) },
       },
       include: { blocks: { include: { exercises: true } } },
@@ -189,10 +192,21 @@ export function toProgramSummaryJson(p: ProgramSummaryRecord) {
     description: p.description,
     sport: p.sport,
     status: p.status,
+    trainingMode: p.trainingMode,
     positionGroupName: p.positionGroup?.name ?? null,
     blockCount: p.blocks.length,
     createdAt: p.createdAt,
   };
+}
+
+function parseModeDetails(raw: string | null): Record<string, string> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 export function toProgramDetailJson(p: ProgramDetailRecord) {
@@ -202,6 +216,7 @@ export function toProgramDetailJson(p: ProgramDetailRecord) {
     description: p.description,
     sport: p.sport,
     status: p.status,
+    trainingMode: p.trainingMode,
     positionGroupId: p.positionGroupId,
     positionGroupName: p.positionGroup?.name ?? null,
     blocks: p.blocks.map((b) => ({
@@ -227,6 +242,7 @@ export function toProgramDetailJson(p: ProgramDetailRecord) {
         rpeTarget: e.rpeTarget,
         supersetGroup: e.supersetGroup,
         notes: e.notes,
+        modeDetails: parseModeDetails(e.modeDetails),
       })),
     })),
   };

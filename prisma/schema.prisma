@@ -2000,6 +2000,14 @@ model Exercise {
 /// Exercise.sport above.
 ///
 /// Status: DRAFT, ACTIVE, ARCHIVED
+///
+/// trainingMode: WEIGHT_ROOM, FIELD_CONDITIONING, MOBILITY_STRETCH, YOGA,
+/// SPEED_AGILITY, RECOVERY, CUSTOM (nullable — existing programs predate
+/// this field and stay mode-less, treated as WEIGHT_ROOM by the UI's own
+/// default rather than a guessed migration backfill). Drives which
+/// programming controls the builder surfaces for this program's
+/// exercises — never enforced at the DB or API layer, purely a UI
+/// progressive-disclosure hint, same spirit as Workout.category.
 model TrainingProgram {
   id              String   @id @default(cuid())
   teamId          String
@@ -2008,6 +2016,7 @@ model TrainingProgram {
   title           String
   description     String?
   status          String   @default("DRAFT")
+  trainingMode    String?
   createdById     String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -2068,6 +2077,13 @@ model ProgramExercise {
   rpeTarget         Float?
   supersetGroup     String?
   notes             String?
+  /// JSON-stringified object for the handful of training-mode-specific
+  /// descriptors that have no other column: { side?, intensityDescriptor?,
+  /// intensityType?, setType?, breathing?, direction? } — same
+  /// single-field-until-proven-necessary choice as Exercise.equipment/
+  /// Exercise.positions above. Never queried into or filtered by; purely
+  /// round-tripped by the UI based on the parent program's trainingMode.
+  modeDetails       String?
   createdAt         DateTime @default(now())
 
   block                  TrainingBlock         @relation(fields: [blockId], references: [id], onDelete: Cascade)

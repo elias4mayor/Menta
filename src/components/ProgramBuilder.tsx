@@ -1,12 +1,97 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExercisePicker, type PickableExercise } from "@/components/ExercisePicker";
+import { NavTile } from "@/components/NavTile";
+import { PresetSelect } from "@/components/PresetSelect";
 
 const BLOCK_TYPES = ["WARMUP", "ACTIVATION", "POWER", "STRENGTH", "ACCESSORY", "CONDITIONING", "MOBILITY", "RECOVERY"];
 const STATUS_OPTIONS = ["DRAFT", "ACTIVE", "ARCHIVED"];
+
+const TRAINING_MODES = [
+  "WEIGHT_ROOM",
+  "FIELD_CONDITIONING",
+  "MOBILITY_STRETCH",
+  "YOGA",
+  "SPEED_AGILITY",
+  "RECOVERY",
+  "CUSTOM",
+] as const;
+type TrainingMode = (typeof TRAINING_MODES)[number];
+
+const TRAINING_MODE_LABELS: Record<TrainingMode, string> = {
+  WEIGHT_ROOM: "Weight Room",
+  FIELD_CONDITIONING: "Field / Conditioning",
+  MOBILITY_STRETCH: "Mobility & Stretch",
+  YOGA: "Yoga",
+  SPEED_AGILITY: "Speed & Agility",
+  RECOVERY: "Recovery",
+  CUSTOM: "Custom",
+};
+
+/**
+ * Every mode-specific programming control this builder can show, in one
+ * flat vocabulary. A given mode's config (below) just lists which slots
+ * count as "core" (always visible) vs "advanced" (behind the toggle) —
+ * the row renderer below has exactly one switch statement mapping a slot
+ * to its widget, so adding a mode is a config entry, not new JSX.
+ */
+type FieldSlot =
+  | "sets" | "reps" | "load" | "loadPercent" | "distance" | "duration" | "rounds"
+  | "side" | "intensityDescriptor" | "rest" | "tempo" | "rpe" | "intensityType"
+  | "setType" | "pairing" | "breathing" | "transition" | "direction" | "notes";
+
+const MODE_CONFIG: Record<TrainingMode, { core: FieldSlot[]; advanced: FieldSlot[] }> = {
+  WEIGHT_ROOM: {
+    core: ["sets", "reps", "load", "loadPercent"],
+    advanced: ["tempo", "rest", "rpe", "intensityType", "setType", "pairing", "notes"],
+  },
+  FIELD_CONDITIONING: {
+    core: ["sets", "reps", "distance", "duration"],
+    advanced: ["rest", "intensityDescriptor", "notes"],
+  },
+  MOBILITY_STRETCH: {
+    core: ["sets", "duration", "side", "intensityDescriptor"],
+    advanced: ["rest", "notes"],
+  },
+  YOGA: {
+    core: ["duration", "rounds", "side"],
+    advanced: ["breathing", "transition", "notes"],
+  },
+  SPEED_AGILITY: {
+    core: ["sets", "reps", "distance", "direction"],
+    advanced: ["rest", "intensityDescriptor", "notes"],
+  },
+  RECOVERY: {
+    core: ["duration", "rounds"],
+    advanced: ["intensityDescriptor", "notes"],
+  },
+  CUSTOM: {
+    core: ["sets", "reps", "load", "loadPercent"],
+    advanced: ["tempo", "rest", "rpe", "distance", "duration", "side", "intensityDescriptor", "intensityType", "setType", "pairing", "breathing", "transition", "direction", "notes"],
+  },
+};
+
+const SECONDS_PRESETS = (labels: [string, string][]) => labels.map(([label, value]) => ({ label, value }));
+const DURATION_PRESETS = SECONDS_PRESETS([["15 sec", "15"], ["30 sec", "30"], ["45 sec", "45"], ["60 sec", "60"], ["90 sec", "90"], ["2 min", "120"]]);
+const REST_PRESETS = SECONDS_PRESETS([["30 sec", "30"], ["45 sec", "45"], ["60 sec", "60"], ["90 sec", "90"], ["2:00", "120"], ["3:00", "180"], ["4:00", "240"]]);
+const TRANSITION_PRESETS = SECONDS_PRESETS([["10 sec", "10"], ["15 sec", "15"], ["30 sec", "30"], ["60 sec", "60"]]);
+const TEMPO_PRESETS = ["2-0-1", "3-1-1", "3-0-1", "X-0-X"].map((v) => ({ label: v, value: v }));
+
+const SIDE_OPTIONS = [["Both", "BOTH"], ["Left", "LEFT"], ["Right", "RIGHT"], ["Alternating", "ALTERNATING"]];
+const INTENSITY_DESCRIPTOR_OPTIONS = [["Easy", "EASY"], ["Moderate", "MODERATE"], ["Deep", "DEEP"]];
+const INTENSITY_TYPE_OPTIONS = [["% 1RM", "PERCENT_1RM"], ["RPE", "RPE"], ["RIR", "RIR"], ["Coach Prescribed", "COACH_PRESCRIBED"]];
+const SET_TYPE_OPTIONS = [
+  ["Straight Sets", "STRAIGHT"], ["Warm-up", "WARMUP"], ["Top Set", "TOP_SET"], ["Back-off", "BACKOFF"],
+  ["AMRAP", "AMRAP"], ["Cluster", "CLUSTER"], ["Drop Set", "DROP_SET"],
+];
+const PAIRING_OPTIONS = [["Superset", "SUPERSET"], ["A1 / A2", "A2"], ["A1 / A2 / A3", "A3"]];
+const BREATHING_OPTIONS = [["Normal", "NORMAL"], ["Slow", "SLOW"], ["Guided", "GUIDED"]];
+const DIRECTION_OPTIONS = [
+  ["Forward", "FORWARD"], ["Lateral", "LATERAL"], ["Backpedal", "BACKPEDAL"],
+  ["Change of Direction", "CHANGE_OF_DIRECTION"], ["Multi-directional", "MULTI_DIRECTIONAL"],
+];
 
 type ExerciseDraft = {
   key: string;
@@ -17,7 +102,19 @@ type ExerciseDraft = {
   targetReps: string;
   targetLoad: string;
   targetLoadPercent: string;
+  tempo: string;
+  restSec: string;
+  durationSec: string;
+  distanceMeters: string;
+  rpeTarget: string;
+  supersetGroup: string;
   notes: string;
+  side: string;
+  intensityDescriptor: string;
+  intensityType: string;
+  setType: string;
+  breathing: string;
+  direction: string;
 };
 
 type BlockDraft = {
@@ -33,6 +130,7 @@ export type ProgramDetail = {
   description: string | null;
   sport: string | null;
   status: string;
+  trainingMode: string | null;
   positionGroupId: string | null;
   positionGroupName: string | null;
   blocks: {
@@ -50,7 +148,15 @@ export type ProgramDetail = {
       targetReps: string | null;
       targetLoad: number | null;
       targetLoadPercent: number | null;
+      targetLoadUnit: string | null;
+      tempo: string | null;
+      restSec: number | null;
+      durationSec: number | null;
+      distanceMeters: number | null;
+      rpeTarget: number | null;
+      supersetGroup: string | null;
       notes: string | null;
+      modeDetails: Record<string, string> | null;
     }[];
   }[];
 };
@@ -60,6 +166,8 @@ function nextKey(): string {
   keyCounter += 1;
   return `draft-${keyCounter}`;
 }
+
+const EMPTY_EXERCISE_EXTRAS = { tempo: "", restSec: "", durationSec: "", distanceMeters: "", rpeTarget: "", supersetGroup: "", notes: "", side: "", intensityDescriptor: "", intensityType: "", setType: "", breathing: "", direction: "" };
 
 function toBlockDrafts(program: ProgramDetail): BlockDraft[] {
   return program.blocks.map((b) => ({
@@ -75,7 +183,19 @@ function toBlockDrafts(program: ProgramDetail): BlockDraft[] {
       targetReps: e.targetReps ?? "",
       targetLoad: e.targetLoad?.toString() ?? "",
       targetLoadPercent: e.targetLoadPercent?.toString() ?? "",
+      tempo: e.tempo ?? "",
+      restSec: e.restSec?.toString() ?? "",
+      durationSec: e.durationSec?.toString() ?? "",
+      distanceMeters: e.distanceMeters?.toString() ?? "",
+      rpeTarget: e.rpeTarget?.toString() ?? "",
+      supersetGroup: e.supersetGroup ?? "",
       notes: e.notes ?? "",
+      side: e.modeDetails?.side ?? "",
+      intensityDescriptor: e.modeDetails?.intensityDescriptor ?? "",
+      intensityType: e.modeDetails?.intensityType ?? "",
+      setType: e.modeDetails?.setType ?? "",
+      breathing: e.modeDetails?.breathing ?? "",
+      direction: e.modeDetails?.direction ?? "",
     })),
   }));
 }
@@ -87,25 +207,37 @@ function parseNumber(value: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function selectOptions(pairs: string[][]) {
+  return pairs.map(([label, value]) => ({ label, value }));
+}
+
 /**
- * Deliberately "simple mode": sets / reps / load / load% / notes per
- * exercise — the four numbers the product brief's own examples actually
- * show ("4x5 @ 80%"). tempo/rest/RPE/superset already exist on
- * ProgramExercise and the API accepts them, but exposing every schema
- * field in this first builder UI is exactly the "unnecessary complexity"
- * this phase was told to avoid; add them here later if real coach usage
- * asks for them.
+ * "Simple by default, powerful when needed": the visible field set per
+ * exercise is entirely driven by the program's Training Mode (see
+ * MODE_CONFIG above) rather than one fixed layout for every program.
+ * Weight Room keeps today's Sets/Reps/Load/Load% core set; every other
+ * mode surfaces the handful of controls that actually matter for it
+ * (Hold/Side for Yoga, Distance/Direction for Speed & Agility, etc.) —
+ * see the Phase 6.1 spec's schema-audit note on why exactly two new
+ * fields (TrainingProgram.trainingMode, ProgramExercise.modeDetails)
+ * were the minimum needed, with everything else reusing existing
+ * ProgramExercise columns under a different label/preset set.
  */
 export function ProgramBuilder({ teamId, program, canManage }: { teamId: string; program: ProgramDetail; canManage: boolean }) {
   const router = useRouter();
   const [title, setTitle] = useState(program.title);
   const [sport, setSport] = useState(program.sport ?? "");
   const [status, setStatus] = useState(program.status);
+  const [trainingMode, setTrainingMode] = useState<TrainingMode>((program.trainingMode as TrainingMode) ?? "WEIGHT_ROOM");
   const [blocks, setBlocks] = useState<BlockDraft[]>(() => toBlockDrafts(program));
   const [pickerForBlock, setPickerForBlock] = useState<string | null>(null);
+  const [expandedExercise, setExpandedExercise] = useState<Set<string>>(new Set());
+  const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+
+  const config = MODE_CONFIG[trainingMode];
 
   function addBlock() {
     setBlocks((bs) => [...bs, { key: nextKey(), title: "New block", blockType: "", exercises: [] }]);
@@ -143,7 +275,7 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
           targetReps: "",
           targetLoad: "",
           targetLoadPercent: "",
-          notes: "",
+          ...EMPTY_EXERCISE_EXTRAS,
         },
       ],
     });
@@ -164,6 +296,7 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
     setBlocks((bs) =>
       bs.map((b) => (b.key !== blockKey ? b : { ...b, exercises: b.exercises.filter((e) => e.key !== exerciseKey) }))
     );
+    setOpenMenuKey(null);
   }
 
   function duplicateExercise(blockKey: string, exerciseKey: string) {
@@ -175,6 +308,7 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
         return { ...b, exercises: [...b.exercises, { ...original, key: nextKey() }] };
       })
     );
+    setOpenMenuKey(null);
   }
 
   function moveExercise(blockKey: string, exerciseKey: string, direction: -1 | 1) {
@@ -189,6 +323,16 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
         return { ...b, exercises: copy };
       })
     );
+    setOpenMenuKey(null);
+  }
+
+  function toggleAdvanced(exerciseKey: string) {
+    setExpandedExercise((s) => {
+      const next = new Set(s);
+      if (next.has(exerciseKey)) next.delete(exerciseKey);
+      else next.add(exerciseKey);
+      return next;
+    });
   }
 
   async function save() {
@@ -199,6 +343,7 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
         title: title.trim(),
         sport: sport.trim() || undefined,
         status,
+        trainingMode,
         blocks: blocks.map((b, blockIndex) => ({
           title: b.title.trim() || "Untitled block",
           blockType: b.blockType || undefined,
@@ -210,7 +355,21 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
             targetReps: e.targetReps.trim() || undefined,
             targetLoad: parseNumber(e.targetLoad),
             targetLoadPercent: parseNumber(e.targetLoadPercent),
+            tempo: e.tempo.trim() || undefined,
+            restSec: parseNumber(e.restSec),
+            durationSec: parseNumber(e.durationSec),
+            distanceMeters: parseNumber(e.distanceMeters),
+            rpeTarget: parseNumber(e.rpeTarget),
+            supersetGroup: e.supersetGroup.trim() || undefined,
             notes: e.notes.trim() || undefined,
+            modeDetails: {
+              side: e.side || undefined,
+              intensityDescriptor: e.intensityDescriptor || undefined,
+              intensityType: e.intensityType || undefined,
+              setType: e.setType || undefined,
+              breathing: e.breathing || undefined,
+              direction: e.direction || undefined,
+            },
           })),
         })),
       };
@@ -237,6 +396,57 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
     if (res.ok) router.push(`/team/${teamId}/programs`);
   }
 
+  function renderSlot(slot: FieldSlot, ex: ExerciseDraft, blockKey: string) {
+    const set = (patch: Partial<ExerciseDraft>) => updateExercise(blockKey, ex.key, patch);
+    switch (slot) {
+      case "sets":
+        return <input key={slot} className="field-input w-16 text-xs" placeholder="Sets" value={ex.targetSets} onChange={(e) => set({ targetSets: e.target.value })} disabled={!canManage} />;
+      case "rounds":
+        return <input key={slot} className="field-input w-20 text-xs" placeholder="Rounds" value={ex.targetSets} onChange={(e) => set({ targetSets: e.target.value })} disabled={!canManage} />;
+      case "reps":
+        return <input key={slot} className="field-input w-20 text-xs" placeholder="Reps" value={ex.targetReps} onChange={(e) => set({ targetReps: e.target.value })} disabled={!canManage} />;
+      case "load":
+        return <input key={slot} className="field-input w-20 text-xs" placeholder="Load" value={ex.targetLoad} onChange={(e) => set({ targetLoad: e.target.value })} disabled={!canManage} />;
+      case "loadPercent":
+        return <input key={slot} className="field-input w-16 text-xs" placeholder="Load %" value={ex.targetLoadPercent} onChange={(e) => set({ targetLoadPercent: e.target.value })} disabled={!canManage} />;
+      case "distance":
+        return <input key={slot} className="field-input w-24 text-xs" placeholder="Distance" value={ex.distanceMeters} onChange={(e) => set({ distanceMeters: e.target.value })} disabled={!canManage} />;
+      case "duration":
+        return <PresetSelect key={slot} value={ex.durationSec} presets={DURATION_PRESETS} placeholder="Duration" onChange={(v) => set({ durationSec: v })} className="field-input w-28 text-xs" />;
+      case "rest":
+        return <PresetSelect key={slot} value={ex.restSec} presets={REST_PRESETS} placeholder="Rest" onChange={(v) => set({ restSec: v })} className="field-input w-24 text-xs" />;
+      case "transition":
+        return <PresetSelect key={slot} value={ex.restSec} presets={TRANSITION_PRESETS} placeholder="Transition" onChange={(v) => set({ restSec: v })} className="field-input w-28 text-xs" />;
+      case "tempo":
+        return <PresetSelect key={slot} value={ex.tempo} presets={TEMPO_PRESETS} placeholder="Tempo" onChange={(v) => set({ tempo: v })} className="field-input w-24 text-xs" />;
+      case "rpe":
+        return (
+          <select key={slot} className="field-select w-20 text-xs" value={ex.rpeTarget} onChange={(e) => set({ rpeTarget: e.target.value })} disabled={!canManage}>
+            <option value="">RPE</option>
+            {["6", "7", "8", "9", "10"].map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+        );
+      case "side":
+        return <LabeledSelect key={slot} value={ex.side} options={selectOptions(SIDE_OPTIONS)} placeholder="Side" onChange={(v) => set({ side: v })} disabled={!canManage} />;
+      case "intensityDescriptor":
+        return <LabeledSelect key={slot} value={ex.intensityDescriptor} options={selectOptions(INTENSITY_DESCRIPTOR_OPTIONS)} placeholder="Intensity" onChange={(v) => set({ intensityDescriptor: v })} disabled={!canManage} />;
+      case "intensityType":
+        return <LabeledSelect key={slot} value={ex.intensityType} options={selectOptions(INTENSITY_TYPE_OPTIONS)} placeholder="Intensity type" onChange={(v) => set({ intensityType: v })} disabled={!canManage} />;
+      case "setType":
+        return <LabeledSelect key={slot} value={ex.setType} options={selectOptions(SET_TYPE_OPTIONS)} placeholder="Set type" onChange={(v) => set({ setType: v })} disabled={!canManage} />;
+      case "pairing":
+        return <LabeledSelect key={slot} value={ex.supersetGroup} options={selectOptions(PAIRING_OPTIONS)} placeholder="Pairing" onChange={(v) => set({ supersetGroup: v })} disabled={!canManage} />;
+      case "breathing":
+        return <LabeledSelect key={slot} value={ex.breathing} options={selectOptions(BREATHING_OPTIONS)} placeholder="Breathing" onChange={(v) => set({ breathing: v })} disabled={!canManage} />;
+      case "direction":
+        return <LabeledSelect key={slot} value={ex.direction} options={selectOptions(DIRECTION_OPTIONS)} placeholder="Direction" onChange={(v) => set({ direction: v })} disabled={!canManage} />;
+      case "notes":
+        return <input key={slot} className="field-input flex-1 min-w-[8rem] text-xs" placeholder="Notes" value={ex.notes} onChange={(e) => set({ notes: e.target.value })} disabled={!canManage} />;
+      default:
+        return null;
+    }
+  }
+
   return (
     <div>
       <div className="card p-5 mb-6 space-y-3">
@@ -255,15 +465,21 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
             ))}
           </select>
         </div>
+        <div>
+          <span className="mono text-text-3 text-xs block mb-1.5">Training mode</span>
+          <select className="field-select" value={trainingMode} onChange={(e) => setTrainingMode(e.target.value as TrainingMode)} disabled={!canManage}>
+            {TRAINING_MODES.map((m) => (
+              <option key={m} value={m}>{TRAINING_MODE_LABELS[m]}</option>
+            ))}
+          </select>
+        </div>
         {program.positionGroupName && (
           <div className="mono text-text-3 text-xs">Scoped to: {program.positionGroupName}</div>
         )}
-        <Link href={`/team/${teamId}/programs/${program.id}/prescriptions`} className="text-xs text-text-2 hover:text-text-1 underline inline-block">
-          Athlete prescriptions →
-        </Link>
-        <Link href={`/team/${teamId}/programs/${program.id}/sessions/new`} className="text-xs text-text-2 hover:text-text-1 underline inline-block ml-4">
-          Start live session →
-        </Link>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <NavTile href={`/team/${teamId}/programs/${program.id}/prescriptions`} icon="team" label="Athlete prescriptions" compact />
+          <NavTile href={`/team/${teamId}/programs/${program.id}/sessions/new`} icon="spark" label="Start live session" compact />
+        </div>
       </div>
 
       <div className="space-y-5">
@@ -310,66 +526,80 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
               <p className="text-text-3 text-xs mb-3">No exercises in this block yet.</p>
             ) : (
               <ul className="space-y-2 mb-3">
-                {block.exercises.map((ex, exIndex) => (
-                  <li key={ex.key} className="flex items-center gap-2 flex-wrap p-2 rounded" style={{ border: "1px solid var(--border-soft)" }}>
-                    <span className="font-medium text-sm min-w-[9rem]">{ex.exerciseName}</span>
-                    <input
-                      className="field-input w-16 text-xs"
-                      placeholder="Sets"
-                      value={ex.targetSets}
-                      onChange={(e) => updateExercise(block.key, ex.key, { targetSets: e.target.value })}
-                      disabled={!canManage}
-                    />
-                    <input
-                      className="field-input w-20 text-xs"
-                      placeholder="Reps"
-                      value={ex.targetReps}
-                      onChange={(e) => updateExercise(block.key, ex.key, { targetReps: e.target.value })}
-                      disabled={!canManage}
-                    />
-                    <input
-                      className="field-input w-20 text-xs"
-                      placeholder="Load"
-                      value={ex.targetLoad}
-                      onChange={(e) => updateExercise(block.key, ex.key, { targetLoad: e.target.value })}
-                      disabled={!canManage}
-                    />
-                    <input
-                      className="field-input w-16 text-xs"
-                      placeholder="Load %"
-                      value={ex.targetLoadPercent}
-                      onChange={(e) => updateExercise(block.key, ex.key, { targetLoadPercent: e.target.value })}
-                      disabled={!canManage}
-                    />
-                    <input
-                      className="field-input flex-1 min-w-[8rem] text-xs"
-                      placeholder="Cue / notes (optional)"
-                      value={ex.notes}
-                      onChange={(e) => updateExercise(block.key, ex.key, { notes: e.target.value })}
-                      disabled={!canManage}
-                    />
-                    {canManage && (
-                      <div className="flex gap-1 shrink-0">
-                        <button className="text-text-3 hover:text-text-1 text-xs" onClick={() => moveExercise(block.key, ex.key, -1)} disabled={exIndex === 0}>
-                          ↑
-                        </button>
-                        <button
-                          className="text-text-3 hover:text-text-1 text-xs"
-                          onClick={() => moveExercise(block.key, ex.key, 1)}
-                          disabled={exIndex === block.exercises.length - 1}
-                        >
-                          ↓
-                        </button>
-                        <button className="text-text-3 hover:text-text-1 text-xs" onClick={() => duplicateExercise(block.key, ex.key)}>
-                          Duplicate
-                        </button>
-                        <button className="text-text-3 hover:text-[var(--danger)] text-xs" onClick={() => removeExercise(block.key, ex.key)}>
-                          Remove
-                        </button>
+                {block.exercises.map((ex, exIndex) => {
+                  const advancedOpen = expandedExercise.has(ex.key);
+                  const menuOpen = openMenuKey === ex.key;
+                  return (
+                    <li key={ex.key} className="p-3 rounded" style={{ border: "1px solid var(--border-soft)" }}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm min-w-[9rem] flex-1">{ex.exerciseName}</span>
+                        {config.core.map((slot) => renderSlot(slot, ex, block.key))}
+                        {config.advanced.length > 0 && (
+                          <button
+                            type="button"
+                            className="text-text-3 hover:text-text-1 text-xs shrink-0"
+                            onClick={() => toggleAdvanced(ex.key)}
+                          >
+                            Advanced {advancedOpen ? "▴" : "▾"}
+                          </button>
+                        )}
+                        {canManage && (
+                          <div className="relative shrink-0">
+                            {menuOpen && <div className="fixed inset-0 z-40" onClick={() => setOpenMenuKey(null)} />}
+                            <button
+                              type="button"
+                              aria-label="Exercise actions"
+                              className="text-text-3 hover:text-text-1 text-sm px-1.5 py-0.5"
+                              onClick={() => setOpenMenuKey(menuOpen ? null : ex.key)}
+                            >
+                              •••
+                            </button>
+                            <div className={`nav-dropdown${menuOpen ? " nav-dropdown-open" : ""}`} style={{ zIndex: 50 }}>
+                              <div className="p-1.5" style={{ width: 160 }}>
+                                <button
+                                  type="button"
+                                  className="nav-dropdown-item w-full text-left px-2.5 py-2 rounded-[var(--r-sm)] text-sm disabled:opacity-40"
+                                  onClick={() => moveExercise(block.key, ex.key, -1)}
+                                  disabled={exIndex === 0}
+                                >
+                                  Move up
+                                </button>
+                                <button
+                                  type="button"
+                                  className="nav-dropdown-item w-full text-left px-2.5 py-2 rounded-[var(--r-sm)] text-sm disabled:opacity-40"
+                                  onClick={() => moveExercise(block.key, ex.key, 1)}
+                                  disabled={exIndex === block.exercises.length - 1}
+                                >
+                                  Move down
+                                </button>
+                                <button
+                                  type="button"
+                                  className="nav-dropdown-item w-full text-left px-2.5 py-2 rounded-[var(--r-sm)] text-sm"
+                                  onClick={() => duplicateExercise(block.key, ex.key)}
+                                >
+                                  Duplicate
+                                </button>
+                                <button
+                                  type="button"
+                                  className="nav-dropdown-item w-full text-left px-2.5 py-2 rounded-[var(--r-sm)] text-sm"
+                                  style={{ color: "var(--danger)" }}
+                                  onClick={() => removeExercise(block.key, ex.key)}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </li>
-                ))}
+                      {advancedOpen && config.advanced.length > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap mt-2 pt-2" style={{ borderTop: "1px dashed var(--border-soft)" }}>
+                          {config.advanced.map((slot) => renderSlot(slot, ex, block.key))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
 
@@ -377,7 +607,7 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
               (pickerForBlock === block.key ? (
                 <ExercisePicker onSelect={(ex) => addExercise(block.key, ex)} onClose={() => setPickerForBlock(null)} />
               ) : (
-                <button className="btn-secondary text-xs" onClick={() => setPickerForBlock(block.key)}>
+                <button className="btn-primary text-xs" onClick={() => setPickerForBlock(block.key)}>
                   + Add exercise
                 </button>
               ))}
@@ -401,5 +631,28 @@ export function ProgramBuilder({ teamId, program, canManage }: { teamId: string;
         </div>
       )}
     </div>
+  );
+}
+
+function LabeledSelect({
+  value,
+  options,
+  placeholder,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  options: { label: string; value: string }[];
+  placeholder: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <select className="field-select text-xs" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+      <option value="">{placeholder}</option>
+      {options.map((o) => (
+        <option key={o.label} value={o.value}>{o.label}</option>
+      ))}
+    </select>
   );
 }

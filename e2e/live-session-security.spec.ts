@@ -491,4 +491,20 @@ test.describe("MENTA LIVE security", () => {
     const loggedSet = await testPrisma.trainingSet.findFirst({ where: { sessionId: session.id, athleteId: athlete.userId, setNumber: 1 } });
     expect(loggedSet?.weight).toBe(225);
   });
+
+  test("creating a session with zero athletes returns a friendly message, never a raw Zod string", async ({ request }) => {
+    const { coach, team, program } = await setupTeamWithProgram("emptyAthletes");
+
+    const res = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {
+      headers: { Cookie: coach.cookie, "Content-Type": "application/json" },
+      data: { title: `${E2E_RUN_ID} Empty Athletes`, athleteIds: [] },
+    });
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Select at least one athlete to continue.");
+    expect(body.error).not.toMatch(/too_small|expected array|>=|Zod/i);
+
+    const found = await testPrisma.trainingSession.findFirst({ where: { title: `${E2E_RUN_ID} Empty Athletes` } });
+    expect(found).toBeNull();
+  });
 });

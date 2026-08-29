@@ -635,6 +635,33 @@ export const updateTeamSafetyChecklistItemSchema = z.object({
 /// exercises in one request) rather than granular per-block/per-exercise
 /// endpoints, matching how the builder UI edits one in-memory document
 /// and saves it as a unit; see the Phase 4 spec for why.
+/// Drives which programming controls the Program Builder shows for a
+/// program's exercises — see TrainingProgram.trainingMode's doc comment
+/// in schema.prisma. A pure UI hint, never enforced server-side beyond
+/// shape.
+export const TRAINING_MODES = [
+  "WEIGHT_ROOM",
+  "FIELD_CONDITIONING",
+  "MOBILITY_STRETCH",
+  "YOGA",
+  "SPEED_AGILITY",
+  "RECOVERY",
+  "CUSTOM",
+] as const;
+
+/// The handful of mode-specific descriptors with no dedicated column —
+/// see ProgramExercise.modeDetails's doc comment in schema.prisma. Every
+/// field optional and free-standing; which ones are meaningful depends
+/// entirely on the parent program's trainingMode, decided in the UI.
+export const programExerciseModeDetailsSchema = z.object({
+  side: z.enum(["BOTH", "LEFT", "RIGHT", "ALTERNATING"]).optional(),
+  intensityDescriptor: z.enum(["EASY", "MODERATE", "DEEP"]).optional(),
+  intensityType: z.enum(["PERCENT_1RM", "RPE", "RIR", "COACH_PRESCRIBED"]).optional(),
+  setType: z.enum(["STRAIGHT", "WARMUP", "TOP_SET", "BACKOFF", "AMRAP", "CLUSTER", "DROP_SET"]).optional(),
+  breathing: z.enum(["NORMAL", "SLOW", "GUIDED"]).optional(),
+  direction: z.enum(["FORWARD", "LATERAL", "BACKPEDAL", "CHANGE_OF_DIRECTION", "MULTI_DIRECTIONAL"]).optional(),
+});
+
 export const programExerciseInputSchema = z.object({
   exerciseId: z.string().min(1),
   order: z.number().int().min(0),
@@ -650,6 +677,7 @@ export const programExerciseInputSchema = z.object({
   rpeTarget: z.number().min(0).max(10).optional(),
   supersetGroup: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(500).optional(),
+  modeDetails: programExerciseModeDetailsSchema.optional(),
 });
 
 export const trainingBlockInputSchema = z.object({
@@ -665,6 +693,7 @@ export const trainingProgramInputSchema = z.object({
   sport: z.string().trim().max(60).optional(),
   positionGroupId: z.string().optional(),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+  trainingMode: z.enum(TRAINING_MODES).optional(),
   blocks: z.array(trainingBlockInputSchema).max(20),
 });
 
@@ -700,15 +729,15 @@ export const clearAthletePrescriptionsSchema = z.object({
 export const liveGroupInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   stationLabel: z.string().trim().max(80).optional(),
-  athleteIds: z.array(z.string().min(1)).min(1).max(200),
+  athleteIds: z.array(z.string().min(1)).min(1, "Select at least one athlete for this group.").max(200),
 });
 
 export const createLiveSessionInputSchema = z
   .object({
     title: z.string().trim().min(1).max(160),
     scheduledAt: z.string().datetime().optional(),
-    groups: z.array(liveGroupInputSchema).min(1).max(20).optional(),
-    athleteIds: z.array(z.string().min(1)).min(1).max(200).optional(),
+    groups: z.array(liveGroupInputSchema).min(1, "Add at least one group.").max(20).optional(),
+    athleteIds: z.array(z.string().min(1)).min(1, "Select at least one athlete to continue.").max(200).optional(),
   })
   .refine((data) => data.groups || data.athleteIds, { message: "Provide groups or athleteIds." });
 

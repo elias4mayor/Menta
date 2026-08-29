@@ -2448,6 +2448,72 @@ h4 {
   align-items: start;
 }
 
+/* ---------- Nav tile: the "bubble" destination card ----------
+   The single, reusable replacement for a plain underlined navigation
+   link (Team Tools, Program Builder's cross-links, and anywhere else a
+   list of underlined <Link>s was standing in for real navigation).
+   Built entirely from existing tokens (--surface, --border, --r-md,
+   --ease, --duration-fast) — no new color or radius values. Row layout
+   (icon · label/description · chevron) rather than the lift-and-scale
+   .card-hover treatment: that motion suits a large content card, not a
+   dense list of navigation rows. */
+.nav-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color var(--duration-fast) var(--ease), background var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
+}
+
+.nav-tile:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+
+.nav-tile:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.nav-tile:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text-1);
+}
+
+.nav-tile-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+.nav-tile-compact {
+  padding: 9px 12px;
+  gap: 9px;
+  border-radius: var(--r-sm);
+}
+
+.nav-tile-compact .nav-tile-icon {
+  width: 26px;
+  height: 26px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-tile:hover,
+  .nav-tile:active {
+    transform: none;
+  }
+}
+
 @media (max-width: 1100px) {
   .cockpit-grid {
     grid-template-columns: 1fr;

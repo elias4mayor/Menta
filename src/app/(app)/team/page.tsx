@@ -6,6 +6,7 @@ import { MessageButton } from "@/components/MessageButton";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { EmptyState } from "@/components/EmptyState";
 import { VerifyProviderButton } from "@/components/VerifyProviderButton";
+import { NavTile } from "@/components/NavTile";
 import { PROVIDER_TEAM_ROLES, hasTeamPermission, isTeamFilmStaff } from "@/lib/permissions";
 
 export default async function TeamPage() {
@@ -69,31 +70,57 @@ export default async function TeamPage() {
                       Invite code: <span className="text-text-1">{m.team.inviteCode}</span>
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
-                    {canManageGroupsByTeam.get(m.teamId) && (
-                      <Link href={`/team/${m.team.id}/groups`} className="text-xs text-text-2 hover:text-text-1 underline">
-                        Position groups & permissions →
-                      </Link>
-                    )}
-                    {canAssignByTeam.get(m.teamId) && (
-                      <Link href={`/team/${m.team.id}/assignments`} className="text-xs text-text-2 hover:text-text-1 underline">
-                        Film assignments →
-                      </Link>
-                    )}
-                    {isFilmStaffByTeam.get(m.teamId) && (
-                      <Link href={`/team/${m.team.id}/review-requests`} className="text-xs text-text-2 hover:text-text-1 underline">
-                        Film questions →
-                      </Link>
-                    )}
-                    {isFilmStaffByTeam.get(m.teamId) && (
-                      <Link href={`/team/${m.team.id}/film-intelligence`} className="text-xs text-text-2 hover:text-text-1 underline">
-                        Film intelligence →
-                      </Link>
-                    )}
-                    <Link href={`/team/${m.team.id}/programs`} className="text-xs text-text-2 hover:text-text-1 underline">
-                      Training programs →
-                    </Link>
+
+                  {isCoachOrAdmin && (
+                    <div className="mb-5">
+                      <div className="mono text-text-3 mb-2">Quick actions</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <NavTile
+                          href={`/team/${m.team.id}/programs`}
+                          icon="train"
+                          label="Training programs"
+                          description="Build and run this team's programs"
+                        />
+                        {isFilmStaffByTeam.get(m.teamId) ? (
+                          <NavTile
+                            href={`/team/${m.team.id}/film-intelligence`}
+                            icon="spark"
+                            label="Film intelligence"
+                            description="Templates, scouting, and reports"
+                          />
+                        ) : (
+                          canAssignByTeam.get(m.teamId) && (
+                            <NavTile
+                              href={`/team/${m.team.id}/assignments`}
+                              icon="film"
+                              label="Film assignments"
+                              description="Assign film for review"
+                            />
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-5">
+                    <div className="mono text-text-3 mb-2">Team tools</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {canManageGroupsByTeam.get(m.teamId) && (
+                        <NavTile href={`/team/${m.team.id}/groups`} icon="team" label="Position groups" description="Groups & permissions" />
+                      )}
+                      {canAssignByTeam.get(m.teamId) && (
+                        <NavTile href={`/team/${m.team.id}/assignments`} icon="film" label="Film assignments" />
+                      )}
+                      {isFilmStaffByTeam.get(m.teamId) && (
+                        <NavTile href={`/team/${m.team.id}/review-requests`} icon="messages" label="Film questions" />
+                      )}
+                      {isFilmStaffByTeam.get(m.teamId) && (
+                        <NavTile href={`/team/${m.team.id}/film-intelligence`} icon="spark" label="Film intelligence" />
+                      )}
+                      <NavTile href={`/team/${m.team.id}/programs`} icon="train" label="Training programs" />
+                    </div>
                   </div>
+
                   <div className="mono text-text-3 mb-2">Roster ({m.team.memberships.length})</div>
                   <ul className="space-y-1.5 text-sm">
                     {m.team.memberships.map((tm) => {
