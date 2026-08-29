@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { SessionsList } from "@/components/SessionsList";
@@ -21,6 +22,14 @@ export default async function SettingsPage() {
           <div><span className="text-text-2">Email:</span> {user.email}</div>
           <div><span className="text-text-2">Role:</span> {user.role}</div>
         </div>
+      </section>
+
+      <section className="card p-6">
+        <div className="mono text-text-3 mb-4">Billing</div>
+        <p className="text-text-2 text-sm mb-3">See your plan, usage, and manage your subscription.</p>
+        <Link href="/account/billing" className="text-sm text-text-2 hover:text-text-1 underline">
+          Go to billing →
+        </Link>
       </section>
 
       <section className="card p-6">

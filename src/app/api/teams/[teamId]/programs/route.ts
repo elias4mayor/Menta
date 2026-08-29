@@ -11,6 +11,7 @@ import {
   ProgramValidationError,
 } from "@/lib/training-programs";
 import { logAudit } from "@/lib/audit";
+import { hasEntitlement } from "@/lib/entitlements";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ teamId: string }> }) {
   const user = await getSessionUser();
@@ -33,6 +34,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
 
   if (!(await canManageTrainingPrograms(user.id, teamId))) {
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  }
+
+  if (!(await hasEntitlement(user.id, teamId, "TRAINING_PROGRAMS"))) {
+    return NextResponse.json({
+      error: "Training programs aren't included on the free plan. Upgrade your account or this team's plan to build one.",
+    }, { status: 402 });
   }
 
   const body = await request.json().catch(() => null);

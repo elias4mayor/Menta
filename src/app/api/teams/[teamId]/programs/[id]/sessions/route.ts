@@ -4,6 +4,7 @@ import { canRunLiveSession } from "@/lib/permissions";
 import { createLiveSessionInputSchema } from "@/lib/validation";
 import { createLiveSession, LiveSessionError } from "@/lib/live-sessions";
 import { logAudit } from "@/lib/audit";
+import { hasEntitlement } from "@/lib/entitlements";
 
 export async function POST(request: Request, { params }: { params: Promise<{ teamId: string; id: string }> }) {
   const user = await getSessionUser();
@@ -12,6 +13,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
 
   if (!(await canRunLiveSession(user.id, teamId))) {
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  }
+
+  if (!(await hasEntitlement(user.id, teamId, "LIVE_SESSIONS"))) {
+    return NextResponse.json({
+      error: "MENTA LIVE isn't included on the free plan. Upgrade your account or this team's plan to start a live session.",
+    }, { status: 402 });
   }
 
   const body = await request.json().catch(() => null);

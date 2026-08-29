@@ -5,6 +5,9 @@ import { recruitingOutreachSchema } from "@/lib/validation";
 import { draftRecruitingOutreach, isAiConfigured } from "@/lib/ai";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
+import { checkUsageLimit, recordUsage } from "@/lib/entitlements";
+
+const ENTITLEMENT_KEY = "AI_RECRUITING_OUTREACH_MONTHLY" as const;
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -39,6 +42,16 @@ export async function POST(request: Request) {
     if (!contact) return NextResponse.json({ error: "Contact not found." }, { status: 404 });
   }
 
+  const usage = await checkUsageLimit("USER", user.id, ENTITLEMENT_KEY);
+  if (!usage.allowed) {
+    return NextResponse.json({
+      configured: isAiConfigured(),
+      draft: null,
+      error: `You've used all ${usage.limit} AI outreach drafts included this month. Upgrade for more.`,
+      limitReached: true,
+    }, { status: 402 });
+  }
+
   if (!isAiConfigured()) {
     const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
     const envVar = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
@@ -68,6 +81,7 @@ export async function POST(request: Request) {
       },
       include: { school: true, contact: true },
     });
+    await recordUsage("USER", user.id, ENTITLEMENT_KEY);
 
     await logAudit({
       actorId: user.id,

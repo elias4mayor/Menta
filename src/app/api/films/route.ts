@@ -7,6 +7,9 @@ import { ALLOWED_VIDEO_TYPES, MAX_UPLOAD_BYTES, extensionForMimeType, saveFile }
 import { canUploadFilmToTeam } from "@/lib/permissions";
 import { visibleFilmWhere } from "@/lib/film-visibility";
 import { logAudit } from "@/lib/audit";
+import { getCurrentStateLimit } from "@/lib/entitlements";
+
+const BYTES_PER_GB = 1024 * 1024 * 1024;
 
 export const runtime = "nodejs";
 
@@ -121,6 +124,17 @@ export async function POST(request: Request) {
     const opponent = await prisma.opponent.findUnique({ where: { id: parsed.data.opponentId } });
     if (!opponent || opponent.teamId !== parsed.data.teamId) {
       return NextResponse.json({ error: "Invalid opponent." }, { status: 400 });
+    }
+  }
+
+  const storageLimitGb = await getCurrentStateLimit(user.id, "FILM_STORAGE_GB");
+  if (storageLimitGb !== null) {
+    const { _sum } = await prisma.film.aggregate({ where: { uploadedById: user.id }, _sum: { sizeBytes: true } });
+    const usedBytes = _sum.sizeBytes ?? 0;
+    if (usedBytes + file.size > storageLimitGb * BYTES_PER_GB) {
+      return NextResponse.json({
+        error: `This upload would put you over your ${storageLimitGb}GB film storage limit. Delete some film or upgrade for more.`,
+      }, { status: 402 });
     }
   }
 

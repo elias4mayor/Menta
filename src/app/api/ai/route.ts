@@ -5,6 +5,9 @@ import { aiChatSchema } from "@/lib/validation";
 import { askMentaAi, buildAthleteContext, isAiConfigured } from "@/lib/ai";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
+import { checkUsageLimit, recordUsage } from "@/lib/entitlements";
+
+const ENTITLEMENT_KEY = "AI_COACH_CHAT_MONTHLY" as const;
 
 export async function GET() {
   const user = await getSessionUser();
@@ -63,6 +66,16 @@ export async function POST(request: Request) {
     data: { conversationId: conversation.id, role: "user", content: parsed.data.message },
   });
 
+  const usage = await checkUsageLimit("USER", user.id, ENTITLEMENT_KEY);
+  if (!usage.allowed) {
+    return NextResponse.json({
+      configured: isAiConfigured(),
+      conversationId: conversation.id,
+      reply: `You've used all ${usage.limit} AI Coach messages included this month. Upgrade for more.`,
+      limitReached: true,
+    }, { status: 402 });
+  }
+
   if (!isAiConfigured()) {
     const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
     const envVar = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
@@ -88,6 +101,7 @@ export async function POST(request: Request) {
     await prisma.aIMessage.create({
       data: { conversationId: conversation.id, role: "assistant", content: reply },
     });
+    await recordUsage("USER", user.id, ENTITLEMENT_KEY);
 
     await logAudit({ actorId: user.id, action: "ai.message_sent", targetType: "AIConversation", targetId: conversation.id });
 

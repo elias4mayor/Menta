@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import { canViewFilm } from "@/lib/permissions";
 import { createHighlightSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { getCurrentStateLimit } from "@/lib/entitlements";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -47,6 +48,16 @@ export async function POST(request: Request) {
       { error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 }
     );
+  }
+
+  const highlightLimit = await getCurrentStateLimit(user.id, "HIGHLIGHT_REELS_MAX");
+  if (highlightLimit !== null) {
+    const existingCount = await prisma.highlight.count({ where: { userId: user.id } });
+    if (existingCount >= highlightLimit) {
+      return NextResponse.json({
+        error: `You've reached your limit of ${highlightLimit} highlight reel${highlightLimit === 1 ? "" : "s"}. Delete one or upgrade for more.`,
+      }, { status: 402 });
+    }
   }
 
   const clips = await prisma.clip.findMany({

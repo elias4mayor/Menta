@@ -7,8 +7,11 @@ import { DashboardPreview } from "@/components/DashboardPreview";
 import { FeatureShowcase } from "@/components/FeatureShowcase";
 import { WhoSection } from "@/components/WhoSection";
 import { FounderStory } from "@/components/FounderStory";
+import { PricingSection } from "@/components/PricingSection";
 import { RevealInit } from "@/components/RevealInit";
 import { IntroBoot } from "@/components/IntroBoot";
+import { getSessionUser } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 
 const PILLARS = [
   { name: "Training", href: "/train", desc: "Workout library and tracking." },
@@ -109,7 +112,23 @@ const TESTIMONIALS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const user = await getSessionUser();
+  const [plans, currentSubscription] = await Promise.all([
+    prisma.plan.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: "asc" },
+      select: { key: true, name: true, priceCents: true, isCustomPricing: true },
+    }),
+    user
+      ? prisma.subscription.findUnique({
+          where: { ownerType_ownerId: { ownerType: "USER", ownerId: user.id } },
+          select: { plan: { select: { key: true } } },
+        })
+      : null,
+  ]);
+  const currentPlanKey = user ? currentSubscription?.plan.key ?? "ROOKIE" : null;
+
   return (
     <>
       <IntroBoot />
@@ -240,6 +259,8 @@ export default function HomePage() {
         </section>
 
         <FounderStory />
+
+        <PricingSection plans={plans} isSignedIn={Boolean(user)} currentPlanKey={currentPlanKey} />
 
         <section className="px-6 md:px-10 py-24 text-center">
           <h2 className="text-3xl md:text-5xl font-semibold mb-4 reveal reveal-scale">

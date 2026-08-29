@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { createRecruitingSchoolSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { getCurrentStateLimit } from "@/lib/entitlements";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -27,6 +28,16 @@ export async function POST(request: Request) {
       { error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 }
     );
+  }
+
+  const schoolLimit = await getCurrentStateLimit(user.id, "RECRUITING_SCHOOLS_MAX");
+  if (schoolLimit !== null) {
+    const existingCount = await prisma.recruitingSchool.count({ where: { userId: user.id } });
+    if (existingCount >= schoolLimit) {
+      return NextResponse.json({
+        error: `You've reached your limit of ${schoolLimit} tracked schools. Remove one or upgrade for more.`,
+      }, { status: 402 });
+    }
   }
 
   const school = await prisma.recruitingSchool.create({

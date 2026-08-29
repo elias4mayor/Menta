@@ -4,8 +4,10 @@ import { getSessionUser } from "@/lib/session";
 import { generateDailyBrief, isAiConfigured } from "@/lib/ai";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
+import { checkUsageLimit, recordUsage } from "@/lib/entitlements";
 
 const TOPIC = "DAILY_BRIEF";
+const ENTITLEMENT_KEY = "AI_DAILY_BRIEF_MONTHLY" as const;
 
 function startOfToday(): Date {
   const d = new Date();
@@ -65,6 +67,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ configured: true, brief: existing.brief, generatedAt: existing.generatedAt });
   }
 
+  const usage = await checkUsageLimit("USER", user.id, ENTITLEMENT_KEY);
+  if (!usage.allowed) {
+    return NextResponse.json({
+      configured: true,
+      brief: null,
+      error: `You've used all ${usage.limit} Daily Briefs included this month. Upgrade for more.`,
+      limitReached: true,
+    }, { status: 402 });
+  }
+
   try {
     const brief = await generateDailyBrief(user);
 
@@ -75,6 +87,7 @@ export async function POST(request: Request) {
     const assistantMessage = await prisma.aIMessage.create({
       data: { conversationId: conversation.id, role: "assistant", content: brief },
     });
+    await recordUsage("USER", user.id, ENTITLEMENT_KEY);
 
     await logAudit({ actorId: user.id, action: "ai.daily_brief_generated", targetType: "AIConversation", targetId: conversation.id });
 

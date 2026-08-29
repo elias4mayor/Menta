@@ -2277,3 +2277,92 @@ model TrainingSet {
   @@index([sessionId, athleteId])
   @@index([loggedAt])
 }
+
+// --- Phase 7: Subscriptions & entitlements ---
+// Deliberately data-driven: a new plan, price, or limit is a Plan/
+// PlanEntitlement row (see prisma/seed-plans.ts), never a code branch.
+// Route handlers must check access through src/lib/entitlements.ts, never
+// inline `if (plan === "PRO")` checks — that file is the single place
+// that reads these tables.
+
+/// PlanScope: INDIVIDUAL, TEAM, ORGANIZATION
+/// BillingInterval: MONTH, YEAR, NONE (NONE for the free plan and for
+/// custom-quoted Team/Organization plans that aren't self-serve checkout)
+model Plan {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  name            String
+  tagline         String?
+  scope           String
+  priceCents      Int?
+  billingInterval String   @default("MONTH")
+  stripePriceId   String?
+  isCustomPricing Boolean  @default(false)
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  entitlements  PlanEntitlement[]
+  subscriptions Subscription[]
+}
+
+/// Entitlement keys are defined in src/lib/entitlements.ts (ENTITLEMENT_KEYS),
+/// not here — see file header comment above. limitValue null = unlimited,
+/// 0 = disabled for this plan.
+model PlanEntitlement {
+  id         String @id @default(cuid())
+  planId     String
+  key        String
+  limitValue Int?
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, key])
+  @@index([planId])
+}
+
+/// OwnerType: USER, TEAM, ORGANIZATION — mirrors AuditLog's targetType/
+/// targetId polymorphic-reference pattern (no DB-level FK across three
+/// possible owner tables). One Subscription per (ownerType, ownerId): an
+/// individual plan is owned by a User; Team/Organization plans are owned
+/// by that Team/Organization so the whole roster shares one entitlement
+/// set instead of billing per athlete.
+/// SubscriptionStatus: ACTIVE, TRIALING, PAST_DUE, CANCELED, INCOMPLETE
+model Subscription {
+  id                   String    @id @default(cuid())
+  ownerType            String
+  ownerId              String
+  planId               String
+  status               String    @default("ACTIVE")
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  trialEndsAt          DateTime?
+  /// Nullable/unused until Stripe checkout actually runs for this
+  /// subscription — a Plan/entitlement can exist and be enforced before
+  /// any payment processor is wired up for it, same "honest not-connected
+  /// state over silent fallback" pattern as AI_PROVIDER/RESEND_API_KEY.
+  stripeCustomerId     String?
+  stripeSubscriptionId String?   @unique
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@unique([ownerType, ownerId])
+  @@index([planId])
+  @@index([stripeCustomerId])
+}
+
+/// Rolling usage counter for consumable entitlements (e.g. AI briefs this
+/// month). periodStart anchors a fixed window per key; a new billing
+/// period is a new row, not a reset-in-place, so history isn't destroyed.
+model UsageCounter {
+  id          String   @id @default(cuid())
+  ownerType   String
+  ownerId     String
+  key         String
+  periodStart DateTime
+  count       Int      @default(0)
+
+  @@unique([ownerType, ownerId, key, periodStart])
+}

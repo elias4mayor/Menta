@@ -771,3 +771,14 @@ export const logSetInputSchema = z.object({
   completed: z.boolean().optional(),
   notes: z.string().trim().max(500).optional(),
 });
+
+export const checkoutInputSchema = z.object({
+  planKey: z.string().min(1, "Choose a plan to continue."),
+});
+
+export const partnershipInquiryInputSchema = z.object({
+  name: z.string().trim().min(1, "Add your name.").max(120),
+  email: z.string().trim().email("Add a valid email."),
+  organization: z.string().trim().min(1, "Add your school or organization.").max(200),
+  message: z.string().trim().max(2000).optional(),
+});
