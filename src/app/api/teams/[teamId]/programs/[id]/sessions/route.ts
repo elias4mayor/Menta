@@ -4,7 +4,7 @@ import { canRunLiveSession } from "@/lib/permissions";
 import { createLiveSessionInputSchema } from "@/lib/validation";
 import { createLiveSession, LiveSessionError } from "@/lib/live-sessions";
 import { logAudit } from "@/lib/audit";
-import { hasEntitlement } from "@/lib/entitlements";
+import { hasTeamEntitlement } from "@/lib/entitlements";
 
 export async function POST(request: Request, { params }: { params: Promise<{ teamId: string; id: string }> }) {
   const user = await getSessionUser();
@@ -15,9 +15,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
-  if (!(await hasEntitlement(user.id, teamId, "LIVE_SESSIONS"))) {
+  // Team-scoped resolution only — a coach's own individual plan must
+  // never unlock team LIVE. See the Scope Resolution Design doc: every
+  // TrainingSession is team-owned (teamId is required), so there's no
+  // individual-only case to blend in. Athlete-side participation
+  // (logging a set, viewing /me) has never checked this entitlement at
+  // all — only session creation does, and that stays true here.
+  if (!(await hasTeamEntitlement(teamId, "LIVE_SESSIONS"))) {
     return NextResponse.json({
-      error: "MENTA LIVE isn't included on the free plan. Upgrade your account or this team's plan to start a live session.",
+      error: "MENTA LIVE isn't included on this team's plan yet. Upgrade the team's MENTA membership to start a live session.",
     }, { status: 402 });
   }
 

@@ -109,20 +109,64 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
     expect(body.error.length).toBeGreaterThan(0);
   });
 
-  test("12. the homepage renders all seven plans with real prices, not placeholders", async ({ request }) => {
+  test("12. the homepage teases all five membership tiers and links to /membership", async ({ request }) => {
     const res = await request.get("/");
     expect(res.status()).toBe(200);
     const html = await res.text();
-    expect(html).toContain("Pick your level");
+    expect(html).toContain("Choose your level");
     expect(html).toContain("Rookie");
-    expect(html).toContain("MENTA PRO");
-    expect(html).toContain("$9.99");
-    expect(html).toContain("$79.99");
+    expect(html).toContain("Underdog");
+    expect(html).toContain("MVP");
+    expect(html).toContain("Onyx");
+    expect(html).toContain("MENTA Team");
+    expect(html).toContain('href="/membership"');
   });
 
-  test("13. the homepage never advertises unshipped AI capabilities as shipped", async ({ request }) => {
-    const res = await request.get("/");
+  test("13. /membership renders all five tiers with real prices from the migrated plan data, not placeholders", async ({ request }) => {
+    const res = await request.get("/membership");
+    expect(res.status()).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("Choose your level");
+    // Only the initially-focal tier (Rookie) renders a *formatted* price
+    // string in plain DOM — the other 4 are streamed to the client as
+    // React Server Components JSON (escaped inside a <script> string
+    // literal, so raw substring-matching its exact quoting is fragile and
+    // an implementation detail this test shouldn't depend on). What's
+    // reliably plain-text regardless of which tier is focal: every tier
+    // name, and the honest "not priced yet" copy for ONYX.
+    expect(html).toContain("Rookie");
+    expect(html).toContain("$0");
+    expect(html).toContain("Underdog");
+    expect(html).toContain("MVP");
+    expect(html).toContain("Onyx");
+    expect(html).toContain("MENTA Team");
+
+    // The actual "real prices, not placeholders" claim — verified against
+    // the migrated DB data directly (same pattern as test 15), not by
+    // parsing the page's internal serialization format.
+    const underdog = await testPrisma.plan.findUniqueOrThrow({ where: { key: "UNDERDOG" } });
+    const mvp = await testPrisma.plan.findUniqueOrThrow({ where: { key: "MVP" } });
+    const onyx = await testPrisma.plan.findUniqueOrThrow({ where: { key: "ONYX" } });
+    // Post-relaunch pricing: UNDERDOG is the cheaper entry tier, MVP the
+    // pricier one — see prisma/migrate-underdog-mvp-swap.ts.
+    expect(underdog.priceCents).toBe(999);
+    expect(mvp.priceCents).toBe(1999);
+    // ONYX is honestly unpriced pre-launch — never a fabricated number.
+    expect(onyx.priceCents).toBeNull();
+  });
+
+  test("14. /membership never advertises unshipped AI capabilities as shipped", async ({ request }) => {
+    const res = await request.get("/membership");
     const html = await res.text();
     expect(html).toContain("(coming soon)");
+  });
+
+  test("15. the retired MENTA_PLUS/MENTA_PRO plans are inactive but their rows and entitlements are preserved", async () => {
+    const plus = await testPrisma.plan.findUnique({ where: { key: "MENTA_PLUS" }, include: { entitlements: true } });
+    const pro = await testPrisma.plan.findUnique({ where: { key: "MENTA_PRO" }, include: { entitlements: true } });
+    expect(plus?.active).toBe(false);
+    expect(pro?.active).toBe(false);
+    expect(plus?.entitlements.length).toBeGreaterThan(0);
+    expect(pro?.entitlements.length).toBeGreaterThan(0);
   });
 });

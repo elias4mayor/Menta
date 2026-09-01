@@ -3028,3 +3028,218 @@ h4 {
     font-size: clamp(48px, 20vw, 84px);
   }
 }
+
+/* ---------- MENTA Membership: cinematic half-wheel selector ----------
+   Reuses .live-root's dark theme (built for MENTA LIVE) directly — same
+   Nike-energy/Apple-simplicity system, not a second dark theme. A node's
+   position/scale/opacity is written as inline custom properties per
+   animation frame from MembershipExperience.tsx (same technique as
+   .portal-hero's --p in this file), never through React state, so
+   scrolling never triggers a re-render of the wheel itself. */
+.membership-hero {
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+.membership-scroll-cue {
+  margin-top: 48px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.membership-scroll-cue-arrow {
+  display: inline-block;
+  animation: membershipScrollCue 1.8s ease-in-out infinite;
+}
+
+@keyframes membershipScrollCue {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+
+/* The scroll-jack track — its height is the travel distance for all 5
+   stops; the sticky stage inside pins for that whole distance. */
+.membership-wheel-wrap {
+  position: relative;
+  height: 420vh;
+}
+
+.membership-wheel-wrap.membership-reduced {
+  height: auto;
+}
+
+.membership-wheel-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.membership-detail {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  min-height: 0;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.membership-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 28px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.membership-price {
+  margin-top: 20px;
+  font-family: var(--font-heading);
+  font-weight: 650;
+  font-size: clamp(22px, 4vw, 30px);
+  color: var(--text-1);
+}
+
+.membership-price-period {
+  font-size: 14px;
+  color: var(--text-3);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.membership-cta {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* MENTA TEAM's distinct composition — a quiet flow line instead of the
+   individual tiers' price/benefits layout. */
+.membership-team-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+  color: var(--text-2);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.membership-team-flow-sep {
+  color: var(--text-3);
+}
+
+.membership-wheel {
+  position: relative;
+  z-index: 1;
+  height: 40vh;
+  min-height: 200px;
+  flex-shrink: 0;
+}
+
+.membership-node {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(calc(-50% + var(--node-x, 0px)), var(--node-y, 0px)) scale(var(--node-scale, 1));
+  opacity: var(--node-opacity, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-1);
+  cursor: pointer;
+  padding: 12px;
+  /* No transition — driven by rAF writes every scroll frame, a CSS
+     transition here would fight that and add lag. */
+}
+
+.membership-node:focus-visible {
+  outline: 2px solid var(--text-1);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.membership-node-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.membership-node[aria-current="true"] .membership-node-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.16);
+}
+
+.membership-node-label {
+  font-family: var(--font-heading);
+  font-weight: 650;
+  white-space: nowrap;
+  font-size: 17px;
+}
+
+/* Always-tab-reachable, non-spatial fallback list — the wheel is never
+   the only way to move between tiers. Same 5 tiers, plain buttons. */
+.membership-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 24px 72px;
+}
+
+/* Reduced-motion / no-JS-driven-wheel fallback: a plain stacked list of
+   full tier cards, no sticky scroll-jack, no spatial arc — everything
+   the wheel shows, none of the motion. */
+.membership-fallback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+@media (min-width: 640px) {
+  .membership-node-label {
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 640px) {
+  .membership-wheel {
+    height: 34vh;
+    min-height: 170px;
+  }
+  .membership-detail {
+    padding: 20px 16px;
+  }
+}

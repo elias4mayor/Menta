@@ -31,6 +31,8 @@ const plans: {
   billingInterval: "MONTH" | "NONE";
   isCustomPricing: boolean;
   sortOrder: number;
+  /** Defaults true. false = retired from self-serve checkout and public listing (see checkout/route.ts and the homepage's `where: { active: true }` query) while the row, its id, and any existing Subscription referencing it stay fully intact — entitlement resolution (getActivePlan in src/lib/entitlements.ts) never checks this flag. */
+  active?: boolean;
   entitlements: EntitlementMap;
 }[] = [
   {
@@ -60,9 +62,14 @@ const plans: {
     },
   },
   {
-    key: "MVP",
-    name: "MVP",
-    tagline: "For athletes who are done “just working hard.”",
+    // MENTA Membership relaunch (5-tier): this row's id previously held
+    // key="MVP" at $9.99 — prisma/migrate-underdog-mvp-swap.ts rotated
+    // the key, this seed pass sets the rest. Entitlements below are the
+    // former "MVP" tier's values, carried over as-is since UNDERDOG is
+    // now the more modest of the two entry paid tiers.
+    key: "UNDERDOG",
+    name: "Underdog",
+    tagline: "Build your edge.",
     scope: "INDIVIDUAL",
     priceCents: 999,
     billingInterval: "MONTH",
@@ -81,9 +88,14 @@ const plans: {
     },
   },
   {
-    key: "UNDERDOG",
-    name: "Underdog",
-    tagline: "For the ones nobody is watching yet.",
+    // MENTA Membership relaunch (5-tier): this row's id previously held
+    // key="UNDERDOG" at $19.99 — prisma/migrate-underdog-mvp-swap.ts
+    // rotated the key, this seed pass sets the rest. Its entitlements
+    // below are the former "UNDERDOG" tier's values, carried over as-is
+    // since MVP is now the richer of the two entry paid tiers.
+    key: "MVP",
+    name: "MVP",
+    tagline: "Own your development.",
     scope: "INDIVIDUAL",
     priceCents: 1999,
     billingInterval: "MONTH",
@@ -102,6 +114,10 @@ const plans: {
     },
   },
   {
+    // Retired from the public membership page (see the new canonical
+    // membership config) but kept active:false rather than deleted —
+    // preserves the row/id and any historical Subscription referencing
+    // it. Entitlements below are unchanged from before the relaunch.
     key: "MENTA_PLUS",
     name: "MENTA+",
     tagline: "Your entire athletic life. One place.",
@@ -110,6 +126,7 @@ const plans: {
     billingInterval: "MONTH",
     isCustomPricing: false,
     sortOrder: 3,
+    active: false,
     entitlements: {
       // "Unlimited" is sold with a fair-use footnote on the homepage —
       // null here means no hard monthly cap, not literally infinite
@@ -126,6 +143,9 @@ const plans: {
     },
   },
   {
+    // Retired — see MENTA_PLUS comment above. This plan's own entitlement
+    // set is reused (unchanged) as ONYX's *provisional* starting point
+    // below; that reuse is intentionally not final, see ONYX's comment.
     key: "MENTA_PRO",
     name: "MENTA PRO",
     tagline: "For athletes treating development like a business.",
@@ -134,6 +154,39 @@ const plans: {
     billingInterval: "MONTH",
     isCustomPricing: false,
     sortOrder: 4,
+    active: false,
+    entitlements: {
+      AI_COACH_CHAT_MONTHLY: UNLIMITED,
+      AI_DAILY_BRIEF_MONTHLY: UNLIMITED,
+      AI_STUDY_HELP_MONTHLY: UNLIMITED,
+      AI_RECRUITING_OUTREACH_MONTHLY: UNLIMITED,
+      FILM_STORAGE_GB: 100,
+      HIGHLIGHT_REELS_MAX: UNLIMITED,
+      RECRUITING_SCHOOLS_MAX: UNLIMITED,
+      TRAINING_PROGRAMS: UNLIMITED,
+      LIVE_SESSIONS: UNLIMITED,
+    },
+  },
+  {
+    // New top individual tier. priceCents/billingInterval/stripePriceId
+    // are intentionally unset — no price has been decided, and none is
+    // invented here. isCustomPricing stays false (this isn't a
+    // contact-sales plan, just not-yet-priced) — checkout/route.ts
+    // distinguishes priceCents === null ("pricing not set") from
+    // priceCents === 0 ("free plan") and returns an honest, distinct
+    // message for each rather than the misleading "this plan is free."
+    // Entitlements below are ONLY a provisional starting point (copied
+    // from the retired MENTA_PRO row) — explicitly NOT a final decision,
+    // revisit before production launch.
+    key: "ONYX",
+    name: "Onyx",
+    tagline: "Operate at your highest level.",
+    scope: "INDIVIDUAL",
+    priceCents: null,
+    billingInterval: "NONE",
+    isCustomPricing: false,
+    sortOrder: 3,
+    active: true,
     entitlements: {
       AI_COACH_CHAT_MONTHLY: UNLIMITED,
       AI_DAILY_BRIEF_MONTHLY: UNLIMITED,
@@ -149,7 +202,7 @@ const plans: {
   {
     key: "TEAM",
     name: "MENTA Team",
-    tagline: "Stop managing athletes across six different apps.",
+    tagline: "One team. One system. One standard.",
     scope: "TEAM",
     priceCents: null,
     billingInterval: "NONE",
@@ -198,6 +251,7 @@ async function main() {
         billingInterval: p.billingInterval,
         isCustomPricing: p.isCustomPricing,
         sortOrder: p.sortOrder,
+        active: p.active ?? true,
       },
       update: {
         name: p.name,
@@ -207,6 +261,7 @@ async function main() {
         billingInterval: p.billingInterval,
         isCustomPricing: p.isCustomPricing,
         sortOrder: p.sortOrder,
+        active: p.active ?? true,
       },
     });
 

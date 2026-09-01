@@ -7,7 +7,7 @@ import { ALLOWED_VIDEO_TYPES, MAX_UPLOAD_BYTES, extensionForMimeType, saveFile }
 import { canUploadFilmToTeam } from "@/lib/permissions";
 import { visibleFilmWhere } from "@/lib/film-visibility";
 import { logAudit } from "@/lib/audit";
-import { getCurrentStateLimit } from "@/lib/entitlements";
+import { getCurrentStateLimit, getTeamCurrentStateLimit } from "@/lib/entitlements";
 
 const BYTES_PER_GB = 1024 * 1024 * 1024;
 
@@ -127,13 +127,24 @@ export async function POST(request: Request) {
     }
   }
 
-  const storageLimitGb = await getCurrentStateLimit(user.id, "FILM_STORAGE_GB");
+  // A team-owned upload (teamId set) counts against the team's own
+  // shared pool, never the uploading coach's personal quota — see the
+  // Scope Resolution Design doc. An individual upload (no teamId) keeps
+  // resolving against the uploader's own plan, exactly as before.
+  const storageLimitGb = parsed.data.teamId
+    ? await getTeamCurrentStateLimit(parsed.data.teamId, "FILM_STORAGE_GB")
+    : await getCurrentStateLimit(user.id, "FILM_STORAGE_GB");
   if (storageLimitGb !== null) {
-    const { _sum } = await prisma.film.aggregate({ where: { uploadedById: user.id }, _sum: { sizeBytes: true } });
+    const { _sum } = await prisma.film.aggregate({
+      where: parsed.data.teamId ? { teamId: parsed.data.teamId } : { uploadedById: user.id },
+      _sum: { sizeBytes: true },
+    });
     const usedBytes = _sum.sizeBytes ?? 0;
     if (usedBytes + file.size > storageLimitGb * BYTES_PER_GB) {
       return NextResponse.json({
-        error: `This upload would put you over your ${storageLimitGb}GB film storage limit. Delete some film or upgrade for more.`,
+        error: parsed.data.teamId
+          ? `This upload would put the team over its ${storageLimitGb}GB film storage limit. Delete some film or upgrade the team's plan for more.`
+          : `This upload would put you over your ${storageLimitGb}GB film storage limit. Delete some film or upgrade for more.`,
       }, { status: 402 });
     }
   }

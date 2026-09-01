@@ -185,6 +185,9 @@ export function MarketingNav() {
         </div>
 
         <nav className="hidden md:flex items-center gap-6">
+          <Link href="/membership" className="text-sm text-text-2 hover:text-text-1 transition-colors">
+            Memberships
+          </Link>
           <Link href="/faq" className="text-sm text-text-2 hover:text-text-1 transition-colors">
             FAQ
           </Link>
@@ -219,6 +222,9 @@ export function MarketingNav() {
           style={{ background: "rgba(255,255,255,0.98)" }}
         >
           <div className="px-6 py-6 space-y-1">
+            <Link href="/membership" onClick={closeAll} className="block py-3 text-base text-text-1">
+              Memberships
+            </Link>
             <Link href="/faq" onClick={closeAll} className="block py-3 text-base text-text-1">
               FAQ
             </Link>

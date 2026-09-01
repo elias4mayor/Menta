@@ -34,7 +34,7 @@ const ROOKIE_FALLBACK: { key: PlanKey } = { key: "ROOKIE" };
  * rather than needing a backfilled row, matching the rest of this app's
  * "missing config degrades to an honest default state" pattern.
  */
-async function getActivePlan(ownerType: OwnerType, ownerId: string) {
+export async function getActivePlan(ownerType: OwnerType, ownerId: string) {
   const sub = await prisma.subscription.findUnique({
     where: { ownerType_ownerId: { ownerType, ownerId } },
     include: { plan: { include: { entitlements: true } } },
@@ -109,6 +109,24 @@ export async function getTeamRosterLimit(teamId: string): Promise<number | null>
 }
 
 /**
+ * A team's own plan resolution for a team-scoped capability — resolved
+ * only from the TEAM's own Subscription, exactly like getTeamRosterLimit
+ * above, and never blended with an acting coach's individual plan via
+ * getEffectiveLimit's "best of user or team" logic. Use for entitlements
+ * that are inherently team-owned with no legitimate individual-only case
+ * (TRAINING_PROGRAMS, LIVE_SESSIONS — TrainingProgram.teamId and
+ * TrainingSession.teamId are both required, non-nullable columns, so
+ * there's no personal program/session getEffectiveLimit's blending needs
+ * to preserve access to). A coach's own individual UNDERDOG/MVP/ONYX
+ * subscription must never unlock a team capability through this path.
+ */
+export async function hasTeamEntitlement(teamId: string, key: EntitlementKey): Promise<boolean> {
+  const teamPlan = await getActivePlan("TEAM", teamId);
+  const limit = resolvedLimit(entitlementLimit(teamPlan, key));
+  return limit === null || limit > 0;
+}
+
+/**
  * The raw configured limit for a current-state cap (FILM_STORAGE_GB,
  * HIGHLIGHT_REELS_MAX, RECRUITING_SCHOOLS_MAX) — the caller computes the
  * live count/sum itself (there's no UsageCounter row for these; deleting
@@ -116,6 +134,19 @@ export async function getTeamRosterLimit(teamId: string): Promise<number | null>
  */
 export async function getCurrentStateLimit(userId: string, key: EntitlementKey): Promise<number | null> {
   const plan = await getActivePlan("USER", userId);
+  return resolvedLimit(entitlementLimit(plan, key));
+}
+
+/**
+ * Team-scoped analogue of getCurrentStateLimit — for FILM_STORAGE_GB
+ * specifically, the one entitlement that's genuinely owned by either a
+ * user or a team depending on the data (Film.teamId set = team-owned; a
+ * team's whole roster shares one pool against the team's own plan,
+ * resolved here, rather than each upload counting against whichever
+ * coach happened to click upload).
+ */
+export async function getTeamCurrentStateLimit(teamId: string, key: EntitlementKey): Promise<number | null> {
+  const plan = await getActivePlan("TEAM", teamId);
   return resolvedLimit(entitlementLimit(plan, key));
 }
 

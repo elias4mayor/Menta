@@ -11,7 +11,7 @@ import {
   ProgramValidationError,
 } from "@/lib/training-programs";
 import { logAudit } from "@/lib/audit";
-import { hasEntitlement } from "@/lib/entitlements";
+import { hasTeamEntitlement } from "@/lib/entitlements";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ teamId: string }> }) {
   const user = await getSessionUser();
@@ -36,9 +36,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
-  if (!(await hasEntitlement(user.id, teamId, "TRAINING_PROGRAMS"))) {
+  // Team-scoped resolution only — a coach's own individual plan must
+  // never unlock this for the whole roster. See the Scope Resolution
+  // Design doc: every TrainingProgram is team-owned (teamId is
+  // required), so there's no individual-only case to blend in.
+  if (!(await hasTeamEntitlement(teamId, "TRAINING_PROGRAMS"))) {
     return NextResponse.json({
-      error: "Training programs aren't included on the free plan. Upgrade your account or this team's plan to build one.",
+      error: "Training programs aren't included on this team's plan yet. Upgrade the team's MENTA membership to build one.",
     }, { status: 402 });
   }
 

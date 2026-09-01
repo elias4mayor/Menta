@@ -21,7 +21,12 @@ export type OwnerType = (typeof OWNER_TYPES)[number];
 export const SUBSCRIPTION_STATUSES = ["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "INCOMPLETE"] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
-export const PLAN_KEYS = ["ROOKIE", "MVP", "UNDERDOG", "MENTA_PLUS", "MENTA_PRO", "TEAM", "ORGANIZATION"] as const;
+// MENTA Membership relaunch (5-tier public lineup: ROOKIE -> UNDERDOG ->
+// MVP -> ONYX -> TEAM). MENTA_PLUS/MENTA_PRO are retired (Plan.active =
+// false — see prisma/seed-plans.ts) but kept here since their rows still
+// exist for historical subscriptions; ORGANIZATION still exists but is
+// deliberately excluded from the public membership page.
+export const PLAN_KEYS = ["ROOKIE", "MVP", "UNDERDOG", "ONYX", "MENTA_PLUS", "MENTA_PRO", "TEAM", "ORGANIZATION"] as const;
 export type PlanKey = (typeof PLAN_KEYS)[number];
 
 export const ENTITLEMENT_KEYS = [
@@ -34,16 +39,27 @@ export const ENTITLEMENT_KEYS = [
 
   // --- Current-state caps (checked against a live count/sum, not a
   // rolling counter — deleting content frees the cap back up).
-  "FILM_STORAGE_GB", // Enforced at: POST /api/films — sum of Film.sizeBytes for this uploader
+  // FILM_STORAGE_GB is the one key here that's genuinely owned by either
+  // a user or a team: Film.teamId set = team-owned, resolved via
+  // getTeamCurrentStateLimit against the team's own shared pool;
+  // Film.teamId null = individual, resolved via getCurrentStateLimit
+  // against the uploader's own plan, unchanged. See the Scope Resolution
+  // Design doc.
+  "FILM_STORAGE_GB", // Enforced at: POST /api/films — sum of Film.sizeBytes for the owning scope (team if Film.teamId is set, else the uploader)
   "HIGHLIGHT_REELS_MAX", // Enforced at: POST /api/highlights — count of this user's Highlight rows
   "RECRUITING_SCHOOLS_MAX", // Enforced at: POST /api/recruiting/schools — count of this user's RecruitingSchool rows
 
-  // --- Team-scoped feature flags. Resolved via getEffectiveLimit(userId,
-  // teamId, key) — the more generous of the acting user's own individual
-  // plan and their team's plan, so either a coach's personal upgrade or
-  // the team's own paid plan turns these on for that team.
+  // --- Team-scoped feature flags. Resolved via hasTeamEntitlement(teamId,
+  // key) — the TEAM's own subscription only, same resolution model as
+  // TEAM_MAX_ATHLETES below. Never blended with the acting coach's
+  // individual plan: TrainingProgram.teamId/TrainingSession.teamId are
+  // both required, non-nullable columns, so there's no individual-only
+  // case to preserve access to. (Previously resolved via
+  // getEffectiveLimit's "best of user or team" — that let a coach's own
+  // paid individual plan unlock these for a team that never paid; fixed
+  // per the Scope Resolution Design doc's Finding 3.)
   "TRAINING_PROGRAMS", // Enforced at: POST /api/teams/[teamId]/programs (also gates AthletePrescription, which requires a program to exist)
-  "LIVE_SESSIONS", // Enforced at: POST /api/teams/[teamId]/programs/[id]/sessions
+  "LIVE_SESSIONS", // Enforced at: POST /api/teams/[teamId]/programs/[id]/sessions — session creation only; participation/advance/logSet were never gated and still aren't
 
   // --- Team roster cap. Resolved only from the TEAM's own subscription
   // (never an individual's plan — see getTeamRosterLimit).

@@ -33,9 +33,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That plan isn't available for self-serve checkout." }, { status: 400 });
   }
 
-  if (!plan.priceCents) {
+  if (plan.priceCents === 0) {
     return NextResponse.json({
       error: "This plan is free and doesn't go through checkout — downgrading isn't available from here yet.",
+    }, { status: 400 });
+  }
+
+  // Distinct from the free-plan case above: priceCents === null means a
+  // paid plan (e.g. ONYX) exists but hasn't had a price decided yet —
+  // "this plan is free" would be a false statement here.
+  if (plan.priceCents === null) {
+    return NextResponse.json({
+      error: "Pricing for this plan hasn't been finalized yet — check back soon.",
     }, { status: 400 });
   }
 
