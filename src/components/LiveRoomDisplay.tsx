@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LiveSessionComplete } from "@/components/LiveSessionComplete";
 
 type MemberStatus = "NOT_STARTED" | "IN_SET" | "RESTING" | "COMPLETE" | "BEHIND";
 
@@ -22,8 +23,8 @@ type RoomView = {
 const STATUS_COLOR: Record<MemberStatus, string> = {
   NOT_STARTED: "var(--text-3)",
   IN_SET: "var(--text-1)",
-  RESTING: "#d4a017",
-  COMPLETE: "#1a9c5c",
+  RESTING: "var(--warning)",
+  COMPLETE: "var(--success)",
   BEHIND: "var(--danger)",
 };
 
@@ -49,27 +50,45 @@ export function LiveRoomDisplay({ teamId, sessionId, initialRoom }: { teamId: st
     };
   }, [teamId, sessionId]);
 
-  return (
-    <div className="min-h-screen px-10 py-8">
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-5xl font-semibold">{room.title}</h1>
-        <span className="text-2xl mono">{room.status === "LIVE" ? "● LIVE" : room.status}</span>
+  if (room.status === "COMPLETE") {
+    return (
+      <div className="live-root">
+        <LiveSessionComplete
+          teamId={teamId}
+          sessionId={sessionId}
+          title={room.title}
+          variant="room"
+          backHref={`/team/${teamId}/train`}
+          backLabel="Back to Command Center"
+          showBackLink={false}
+        />
       </div>
-      {room.currentBlockTitle && <p className="mono text-3xl text-text-3 mb-10">{room.currentBlockTitle.toUpperCase()}</p>}
+    );
+  }
+
+  return (
+    <div className="live-root" style={{ padding: "56px 64px" }}>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="live-focal-title" style={{ fontSize: "clamp(40px, 6vw, 68px)" }}>{room.title}</h1>
+        <span className="live-eyebrow" style={{ fontSize: 20, letterSpacing: "0.1em" }}>
+          {room.status === "LIVE" ? "● LIVE" : room.status}
+        </span>
+      </div>
+      {room.currentBlockTitle && <p className="live-eyebrow mb-10" style={{ fontSize: 22 }}>{room.currentBlockTitle.toUpperCase()}</p>}
 
       <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${Math.min(room.groups.length, 3) || 1}, 1fr)` }}>
         {room.groups.map((group) => {
           const completeCount = group.members.filter((m) => m.status === "COMPLETE").length;
           return (
-            <div key={group.id} className="card p-8">
+            <div key={group.id} className="live-card p-8">
               <div className="text-3xl font-semibold mb-1">{group.name}</div>
-              {group.stationLabel && <div className="text-xl text-text-2 mb-4">{group.stationLabel}</div>}
-              <div className="text-2xl mono text-text-3 mb-6">{group.currentExerciseName ?? "—"}</div>
-              <div className="text-xl mb-4">{completeCount}/{group.members.length} complete</div>
-              <ul className="space-y-2">
+              {group.stationLabel && <div className="text-xl mb-4" style={{ color: "var(--text-2)" }}>{group.stationLabel}</div>}
+              <div className="live-eyebrow mb-6" style={{ fontSize: 20 }}>{group.currentExerciseName ?? "—"}</div>
+              <div className="text-xl mb-4" style={{ color: "var(--text-2)" }}>{completeCount}/{group.members.length} complete</div>
+              <ul className="space-y-3">
                 {group.members.map((m) => (
                   <li key={m.athleteId} className="flex items-center gap-3 text-2xl">
-                    <span className="inline-block w-4 h-4 rounded-full shrink-0" style={{ background: STATUS_COLOR[m.status] }} />
+                    <span className="live-status-dot live-status-dot-lg" style={{ background: STATUS_COLOR[m.status] }} />
                     <span className="flex-1 truncate">{m.athleteName}</span>
                   </li>
                 ))}

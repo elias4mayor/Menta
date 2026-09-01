@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { LiveSessionComplete } from "@/components/LiveSessionComplete";
 
 type MyView = {
   session: { id: string; title: string; status: string };
@@ -131,11 +132,22 @@ export function LiveAthleteView({
   if (!view) {
     return <CenterMessage title="Loading…" />;
   }
+  if (view.session.status === "COMPLETE") {
+    return (
+      <div className="live-root">
+        <LiveSessionComplete
+          teamId={teamId}
+          sessionId={sessionId}
+          title={view.session.title}
+          variant="athlete"
+          backHref="/dashboard"
+          backLabel="Back to Dashboard"
+        />
+      </div>
+    );
+  }
   if (view.session.status === "PAUSED") {
     return <CenterMessage title="Session paused" description="Your coach paused the room. Hang tight." />;
-  }
-  if (view.session.status === "COMPLETE") {
-    return <CenterMessage title="Session complete" description="Nice work. Check Progress for how it went." />;
   }
   if (view.session.status === "CANCELED") {
     return <CenterMessage title="Session canceled" />;
@@ -152,63 +164,83 @@ export function LiveAthleteView({
   const resting = secondsSinceLog != null && secondsSinceLog < restSec;
   const remaining = resting ? Math.ceil(restSec - (secondsSinceLog as number)) : 0;
   const done = view.totalSets != null && (view.setsCompleted ?? 0) >= view.totalSets;
+  const phaseKey = `${view.exercise.id}:${view.nextSetNumber}:${done ? "done" : resting ? "rest" : "work"}`;
 
   return (
-    <div className="max-w-sm mx-auto min-h-[70vh] flex flex-col justify-center px-4">
-      <div className="mono text-text-3 text-center mb-2">TODAY&apos;S WORKOUT</div>
-      <h1 className="text-3xl font-semibold text-center mb-1">{view.exercise.name}</h1>
-      <p className="text-text-2 text-center mb-8">
-        SET {view.nextSetNumber} {view.totalSets ? `OF ${view.totalSets}` : ""}
-      </p>
-
-      <div className="card p-5 text-center mb-6">
-        <div className="mono text-text-3 text-xs mb-1">
-          PRESCRIBED {view.prescribed.source === "prescription" ? "· INDIVIDUALIZED" : ""}
+    <div className="live-root">
+      <div className="live-shell" style={{ maxWidth: 420, margin: "0 auto" }}>
+        <div className="live-eyebrow">
+          SET {view.nextSetNumber} {view.totalSets ? `OF ${view.totalSets}` : ""}
         </div>
-        <div className="text-2xl font-semibold">{describePrescribed(view.prescribed)}</div>
+
+        <div key={phaseKey} className="live-fade-enter" style={{ width: "100%" }}>
+          {done ? (
+            <>
+              <h1 className="live-focal-title">Set complete</h1>
+              <p className="live-sub">Waiting for your coach to advance the room.</p>
+            </>
+          ) : resting ? (
+            <>
+              <div className="live-eyebrow">REST</div>
+              <div className="live-focal-metric">
+                {Math.floor(remaining / 60)}:{(remaining % 60).toString().padStart(2, "0")}
+              </div>
+              <p className="live-sub">Next: Set {view.nextSetNumber}</p>
+            </>
+          ) : (
+            <>
+              <h1 className="live-focal-title">{view.exercise.name}</h1>
+              <div className="live-prescribed-value">{describePrescribed(view.prescribed)}</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 32 }}>
+                <label className="block">
+                  <span className="live-eyebrow" style={{ marginBottom: 6, display: "block" }}>LOAD</span>
+                  <input
+                    className="field-input text-lg text-center"
+                    value={loadInput}
+                    onChange={(e) => setLoadInput(e.target.value)}
+                    inputMode="decimal"
+                  />
+                </label>
+                <label className="block">
+                  <span className="live-eyebrow" style={{ marginBottom: 6, display: "block" }}>REPS</span>
+                  <input
+                    className="field-input text-lg text-center"
+                    value={repsInput}
+                    onChange={(e) => setRepsInput(e.target.value)}
+                    inputMode="numeric"
+                  />
+                </label>
+              </div>
+              <label className="block" style={{ marginTop: 12 }}>
+                <span className="live-eyebrow" style={{ marginBottom: 6, display: "block" }}>RPE (OPTIONAL)</span>
+                <input className="field-input text-center" value={rpeInput} onChange={(e) => setRpeInput(e.target.value)} inputMode="decimal" />
+              </label>
+              {error && (
+                <p className="text-sm text-center" style={{ color: "var(--danger)", marginTop: 12 }}>
+                  {error}
+                </p>
+              )}
+              <button className="live-primary-btn" style={{ marginTop: 20 }} onClick={completeSet} disabled={submitting}>
+                {submitting ? "Logging…" : "Complete set"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
-
-      {done ? (
-        <CenterMessage title="Exercise complete ✓" description="Waiting for your coach to advance the room." />
-      ) : resting ? (
-        <div className="text-center">
-          <div className="mono text-text-3 text-xs mb-2">REST</div>
-          <div className="text-5xl font-semibold mb-6">
-            {Math.floor(remaining / 60)}:{(remaining % 60).toString().padStart(2, "0")}
-          </div>
-          <p className="text-text-2">Next: Set {view.nextSetNumber}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mono text-text-3 text-xs">LOAD</span>
-              <input className="field-input text-lg text-center" value={loadInput} onChange={(e) => setLoadInput(e.target.value)} inputMode="decimal" />
-            </label>
-            <label className="block">
-              <span className="mono text-text-3 text-xs">REPS</span>
-              <input className="field-input text-lg text-center" value={repsInput} onChange={(e) => setRepsInput(e.target.value)} inputMode="numeric" />
-            </label>
-          </div>
-          <label className="block">
-            <span className="mono text-text-3 text-xs">RPE (optional)</span>
-            <input className="field-input text-center" value={rpeInput} onChange={(e) => setRpeInput(e.target.value)} inputMode="decimal" />
-          </label>
-          {error && <p className="text-sm text-center" style={{ color: "var(--danger)" }}>{error}</p>}
-          <button className="btn-primary w-full text-lg py-4" onClick={completeSet} disabled={submitting}>
-            {submitting ? "Logging…" : "COMPLETE SET"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
 function CenterMessage({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="max-w-sm mx-auto min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
-      <h1 className="text-2xl font-semibold mb-2">{title}</h1>
-      {description && <p className="text-text-2">{description}</p>}
+    <div className="live-root">
+      <div className="live-shell">
+        <h1 className="live-focal-title" style={{ fontSize: "clamp(26px, 6vw, 38px)" }}>
+          {title}
+        </h1>
+        {description && <p className="live-sub">{description}</p>}
+      </div>
     </div>
   );
 }

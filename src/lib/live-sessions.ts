@@ -539,6 +539,49 @@ export async function getMySessionView(teamId: string, sessionId: string, athlet
   };
 }
 
+export type SessionCompletionSummary = {
+  title: string;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  totalSetsLogged: number;
+  athletesParticipating: number;
+  mySetsLogged?: number;
+};
+
+/**
+ * The Session Complete screen's read — deliberately its own function
+ * rather than an addition to getSessionRoomView/getMySessionView, so
+ * those two polled hot-paths stay untouched. Aggregates completed
+ * TrainingSet rows for the whole session; mySetsLogged is only computed
+ * when the caller passes their own athleteId, never another athlete's.
+ */
+export async function getSessionCompletionSummary(
+  teamId: string,
+  sessionId: string,
+  athleteId?: string
+): Promise<SessionCompletionSummary | null> {
+  const session = await prisma.trainingSession.findFirst({
+    where: { id: sessionId, teamId },
+    select: { title: true, startedAt: true, completedAt: true },
+  });
+  if (!session) return null;
+
+  const sets = await prisma.trainingSet.findMany({
+    where: { sessionId, completed: true },
+    select: { athleteId: true },
+  });
+  const athleteIds = new Set(sets.map((s) => s.athleteId));
+
+  return {
+    title: session.title,
+    startedAt: session.startedAt,
+    completedAt: session.completedAt,
+    totalSetsLogged: sets.length,
+    athletesParticipating: athleteIds.size,
+    mySetsLogged: athleteId ? sets.filter((s) => s.athleteId === athleteId).length : undefined,
+  };
+}
+
 export async function listTeamSessions(teamId: string) {
   return prisma.trainingSession.findMany({
     where: { teamId },
