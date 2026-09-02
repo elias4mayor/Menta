@@ -16,8 +16,13 @@ function formatUsage(used: number, limit: number | null): string {
   return limit === null ? `${used} used — unlimited*` : `${used} / ${limit} used this month`;
 }
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
   const user = await requireUser();
+  const { checkout } = await searchParams;
 
   const [subscription, filmBytes, highlightCount, schoolCount, usage] = await Promise.all([
     prisma.subscription.findUnique({
@@ -44,6 +49,17 @@ export default async function BillingPage() {
         <div className="mono text-text-3 mb-2">Account</div>
         <h1 className="text-3xl font-semibold"><GlowWaveText intensity="strong">Billing</GlowWaveText></h1>
       </div>
+
+      {checkout === "success" && (
+        <p className="text-sm" style={{ color: "var(--success)" }}>
+          Payment received — your plan will update in a moment. Refresh if it doesn&rsquo;t change right away.
+        </p>
+      )}
+      {checkout === "canceled" && (
+        <p className="text-sm" style={{ color: "var(--danger)" }}>
+          Checkout was canceled — you weren&rsquo;t charged.
+        </p>
+      )}
 
       <section className="card p-6">
         <div className="flex items-center justify-between mb-1">

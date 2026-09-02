@@ -67,8 +67,14 @@ export async function POST(request: Request) {
     customer_email: existing?.stripeCustomerId ? undefined : user.email,
     client_reference_id: user.id,
     metadata: { userId: user.id, planKey: plan.key },
-    success_url: `${process.env.APP_URL}/account/billing?checkout=success`,
-    cancel_url: `${process.env.APP_URL}/account/billing?checkout=canceled`,
+    // Same `|| "http://localhost:3000"` fallback already used by
+    // src/lib/oauth.ts and the Google Classroom integration routes —
+    // without it, a missing APP_URL silently produced a URL beginning
+    // with the literal string "undefined", which Stripe's Checkout
+    // Session API rejects outright. Not client-controlled: read only
+    // from the server's own env, never from the request.
+    success_url: `${process.env.APP_URL || "http://localhost:3000"}/account/billing?checkout=success`,
+    cancel_url: `${process.env.APP_URL || "http://localhost:3000"}/account/billing?checkout=canceled`,
   });
 
   return NextResponse.json({ url: session.url });

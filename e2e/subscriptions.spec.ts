@@ -91,6 +91,17 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
     expect(res.status()).toBe(503);
   });
 
+  test("9b. the webhook endpoint returns an honest 'not connected' state when Stripe isn't configured, no session required", async ({ request }) => {
+    // Locks in that the pre-Stripe hardening pass didn't touch this guard
+    // — a real Stripe-signed payload can't be constructed without live
+    // credentials, so this is the one webhook path testable here without
+    // them. The malformed-payload logging branches added in this pass are
+    // verified by code inspection only (see the audit report), not by an
+    // automated test — they're unreachable without a validly signed event.
+    const res = await request.post("/api/subscriptions/webhook", { data: {} });
+    expect(res.status()).toBe(503);
+  });
+
   test("10. partnerships inquiry succeeds with valid input, requires no session", async ({ request }) => {
     const res = await request.post("/api/partnerships", {
       data: { name: "Coach Test", email: "coach@example.test", organization: "Test Academy", message: "Interested in Team." },
@@ -207,5 +218,29 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
       .toLowerCase();
     expect(underdogBenefitText).not.toContain("training programs");
     expect(underdogBenefitText).not.toContain("menta live");
+  });
+
+  test("17. checkout/portal return-URL construction always has an APP_URL fallback, never a bare interpolation", async () => {
+    // Regression guard for the pre-Stripe hardening pass: a missing
+    // APP_URL used to silently produce a URL beginning with the literal
+    // string "undefined", which Stripe's Checkout/Portal Session APIs
+    // reject. That call only ever happens once Stripe is actually
+    // configured, which this environment deliberately never is — so
+    // rather than a live HTTP test, this asserts the invariant directly
+    // against source: every process.env.APP_URL reference in these two
+    // routes must be paired with the same `|| "http://localhost:3000"`
+    // fallback already used elsewhere in this codebase (src/lib/oauth.ts,
+    // the Google Classroom integration routes), never bare.
+    const fs = await import("fs");
+    const path = await import("path");
+    for (const file of [
+      "src/app/api/subscriptions/checkout/route.ts",
+      "src/app/api/subscriptions/portal/route.ts",
+    ]) {
+      const source = fs.readFileSync(path.join(__dirname, "..", file), "utf8");
+      const bareInterpolation = /\$\{process\.env\.APP_URL\}/;
+      expect(source).not.toMatch(bareInterpolation);
+      expect(source).toContain('process.env.APP_URL || "http://localhost:3000"');
+    }
   });
 });

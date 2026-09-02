@@ -22,7 +22,8 @@ export async function POST() {
   const stripe = getStripeClient();
   const portal = await stripe.billingPortal.sessions.create({
     customer: subscription.stripeCustomerId,
-    return_url: `${process.env.APP_URL}/account/billing`,
+    // Same fallback as checkout/route.ts — see its comment.
+    return_url: `${process.env.APP_URL || "http://localhost:3000"}/account/billing`,
   });
 
   return NextResponse.json({ url: portal.url });
