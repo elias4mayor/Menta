@@ -84,9 +84,9 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     key: "UNDERDOG",
     scope: "INDIVIDUAL",
     displayName: "Underdog",
-    positioning: "Build your edge.",
+    positioning: "Build your foundation.",
     description:
-      "Turn potential into progress. UNDERDOG gives you the tools to train smarter, understand your performance, and build a development system around your goals—not someone else's.",
+      "Start where you are. Build where you're going. MENTA gives you the essential tools to stay organized, train with purpose, and keep improving.",
     // No TRAINING_PROGRAMS/LIVE_SESSIONS bullet here on purpose: since the
     // team-scope authorization fix, those two keys resolve ONLY from a
     // team's own MENTA TEAM subscription (hasTeamEntitlement) — an
@@ -94,7 +94,10 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     // regardless of its own PlanEntitlement value. Advertising it here
     // would be a false claim about what buying UNDERDOG alone gets you.
     benefits: [
-      { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Coach", l) },
+      { kind: "static", text: "Athlete profile & training plans" },
+      { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Athlete Coach", l) },
+      { kind: "static", text: "Academic support" },
+      { kind: "static", text: "Goals & progress tracking" },
       { kind: "entitlement", key: "FILM_STORAGE_GB", label: storageLabel },
       { kind: "entitlement", key: "HIGHLIGHT_REELS_MAX", label: highlightsLabel },
       { kind: "entitlement", key: "RECRUITING_SCHOOLS_MAX", label: schoolsLabel },
@@ -104,12 +107,18 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     key: "MVP",
     scope: "INDIVIDUAL",
     displayName: "MVP",
-    positioning: "Own your development.",
+    positioning: "Connect everything.",
     description:
-      "Your training, film, goals, recovery, academics, and development—connected. MVP gives you a deeper understanding of how everything you're doing contributes to becoming a better athlete.",
+      "Your athletic life shouldn't live in different apps. MVP brings your training, film, academics, recruiting, and recovery together so you can make smarter decisions every week.",
+    // No "AI Film Intelligence" bullet here on purpose — see the note on
+    // ONYX below. Film Intelligence is team-scoped, never gated by an
+    // individual Plan, so an MVP subscription can't grant it either.
     benefits: [
       { kind: "static", text: "Everything in Underdog, plus:" },
-      { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Coach", l) },
+      { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Athlete Coach", l) },
+      { kind: "static", text: "Personalized training plans" },
+      { kind: "static", text: "Recovery guidance" },
+      { kind: "static", text: "Academic planning" },
       { kind: "entitlement", key: "FILM_STORAGE_GB", label: storageLabel },
       { kind: "entitlement", key: "HIGHLIGHT_REELS_MAX", label: highlightsLabel },
       { kind: "entitlement", key: "RECRUITING_SCHOOLS_MAX", label: schoolsLabel },
@@ -119,12 +128,12 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     key: "ONYX",
     scope: "INDIVIDUAL",
     displayName: "Onyx",
-    positioning: "Operate at your highest level.",
+    positioning: "Go further.",
     description:
-      "ONYX is MENTA at full power. Your training, performance, film, recovery, goals, and development come together inside one intelligent system designed around the athlete you are becoming.",
-    // No "advanced film intelligence" bullet here: that line (inherited
-    // from the pre-relaunch PricingSection copy) is wrong on two counts.
-    // Film Intelligence (analysis templates, scouting reports, opponent
+      "Go beyond individual tools. ONYX gives you a deeper, more connected view of your development — from preparation to performance.",
+    // No "advanced film analysis" bullet here: that line (inherited from
+    // the pre-relaunch PricingSection copy) is wrong on two counts. Film
+    // Intelligence (analysis templates, scouting reports, opponent
     // tracking, cross-team film sharing — see FilmIntelligenceManager)
     // already exists and already ships today, so "(coming soon)" is
     // false. It's also a team-scoped, permission-gated capability
@@ -134,7 +143,11 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     // either, since it isn't one.
     benefits: [
       { kind: "static", text: "Everything in MVP, plus:" },
-      { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Coach", l) },
+      { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Athlete Coach", l) },
+      { kind: "static", text: "Deeper performance insights" },
+      { kind: "static", text: "Advanced recruiting support" },
+      { kind: "static", text: "Personalized development plans" },
+      { kind: "static", text: "Comprehensive athlete intelligence" },
       { kind: "entitlement", key: "FILM_STORAGE_GB", label: storageLabel },
       { kind: "entitlement", key: "HIGHLIGHT_REELS_MAX", label: highlightsLabel },
       { kind: "entitlement", key: "RECRUITING_SCHOOLS_MAX", label: schoolsLabel },

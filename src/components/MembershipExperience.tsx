@@ -8,6 +8,30 @@ import type { ResolvedMembershipTier } from "@/lib/membership";
 
 const TEAM_FLOW = ["Coach", "Program", "Live", "Athletes", "Performance"];
 
+/**
+ * The three tiers the membership brief treats as "the ladder" — UNDERDOG
+ * (foundation) → MVP (hero) → ONYX (elite). ROOKIE and TEAM are real,
+ * fully-priced tiers wired to the same Stripe/entitlement system (see
+ * membership-config.ts), but they're categorically different — a free
+ * on-ramp and a separate B2B/team product — not further rungs on this
+ * ladder. Kept as a plain ordered array (not a Set) so indexOf can double
+ * as "which numbered stop is this."
+ */
+const CORE_TIER_KEYS = ["UNDERDOG", "MVP", "ONYX"];
+
+/**
+ * "01"/"02"/"03" for the three-tier progression the brief describes;
+ * ROOKIE and TEAM get a category label instead of a number, so they read
+ * as sitting outside that ladder rather than competing as steps 0 and 5.
+ */
+function tierEyebrowMark(key: string): string {
+  const coreIndex = CORE_TIER_KEYS.indexOf(key);
+  if (coreIndex !== -1) return String(coreIndex + 1).padStart(2, "0");
+  if (key === "ROOKIE") return "FREE TO START";
+  if (key === "TEAM") return "FOR TEAMS & ORGS";
+  return "";
+}
+
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 function subscribeReducedMotion(callback: () => void) {
@@ -25,12 +49,37 @@ function getReducedMotionServerSnapshot(): boolean {
   return false;
 }
 
-type Geometry = { radius: number; stepDeg: number; centerBelowPx: number };
+/**
+ * The wheel is a circle whose center sits at (centerX, 0) relative to an
+ * anchor pinned to the vertical middle of the left edge of the stage
+ * (`left: 0; top: 50%` on .membership-wheel). `centerX` is deliberately
+ * negative on desktop/tablet — the circle's center is off-screen to the
+ * left, so only its right-hand rim (near angle 0) is ever visible, which
+ * is what makes it read as "a giant disc entering from outside the
+ * viewport" rather than a bounded carousel. On mobile there's no bleed:
+ * `centerX`/`radius` are small fixed pixel values that keep the whole
+ * circle inside the viewport per the brief's "never break outside the
+ * viewport" mobile rule.
+ */
+type Geometry = {
+  radius: number;
+  centerX: number;
+  stepDeg: number;
+  scaleFalloff: number;
+  opacityFalloff: number;
+  blurMax: number;
+};
 
-function getGeometry(width: number): Geometry {
-  if (width <= 640) return { radius: 190, stepDeg: 28, centerBelowPx: 70 };
-  if (width <= 1024) return { radius: 320, stepDeg: 25, centerBelowPx: 120 };
-  return { radius: 460, stepDeg: 22, centerBelowPx: 170 };
+function getGeometry(vw: number): Geometry {
+  if (vw <= 640) {
+    return { radius: 78, centerX: 40, stepDeg: 34, scaleFalloff: 0.55, opacityFalloff: 0.7, blurMax: 2 };
+  }
+  if (vw <= 1024) {
+    const radius = vw * 0.62;
+    return { radius, centerX: vw * 0.34 - radius, stepDeg: 19, scaleFalloff: 0.44, opacityFalloff: 0.68, blurMax: 5 };
+  }
+  const radius = vw * 0.58;
+  return { radius, centerX: vw * 0.4 - radius, stepDeg: 16, scaleFalloff: 0.42, opacityFalloff: 0.65, blurMax: 6 };
 }
 
 function formatPrice(tier: ResolvedMembershipTier): { price: string; period: string } | null {
@@ -58,8 +107,9 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const discRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const geometryRef = useRef<Geometry>({ radius: 460, stepDeg: 22, centerBelowPx: 170 });
+  const geometryRef = useRef<Geometry>(getGeometry(1440));
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -70,7 +120,7 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
     let lastActive = 0;
 
     function applyGeometry(progress: number) {
-      const { radius, stepDeg, centerBelowPx } = geometryRef.current;
+      const { radius, centerX, stepDeg, scaleFalloff, opacityFalloff, blurMax } = geometryRef.current;
       const rotation = progress * (tiers.length - 1) * stepDeg;
       let nearest = 0;
       let nearestDist = Infinity;
@@ -78,12 +128,15 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
       tiers.forEach((_, i) => {
         const angleDeg = i * stepDeg - rotation;
         const angleRad = (angleDeg * Math.PI) / 180;
-        const x = radius * Math.sin(angleRad);
-        const y = centerBelowPx - radius * Math.cos(angleRad);
+        const x = centerX + radius * Math.cos(angleRad);
+        const y = radius * Math.sin(angleRad);
         const distSteps = Math.abs(angleDeg) / stepDeg;
         const t = Math.min(Math.max(distSteps / 2, 0), 1);
-        const scale = 1 - t * 0.4;
-        const opacity = 1 - t * 0.65;
+        // Active node (t=0) scales slightly ABOVE 1 — "slightly closer to
+        // the viewer" per the brief — falling off below 1 for neighbors.
+        const scale = 1.06 - t * scaleFalloff;
+        const opacity = 1 - t * opacityFalloff;
+        const blur = t * blurMax;
 
         const el = nodeRefs.current[i];
         if (el) {
@@ -91,6 +144,7 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
           el.style.setProperty("--node-y", `${y.toFixed(1)}px`);
           el.style.setProperty("--node-scale", scale.toFixed(3));
           el.style.setProperty("--node-opacity", opacity.toFixed(3));
+          el.style.setProperty("--node-blur", `${blur.toFixed(2)}px`);
         }
         if (Math.abs(angleDeg) < nearestDist) {
           nearestDist = Math.abs(angleDeg);
@@ -123,7 +177,13 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
     }
 
     function onResize() {
-      geometryRef.current = getGeometry(window.innerWidth);
+      const geometry = getGeometry(window.innerWidth);
+      geometryRef.current = geometry;
+      const disc = discRef.current;
+      if (disc) {
+        disc.style.setProperty("--disc-size", `${(geometry.radius * 2).toFixed(1)}px`);
+        disc.style.setProperty("--disc-left", `${(geometry.centerX - geometry.radius).toFixed(1)}px`);
+      }
       update();
     }
 
@@ -188,18 +248,8 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
 
       <div ref={wrapRef} className="membership-wheel-wrap">
         <div className="membership-wheel-stage">
-          <div className="membership-detail" key={active.key}>
-            <div className="live-eyebrow">
-              {activeIndex + 1} OF {tiers.length}
-            </div>
-            {active.key === "TEAM" ? (
-              <TeamDetail tier={active} />
-            ) : (
-              <IndividualDetail tier={active} isSignedIn={isSignedIn} />
-            )}
-          </div>
-
           <div className="membership-wheel" role="group" aria-label="Membership tiers">
+            <div ref={discRef} className="membership-wheel-disc" aria-hidden="true" />
             {tiers.map((tier, i) => (
               <button
                 key={tier.key}
@@ -213,10 +263,22 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
                 onClick={() => jumpTo(i)}
                 onKeyDown={(e) => onNodeKeyDown(e, i)}
               >
-                <span className="membership-node-dot" aria-hidden="true" />
                 <span className="membership-node-label">{tier.displayName}</span>
+                <span className="membership-node-dot" aria-hidden="true" />
               </button>
             ))}
+          </div>
+
+          <div
+            className={`membership-detail${CORE_TIER_KEYS.includes(active.key) ? "" : " membership-detail-secondary"}`}
+            key={active.key}
+          >
+            <div className="live-eyebrow">{tierEyebrowMark(active.key)}</div>
+            {active.key === "TEAM" ? (
+              <TeamDetail tier={active} />
+            ) : (
+              <IndividualDetail tier={active} isSignedIn={isSignedIn} />
+            )}
           </div>
         </div>
       </div>
@@ -253,10 +315,15 @@ function MembershipHero() {
 
 function IndividualDetail({ tier, isSignedIn }: { tier: ResolvedMembershipTier; isSignedIn: boolean }) {
   const priced = formatPrice(tier);
+  // ROOKIE is a real, fully-priced ($0) tier — not a lesser version of
+  // UNDERDOG/MVP/ONYX, just a different category (the free on-ramp). A
+  // smaller title + ghost CTA keeps it from visually competing with the
+  // three-tier ladder's hero treatment.
+  const secondary = !CORE_TIER_KEYS.includes(tier.key);
   return (
     <>
       <div className="live-eyebrow">{tier.positioning.toUpperCase()}</div>
-      <h2 className="live-focal-title" style={{ fontSize: "clamp(32px, 6vw, 52px)" }}>
+      <h2 className="live-focal-title" style={{ fontSize: secondary ? "clamp(26px, 4.5vw, 38px)" : "clamp(32px, 6vw, 52px)" }}>
         {tier.displayName}
       </h2>
       <p className="live-sub">{tier.description}</p>
@@ -275,7 +342,7 @@ function IndividualDetail({ tier, isSignedIn }: { tier: ResolvedMembershipTier; 
       )}
 
       <div className="membership-cta">
-        <TierCta tier={tier} isSignedIn={isSignedIn} />
+        <TierCta tier={tier} isSignedIn={isSignedIn} ghost={secondary} />
       </div>
     </>
   );
@@ -285,7 +352,7 @@ function TeamDetail({ tier }: { tier: ResolvedMembershipTier }) {
   return (
     <>
       <div className="live-eyebrow">{tier.positioning.toUpperCase()}</div>
-      <h2 className="live-focal-title" style={{ fontSize: "clamp(32px, 6vw, 52px)" }}>
+      <h2 className="live-focal-title" style={{ fontSize: "clamp(26px, 4.5vw, 38px)" }}>
         {tier.displayName}
       </h2>
       <p className="live-sub">{tier.description}</p>
@@ -300,13 +367,14 @@ function TeamDetail({ tier }: { tier: ResolvedMembershipTier }) {
       </div>
 
       <div className="membership-cta">
-        <TierCta tier={tier} isSignedIn={Boolean(tier)} />
+        <TierCta tier={tier} isSignedIn={Boolean(tier)} ghost />
       </div>
     </>
   );
 }
 
-function TierCta({ tier, isSignedIn }: { tier: ResolvedMembershipTier; isSignedIn: boolean }) {
+function TierCta({ tier, isSignedIn, ghost = false }: { tier: ResolvedMembershipTier; isSignedIn: boolean; ghost?: boolean }) {
+  const primaryClass = ghost ? "live-ghost-btn" : "live-primary-btn";
   switch (tier.cta.kind) {
     case "already-on-team":
       return (
@@ -317,7 +385,7 @@ function TierCta({ tier, isSignedIn }: { tier: ResolvedMembershipTier; isSignedI
     case "team-contact":
       return (
         <details>
-          <summary className="live-primary-btn" style={{ cursor: "pointer", listStyle: "none", display: "inline-flex" }}>
+          <summary className={primaryClass} style={{ cursor: "pointer", listStyle: "none", display: "inline-flex" }}>
             Build your team →
           </summary>
           <div style={{ marginTop: 20, textAlign: "left", maxWidth: 360 }}>
@@ -352,7 +420,7 @@ function TierCta({ tier, isSignedIn }: { tier: ResolvedMembershipTier; isSignedI
           isSignedIn={isSignedIn}
           isCurrentPlan={false}
           isFree={tier.key === "ROOKIE"}
-          className="live-primary-btn"
+          className={primaryClass}
         >
           {tier.key === "ROOKIE" ? "Start free" : `Upgrade to ${tier.displayName} →`}
         </PricingCheckoutButton>

@@ -3068,35 +3068,175 @@ h4 {
    stops; the sticky stage inside pins for that whole distance. */
 .membership-wheel-wrap {
   position: relative;
-  height: 420vh;
+  height: 480vh;
 }
 
 .membership-wheel-wrap.membership-reduced {
   height: auto;
 }
 
+/* Split layout: .membership-wheel is an absolute, full-bleed overlay (so
+   its own left:0 origin matches window.innerWidth-based math exactly,
+   unaffected by any padding on the stage) with the giant off-screen disc
+   and its nodes; .membership-detail is a normal-flow sibling pushed right
+   via margin-left so it lands centered in the clean space the wheel
+   deliberately leaves clear, per the brief's "wheel stays left, content
+   reads center" rule. */
 .membership-wheel-stage {
   position: sticky;
   top: 0;
   height: 100vh;
   overflow: hidden;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+}
+
+.membership-wheel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* The disc itself only needs to move on resize (see onResize in
+   MembershipExperience.tsx) — it never rotates or gets a texture, which
+   is deliberate: a spinning ring reads as a loading spinner, a static
+   giant surface with nodes revolving along its rim reads as a physical
+   object. */
+.membership-wheel-disc {
+  position: absolute;
+  top: 50%;
+  left: var(--disc-left, -420px);
+  width: var(--disc-size, 840px);
+  height: var(--disc-size, 840px);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: radial-gradient(circle at 68% 40%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 62%), var(--surface);
+  border: 1px solid var(--border-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 60px 140px -70px rgba(0, 0, 0, 0.9);
+  z-index: 0;
+}
+
+.membership-node {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  /* Anchored by its RIGHT edge at --node-x (translate% is relative to the
+     element's own box), not its left — the dot marks the exact point on
+     the rim; the label trails leftward, into the disc, as it grows for
+     the active state. Anchoring by the left edge instead would grow the
+     active label rightward into .membership-detail's text column. */
+  transform: translate(calc(var(--node-x, 0px) - 100%), calc(-50% + var(--node-y, 0px))) scale(var(--node-scale, 1));
+  opacity: var(--node-opacity, 1);
+  filter: blur(var(--node-blur, 0px));
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px 16px;
+  white-space: nowrap;
+  pointer-events: auto;
+  z-index: 1;
+  /* No transition on transform/opacity/filter — driven by rAF writes
+     every scroll frame, a CSS transition here would fight that and add
+     lag. Color/font-size below are fine to transition since those only
+     change on the (infrequent) active-index flip. */
+}
+
+.membership-node:focus-visible {
+  outline: 2px solid var(--text-1);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.membership-node-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex-shrink: 0;
+  transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.membership-node[aria-current="true"] .membership-node-dot {
+  background: var(--success);
+  box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.16);
+}
+
+.membership-node-label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-3);
+  transition: color 0.35s var(--ease), font-size 0.35s var(--ease), font-weight 0.35s var(--ease);
+}
+
+.membership-node[aria-current="true"] .membership-node-label {
+  color: var(--text-1);
+  font-weight: 700;
+  font-size: 27px;
 }
 
 .membership-detail {
   position: relative;
   z-index: 2;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  margin-left: 40vw;
+  margin-right: 24px;
+  max-width: 520px;
   padding: 24px;
-  min-height: 0;
-  max-width: 640px;
-  margin: 0 auto;
+  text-align: left;
+}
+
+/* ROOKIE (free on-ramp) and TEAM (separate B2B product) are real,
+   fully-priced tiers — not lesser rungs on the UNDERDOG/MVP/ONYX ladder,
+   just a different category. The eyebrow reads as a label ("FREE TO
+   START") instead of a ladder number, and sits a touch looser/dimmer so
+   it doesn't parse as "step 0" or "step 5" of the three-tier progression. */
+.membership-detail-secondary .live-eyebrow {
+  letter-spacing: 0.18em;
+  opacity: 0.75;
+}
+
+/* Quiet crossfade + subtle rise, staggered slightly per child, on every
+   tier change (.membership-detail remounts via key={active.key}) — "the
+   content should feel like it is quietly transforming, not switching
+   screens." No horizontal slide, per the brief's "avoid dramatic sliding
+   animations" rule. */
+.membership-detail > * {
+  animation: membershipDetailIn 0.6s var(--ease) both;
+}
+
+.membership-detail > *:nth-child(1) {
+  animation-delay: 0s;
+}
+.membership-detail > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.membership-detail > *:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.membership-detail > *:nth-child(4) {
+  animation-delay: 0.15s;
+}
+.membership-detail > *:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.membership-detail > *:nth-child(6) {
+  animation-delay: 0.25s;
+}
+
+@keyframes membershipDetailIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .membership-benefits {
@@ -3105,6 +3245,7 @@ h4 {
   margin: 28px 0 0;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
   color: var(--text-2);
   font-size: 14px;
@@ -3129,7 +3270,7 @@ h4 {
   margin-top: 28px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -3139,7 +3280,7 @@ h4 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   margin-top: 28px;
   color: var(--text-2);
@@ -3151,59 +3292,6 @@ h4 {
 
 .membership-team-flow-sep {
   color: var(--text-3);
-}
-
-.membership-wheel {
-  position: relative;
-  z-index: 1;
-  height: 40vh;
-  min-height: 200px;
-  flex-shrink: 0;
-}
-
-.membership-node {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translate(calc(-50% + var(--node-x, 0px)), var(--node-y, 0px)) scale(var(--node-scale, 1));
-  opacity: var(--node-opacity, 1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  color: var(--text-1);
-  cursor: pointer;
-  padding: 12px;
-  /* No transition — driven by rAF writes every scroll frame, a CSS
-     transition here would fight that and add lag. */
-}
-
-.membership-node:focus-visible {
-  outline: 2px solid var(--text-1);
-  outline-offset: 4px;
-  border-radius: 8px;
-}
-
-.membership-node-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-2);
-  transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
-}
-
-.membership-node[aria-current="true"] .membership-node-dot {
-  background: var(--success);
-  box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.16);
-}
-
-.membership-node-label {
-  font-family: var(--font-heading);
-  font-weight: 650;
-  white-space: nowrap;
-  font-size: 17px;
 }
 
 /* Always-tab-reachable, non-spatial fallback list — the wheel is never
@@ -3228,18 +3316,32 @@ h4 {
   padding: 24px;
 }
 
-@media (min-width: 640px) {
-  .membership-node-label {
-    font-size: 19px;
+@media (max-width: 1024px) {
+  .membership-detail {
+    margin-left: 34vw;
+    max-width: 440px;
   }
 }
 
 @media (max-width: 640px) {
-  .membership-wheel {
-    height: 34vh;
-    min-height: 170px;
-  }
   .membership-detail {
-    padding: 20px 16px;
+    margin-left: 130px;
+    margin-right: 16px;
+    max-width: none;
+    padding: 16px;
+  }
+  .membership-node {
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .membership-node-dot {
+    width: 6px;
+    height: 6px;
+  }
+  .membership-node-label {
+    font-size: 12px;
+  }
+  .membership-node[aria-current="true"] .membership-node-label {
+    font-size: 16px;
   }
 }
