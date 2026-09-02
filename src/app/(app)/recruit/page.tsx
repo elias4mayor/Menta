@@ -5,6 +5,8 @@ import { RecruitingSchools } from "@/components/RecruitingSchools";
 import { RecruitingOutreachPanel } from "@/components/RecruitingOutreachPanel";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { isAiConfigured } from "@/lib/ai";
+import { isRecruitingIntelligenceConnected } from "@/lib/recruiting/provider-status";
+import { computeOpportunities, type OpportunityRosterChangeInput, type OpportunitySignalInput } from "@/lib/recruiting/opportunities";
 
 const SCHOOL_STATUSES = [
   "TARGET",
@@ -35,14 +37,20 @@ function initials(name: string): string {
 
 export default async function RecruitPage() {
   const user = await requireUser();
+  const recruitingIntelligenceConnected = isRecruitingIntelligenceConnected();
 
-  const [profile, sportContext, recentStats, highlights, schools, activities] = await Promise.all([
+  // AthleteProfile.sport/.position are the deprecated compatibility mirror
+  // (see the model's own doc comment) — fit-scoring and opportunity
+  // ranking both read the real source of truth instead, per the
+  // multi-sport rule against new reads of AthleteProfile.sport directly.
+  // Fetched ahead of the Promise.all below since the opportunity queries
+  // need its `.sport` value to scope what they fetch.
+  const sportContext = await prisma.athleteSportContext.findFirst({
+    where: { userId: user.id, isPrimary: true, isActive: true },
+  });
+
+  const [profile, recentStats, highlights, schools, activities, rosterChanges, signals] = await Promise.all([
     prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
-    // AthleteProfile.sport/.position are the deprecated compatibility
-    // mirror (see the model's own doc comment) — this new fit-scoring
-    // logic reads the real source of truth instead, per the multi-sport
-    // rule against new reads of AthleteProfile.sport directly.
-    prisma.athleteSportContext.findFirst({ where: { userId: user.id, isPrimary: true, isActive: true } }),
     prisma.performanceEntry.findMany({
       where: { userId: user.id },
       orderBy: { recordedAt: "desc" },
@@ -64,6 +72,25 @@ export default async function RecruitPage() {
       orderBy: { createdAt: "desc" },
       take: 25,
     }),
+    // Both gated on recruitingIntelligenceConnected (always false today —
+    // see provider-status.ts) so these never fire pointless queries
+    // against tables no ingestion job has ever written to.
+    recruitingIntelligenceConnected && sportContext?.sport
+      ? prisma.rosterChange.findMany({
+          where: { program: { sport: sportContext.sport } },
+          include: { program: { select: { sport: true, schoolName: true, division: true, collegeId: true } } },
+          orderBy: { observedAt: "desc" },
+          take: 50,
+        })
+      : Promise.resolve([]),
+    recruitingIntelligenceConnected && sportContext?.sport
+      ? prisma.recruitingSignal.findMany({
+          where: { signalType: "coach_added", program: { sport: sportContext.sport } },
+          include: { program: { select: { sport: true, schoolName: true, division: true, collegeId: true } } },
+          orderBy: { observedAt: "desc" },
+          take: 25,
+        })
+      : Promise.resolve([]),
   ]);
 
   const aiConfigured = isAiConfigured();
@@ -89,6 +116,20 @@ export default async function RecruitPage() {
     hasRecentPerformanceData: recentStats.length > 0,
     hasFilm: highlights.length > 0,
   };
+
+  const trackedCollegeIds = schools.map((s) => s.collegeId).filter((id): id is string => Boolean(id));
+  const opportunities = computeOpportunities({
+    // The where-clause above already restricts these to rows with a
+    // matching, resolved program — Prisma's own type just can't express
+    // that narrowing, since the relation is nullable in the schema.
+    rosterChanges: rosterChanges.filter((rc) => rc.program !== null) as unknown as OpportunityRosterChangeInput[],
+    signals: signals.filter((s) => s.program !== null) as unknown as OpportunitySignalInput[],
+    athlete: {
+      sport: sportContext?.sport ?? null,
+      position: sportContext?.position ?? null,
+      trackedCollegeIds,
+    },
+  });
 
   const schoolsForClient = schools.map((s) => ({
     ...s,
@@ -259,6 +300,46 @@ export default async function RecruitPage() {
       {/* Target schools + contacts */}
       <section id="schools" className="mb-8 scroll-mt-20">
         <RecruitingSchools initial={schoolsForClient} athlete={athleteFitContext} />
+      </section>
+
+      {/* Opportunities — ranked roster/coaching signals from a licensed
+          recruiting data provider, scoped to the athlete's own sport and
+          position. Always an honest empty/not-connected state today; see
+          src/lib/recruiting/opportunities.ts. */}
+      <section id="opportunities" className="mb-8 scroll-mt-20">
+        <div className="mono text-text-3 mb-3">Opportunities</div>
+        {!recruitingIntelligenceConnected ? (
+          <div className="card p-6">
+            <p className="text-text-2 text-sm mb-1">Recruiting intelligence is being connected.</p>
+            <p className="text-text-3 text-xs">
+              Once a licensed recruiting data source is connected, MENTA will surface real roster and
+              coaching changes relevant to your sport and position here — nothing here is invented in the
+              meantime.
+            </p>
+          </div>
+        ) : opportunities.length === 0 ? (
+          <div className="card p-6 text-center">
+            <p className="text-text-2 text-sm">
+              No relevant roster or coaching changes yet{sportContext?.sport ? ` for ${sportContext.sport}` : ""}.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {opportunities.slice(0, 10).map((o) => (
+              <li key={o.id} className="card p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-medium">
+                    {o.schoolName}
+                    {o.division ? <span className="text-text-3 text-xs font-normal"> · {o.division}</span> : null}
+                  </div>
+                  {o.isTrackedSchool && <span className="badge">Tracking</span>}
+                </div>
+                <p className="text-text-2 text-sm mt-1">{o.headline}</p>
+                <p className="text-text-3 text-xs mt-1">{o.reason}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* AI outreach + activity */}
