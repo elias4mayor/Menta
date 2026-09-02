@@ -3114,11 +3114,43 @@ h4 {
   width: var(--disc-size, 840px);
   height: var(--disc-size, 840px);
   border-radius: 50%;
+  overflow: hidden;
   transform: translateY(-50%);
   background: linear-gradient(155deg, #ffffff 0%, #f2f2ef 55%, #e8e8e5 100%);
   border: 1px solid rgba(0, 0, 0, 0.07);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 50px 140px -70px rgba(0, 0, 0, 0.7);
   z-index: 0;
+}
+
+/* The scroll-driven sports morph living inside the disc (see
+   MembershipSportsMorph.tsx) — six sport-linework layers in one SVG,
+   opacity/stroke-draw driven imperatively from MembershipExperience's
+   existing rAF loop. `stroke` is dark-on-white deliberately: the disc
+   itself is the white/off-white surface, so the linework reads as fine
+   engraved detail on it, not literal white-on-white (which would be
+   invisible). */
+.membership-sports-morph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.membership-sports-morph-layer {
+  opacity: 0;
+}
+
+.membership-sports-morph-line {
+  fill: none;
+  stroke: rgba(10, 10, 12, 0.62);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.membership-sports-morph-ticks line {
+  stroke: rgba(10, 10, 12, 0.38);
+  stroke-width: 0.9;
+  stroke-linecap: round;
 }
 
 .membership-node {

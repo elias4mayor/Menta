@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PricingCheckoutButton } from "@/components/PricingCheckoutButton";
 import { PartnershipContactForm } from "@/components/PartnershipContactForm";
 import type { ResolvedMembershipTier } from "@/lib/membership";
+import { formatPrice } from "@/lib/membership-format";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { MembershipSportsMorph, type MembershipSportsMorphHandle } from "@/components/MembershipSportsMorph";
 
 const TEAM_FLOW = ["Coach", "Program", "Live", "Athletes", "Performance"];
 
@@ -30,23 +33,6 @@ function tierEyebrowMark(key: string): string {
   if (key === "ROOKIE") return "FREE TO START";
   if (key === "TEAM") return "FOR TEAMS & ORGS";
   return "";
-}
-
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-
-function subscribeReducedMotion(callback: () => void) {
-  const mql = window.matchMedia(REDUCED_MOTION_QUERY);
-  mql.addEventListener("change", callback);
-  return () => mql.removeEventListener("change", callback);
-}
-
-function getReducedMotionSnapshot(): boolean {
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
-}
-
-/** SSR has no window; assume motion is allowed for the initial server render (matches PortalHero's own default-to-finished-state fallback), then useSyncExternalStore corrects it right after hydration if the real preference differs — the sanctioned way to read browser-only state without setState-in-effect. */
-function getReducedMotionServerSnapshot(): boolean {
-  return false;
 }
 
 /**
@@ -82,12 +68,6 @@ function getGeometry(vw: number): Geometry {
   return { radius, centerX: vw * 0.4 - radius, stepDeg: 16, scaleFalloff: 0.42, opacityFalloff: 0.65, blurMax: 6 };
 }
 
-function formatPrice(tier: ResolvedMembershipTier): { price: string; period: string } | null {
-  if (tier.isCustomPricing) return { price: "Custom", period: "" };
-  if (tier.priceCents === null) return null; // e.g. ONYX pre-launch — handled as its own "coming soon" state
-  if (tier.priceCents === 0) return { price: "$0", period: "" };
-  return { price: `$${(tier.priceCents / 100).toFixed(2)}`, period: "/mo" };
-}
 
 /**
  * The cinematic membership selector: a scroll-driven half-wheel of 5
@@ -100,14 +80,11 @@ function formatPrice(tier: ResolvedMembershipTier): { price: string; period: str
  * never the only way to navigate.
  */
 export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMembershipTier[]; isSignedIn: boolean }) {
-  const reducedMotion = useSyncExternalStore(
-    subscribeReducedMotion,
-    getReducedMotionSnapshot,
-    getReducedMotionServerSnapshot
-  );
+  const reducedMotion = useReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
   const discRef = useRef<HTMLDivElement>(null);
+  const morphRef = useRef<MembershipSportsMorphHandle>(null);
   const nodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const geometryRef = useRef<Geometry>(getGeometry(1440));
 
@@ -167,6 +144,9 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
       const scrolled = -rect.top;
       const progress = total > 0 ? Math.min(Math.max(scrolled / total, 0), 1) : 0;
       applyGeometry(progress);
+      // Same scroll-driven progress already computed above, reused for
+      // the sports-morph linework — no second listener, no re-render.
+      morphRef.current?.applyProgress(progress);
     }
 
     function onScroll() {
@@ -249,7 +229,9 @@ export function MembershipExperience({ tiers, isSignedIn }: { tiers: ResolvedMem
       <div ref={wrapRef} className="membership-wheel-wrap">
         <div className="membership-wheel-stage">
           <div className="membership-wheel" role="group" aria-label="Membership tiers">
-            <div ref={discRef} className="membership-wheel-disc" aria-hidden="true" />
+            <div ref={discRef} className="membership-wheel-disc" aria-hidden="true">
+              <MembershipSportsMorph ref={morphRef} />
+            </div>
             {tiers.map((tier, i) => (
               <button
                 key={tier.key}
@@ -373,7 +355,7 @@ function TeamDetail({ tier }: { tier: ResolvedMembershipTier }) {
   );
 }
 
-function TierCta({ tier, isSignedIn, ghost = false }: { tier: ResolvedMembershipTier; isSignedIn: boolean; ghost?: boolean }) {
+export function TierCta({ tier, isSignedIn, ghost = false }: { tier: ResolvedMembershipTier; isSignedIn: boolean; ghost?: boolean }) {
   const primaryClass = ghost ? "live-ghost-btn" : "live-primary-btn";
   switch (tier.cta.kind) {
     case "already-on-team":
