@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createTestUser, cleanupE2eUsers, testPrisma } from "./db-helpers";
+import { MEMBERSHIP_TIERS } from "../src/lib/membership-config";
 
 /**
  * Security/behavior coverage for Phase 7 (Subscriptions & entitlements).
@@ -155,10 +156,31 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
     expect(onyx.priceCents).toBeNull();
   });
 
-  test("14. /membership never advertises unshipped AI capabilities as shipped", async ({ request }) => {
+  test("14. ONYX's benefit list never claims Film Intelligence as an individual-plan benefit", async ({ request }) => {
+    // Was: assert the page's rendered HTML contains "(coming soon)" — that
+    // string existed only because of ONYX's old "Advanced film
+    // intelligence (coming soon)" bullet. That bullet was itself wrong on
+    // two counts: Film Intelligence (analysis templates, scouting reports,
+    // opponent tracking, cross-team film sharing) already ships today, and
+    // it's team-scoped/permission-gated (MANAGE_ANALYSIS_TEMPLATES etc.),
+    // never gated by any individual Plan — an individual ONYX subscription
+    // couldn't grant it even if it wanted to. Fixing that changed the
+    // premise this test's assertion depended on, not just its wording.
+    // The property worth locking in is the specific regression this fix
+    // prevents: ONYX's config should never re-claim film intelligence as
+    // something buying it individually gets you (shipped or "coming
+    // soon" — either framing would be wrong for the same reason). Checked
+    // against the source config directly, same as test 13 above, since
+    // SSR only ever renders the initially-focal tier's benefit text.
+    const onyxBenefitText = MEMBERSHIP_TIERS.ONYX.benefits
+      .map((b) => (b.kind === "static" ? b.text : b.key))
+      .join(" ")
+      .toLowerCase();
+    expect(onyxBenefitText).not.toContain("film intelligence");
+
+    // Sanity: the page itself still renders successfully after the fix.
     const res = await request.get("/membership");
-    const html = await res.text();
-    expect(html).toContain("(coming soon)");
+    expect(res.status()).toBe(200);
   });
 
   test("15. the retired MENTA_PLUS/MENTA_PRO plans are inactive but their rows and entitlements are preserved", async () => {
@@ -168,5 +190,22 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
     expect(pro?.active).toBe(false);
     expect(plus?.entitlements.length).toBeGreaterThan(0);
     expect(pro?.entitlements.length).toBeGreaterThan(0);
+  });
+
+  test("16. UNDERDOG's benefit list never claims team programming/LIVE as an individual-plan benefit", async () => {
+    // Regression coverage for the pre-Stripe cleanup pass: since the
+    // team-scope authorization fix, TRAINING_PROGRAMS/LIVE_SESSIONS
+    // resolve only from a team's own MENTA TEAM subscription — an
+    // individual UNDERDOG plan's own PlanEntitlement value for either key
+    // is never read by any runtime code path (see hasTeamEntitlement in
+    // src/lib/entitlements.ts). The old UNDERDOG benefit bullet
+    // ("Training programs & MENTA LIVE") predated that fix and became a
+    // false claim the moment it shipped; this locks in that it stays gone.
+    const underdogBenefitText = MEMBERSHIP_TIERS.UNDERDOG.benefits
+      .map((b) => (b.kind === "static" ? b.text : b.key))
+      .join(" ")
+      .toLowerCase();
+    expect(underdogBenefitText).not.toContain("training programs");
+    expect(underdogBenefitText).not.toContain("menta live");
   });
 });

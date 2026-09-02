@@ -14,6 +14,18 @@ import { ENTITLEMENT_KEYS, type EntitlementKey, type PlanKey } from "../src/lib/
  * homepage — see src/components/PricingSection.tsx. Every key below has a
  * real enforcement point (see entitlement-keys.ts's "Enforced at" comments)
  * — this file only ever holds numbers for capabilities that actually exist.
+ *
+ * TRAINING_PROGRAMS/LIVE_SESSIONS on the individual plans (UNDERDOG, MVP,
+ * ONYX) below are intentionally left as-is even though they're now inert:
+ * since the team-scope authorization fix, both keys resolve exclusively
+ * from a team's own MENTA TEAM subscription via hasTeamEntitlement() — an
+ * individual's own value for either key is never read by any runtime code
+ * path. Left in place rather than pruned to avoid a database mutation for
+ * a purely cosmetic cleanup (removing them here would delete the
+ * corresponding PlanEntitlement rows on the next seed run); the athlete-
+ * facing membership copy that used to imply otherwise has been corrected
+ * instead — see the UNDERDOG/ONYX benefits comments in
+ * src/lib/membership-config.ts.
  */
 
 const prisma = new PrismaClient();

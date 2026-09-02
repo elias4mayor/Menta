@@ -87,9 +87,14 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     positioning: "Build your edge.",
     description:
       "Turn potential into progress. UNDERDOG gives you the tools to train smarter, understand your performance, and build a development system around your goals—not someone else's.",
+    // No TRAINING_PROGRAMS/LIVE_SESSIONS bullet here on purpose: since the
+    // team-scope authorization fix, those two keys resolve ONLY from a
+    // team's own MENTA TEAM subscription (hasTeamEntitlement) — an
+    // individual UNDERDOG plan grants zero team programming/LIVE access
+    // regardless of its own PlanEntitlement value. Advertising it here
+    // would be a false claim about what buying UNDERDOG alone gets you.
     benefits: [
       { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Coach", l) },
-      { kind: "entitlement", key: "TRAINING_PROGRAMS", label: featureFlagLabel("Training programs & MENTA LIVE") },
       { kind: "entitlement", key: "FILM_STORAGE_GB", label: storageLabel },
       { kind: "entitlement", key: "HIGHLIGHT_REELS_MAX", label: highlightsLabel },
       { kind: "entitlement", key: "RECRUITING_SCHOOLS_MAX", label: schoolsLabel },
@@ -117,16 +122,22 @@ export const MEMBERSHIP_TIERS: Record<MembershipTierKey, MembershipTierConfig> =
     positioning: "Operate at your highest level.",
     description:
       "ONYX is MENTA at full power. Your training, performance, film, recovery, goals, and development come together inside one intelligent system designed around the athlete you are becoming.",
+    // No "advanced film intelligence" bullet here: that line (inherited
+    // from the pre-relaunch PricingSection copy) is wrong on two counts.
+    // Film Intelligence (analysis templates, scouting reports, opponent
+    // tracking, cross-team film sharing — see FilmIntelligenceManager)
+    // already exists and already ships today, so "(coming soon)" is
+    // false. It's also a team-scoped, permission-gated capability
+    // (MANAGE_ANALYSIS_TEMPLATES/MANAGE_SCOUTING/etc.), never gated by
+    // any individual Plan — an individual ONYX subscription couldn't
+    // grant it even if it wanted to. Not re-added as a real ONYX benefit
+    // either, since it isn't one.
     benefits: [
       { kind: "static", text: "Everything in MVP, plus:" },
       { kind: "entitlement", key: "AI_COACH_CHAT_MONTHLY", label: (l) => aiLabel("AI Coach", l) },
       { kind: "entitlement", key: "FILM_STORAGE_GB", label: storageLabel },
       { kind: "entitlement", key: "HIGHLIGHT_REELS_MAX", label: highlightsLabel },
       { kind: "entitlement", key: "RECRUITING_SCHOOLS_MAX", label: schoolsLabel },
-      // Honest "not shipped yet" framing, same pattern the existing
-      // PricingSection already uses for this exact capability — never
-      // sold as live.
-      { kind: "static", text: "Advanced film intelligence (coming soon)" },
     ],
   },
   TEAM: {
