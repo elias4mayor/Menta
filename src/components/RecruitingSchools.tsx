@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { AthleteFitContext } from "@/lib/recruiting/intelligence";
+import { CanIPlayHere } from "@/components/CanIPlayHere";
 
 export type RecruitingContactItem = {
   id: string;
@@ -52,7 +54,13 @@ function statusBadgeStyle(status: string): React.CSSProperties {
   return {};
 }
 
-export function RecruitingSchools({ initial }: { initial: RecruitingSchoolItem[] }) {
+export function RecruitingSchools({
+  initial,
+  athlete,
+}: {
+  initial: RecruitingSchoolItem[];
+  athlete: AthleteFitContext;
+}) {
   const router = useRouter();
   const [schools, setSchools] = useState(initial);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -233,6 +241,18 @@ export function RecruitingSchools({ initial }: { initial: RecruitingSchoolItem[]
 
               {expanded === school.id && (
                 <div className="mt-4 pt-4 space-y-4" style={{ borderTop: "1px solid var(--border)" }}>
+                  <SchoolIntelligence
+                    athlete={athlete}
+                    school={{
+                      name: school.name,
+                      division: school.division,
+                      location: school.location,
+                      notes: school.notes,
+                      status: school.status,
+                      contactCount: school.contacts.length,
+                    }}
+                  />
+
                   <div>
                     <label className="field-label" htmlFor={`status-${school.id}`}>Status</label>
                     <select
@@ -268,6 +288,23 @@ export function RecruitingSchools({ initial }: { initial: RecruitingSchoolItem[]
       )}
     </div>
   );
+}
+
+/**
+ * The "complex intelligence underneath, simple decisions on top" layer
+ * for one saved school: MENTA Profile Fit + Academic Alignment as two
+ * quiet badges (glance level — label only, "See why" reveals the one-
+ * sentence reasoning), then the Reality Check. Computed client-side from
+ * props already in hand — no extra fetch, no server round-trip.
+ */
+function SchoolIntelligence({
+  athlete,
+  school,
+}: {
+  athlete: AthleteFitContext;
+  school: { name: string; division: string | null; location: string | null; notes: string | null; status: string; contactCount: number };
+}) {
+  return <CanIPlayHere athlete={athlete} school={school} />;
 }
 
 function RecruitingContacts({

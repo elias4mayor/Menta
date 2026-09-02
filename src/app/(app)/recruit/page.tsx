@@ -36,8 +36,13 @@ function initials(name: string): string {
 export default async function RecruitPage() {
   const user = await requireUser();
 
-  const [profile, recentStats, highlights, schools, activities] = await Promise.all([
+  const [profile, sportContext, recentStats, highlights, schools, activities] = await Promise.all([
     prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
+    // AthleteProfile.sport/.position are the deprecated compatibility
+    // mirror (see the model's own doc comment) — this new fit-scoring
+    // logic reads the real source of truth instead, per the multi-sport
+    // rule against new reads of AthleteProfile.sport directly.
+    prisma.athleteSportContext.findFirst({ where: { userId: user.id, isPrimary: true, isActive: true } }),
     prisma.performanceEntry.findMany({
       where: { userId: user.id },
       orderBy: { recordedAt: "desc" },
@@ -71,6 +76,19 @@ export default async function RecruitPage() {
   }, {});
   const totalContacts = schools.reduce((sum, s) => sum + s.contacts.length, 0);
   const draftCount = activities.filter((a) => a.isDraft).length;
+
+  const athleteFitContext = {
+    sport: sportContext?.sport ?? null,
+    position: sportContext?.position ?? null,
+    graduationYear: profile?.graduationYear ?? null,
+    heightCm: profile?.heightCm ?? null,
+    weightKg: profile?.weightKg ?? null,
+    gpa: profile?.gpa ?? null,
+    city: profile?.city ?? null,
+    state: profile?.state ?? null,
+    hasRecentPerformanceData: recentStats.length > 0,
+    hasFilm: highlights.length > 0,
+  };
 
   const schoolsForClient = schools.map((s) => ({
     ...s,
@@ -109,6 +127,8 @@ export default async function RecruitPage() {
         <a href="#schools" className="btn-secondary">+ Add coach</a>
         <a href="#outreach" className="btn-secondary">Draft outreach</a>
         <a href="#profile" className="btn-secondary">View recruiting profile</a>
+        <Link href="/recruit/colleges" className="btn-secondary">Find colleges</Link>
+        <Link href="/recruit/coaches" className="btn-secondary">Find coaches</Link>
       </div>
 
       {/* Status breakdown */}
@@ -238,7 +258,7 @@ export default async function RecruitPage() {
 
       {/* Target schools + contacts */}
       <section id="schools" className="mb-8 scroll-mt-20">
-        <RecruitingSchools initial={schoolsForClient} />
+        <RecruitingSchools initial={schoolsForClient} athlete={athleteFitContext} />
       </section>
 
       {/* AI outreach + activity */}
