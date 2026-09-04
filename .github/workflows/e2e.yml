@@ -44,6 +44,9 @@ jobs:
       - name: Apply Prisma migrations
         run: npx prisma migrate deploy
 
+      - name: Seed plans
+        run: npx tsx prisma/seed-plans.ts
+
       - name: Run E2E tests
         run: npm run test:e2e
 
