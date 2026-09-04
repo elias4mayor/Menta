@@ -37,7 +37,13 @@ test.describe("Page smoke regression — athlete", () => {
     await page.waitForURL("**/dashboard", { timeout: 10_000 });
 
     const pages: { path: string; heading: string }[] = [
-      { path: "/dashboard", heading: "Now" },
+      // Was "Now" — commit 6cf2b979 ("Redesign MENTA athlete dashboard and
+      // navigation") deliberately renamed the athlete hero panel's label to
+      // "Today" (it's still "Now" on the separate Coach/Trainer/Parent/
+      // Doctor dashboard components, untouched by that redesign). This
+      // assertion predates that commit and was never updated — a stale
+      // expectation, not an app bug.
+      { path: "/dashboard", heading: "Today" },
       { path: "/profile", heading: params.name },
       { path: "/train", heading: "Workout library" },
       { path: "/performance", heading: "Stats & trends" },

@@ -47,6 +47,9 @@ jobs:
       - name: Seed plans
         run: npx tsx prisma/seed-plans.ts
 
+      - name: Seed exercises
+        run: npx tsx prisma/seed-exercises.ts
+
       - name: Run E2E tests
         run: npm run test:e2e
 
