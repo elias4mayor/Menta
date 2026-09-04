@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { MarketingNav } from "@/components/MarketingNav";
+import { HomeHeader } from "@/components/HomeHeader";
+import { HomeHero } from "@/components/HomeHero";
 import { MarketingFooter } from "@/components/MarketingFooter";
-import { Hero } from "@/components/Hero";
 import { DashboardPreview } from "@/components/DashboardPreview";
 import { FeatureShowcase } from "@/components/FeatureShowcase";
 import { WhoSection } from "@/components/WhoSection";
@@ -120,9 +120,11 @@ export default async function HomePage() {
     <>
       <IntroBoot />
       <RevealInit />
-      <MarketingNav />
+      <HomeHeader />
       <main>
-        <Hero />
+        <div className="home-os-root">
+          <HomeHero />
+        </div>
 
         <section className="px-6 md:px-10 pt-20 pb-24 text-center">
           <div className="mb-12">

@@ -2917,6 +2917,132 @@ h4 {
   color: var(--text-1);
 }
 
+/* ---------- Home OS: premium black homepage header + hero ----------
+   Same override-the-custom-properties mechanism as .live-root above —
+   deliberately reuses its exact token values (same #08080a, same white-
+   alpha borders) for one consistent "MENTA dark" rather than inventing a
+   second black. Scoped to HomeHeader.tsx/HomeHero.tsx only (see
+   src/app/page.tsx) — the rest of the marketing site (MarketingNav, the
+   sections below the hero) stays on the white :root theme untouched. */
+.home-os-root {
+  --bg: #08080a;
+  --surface: #131316;
+  --surface-2: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text-1: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.66);
+  --text-3: rgba(245, 245, 247, 0.4);
+  background: var(--bg);
+  color: var(--text-1);
+}
+
+/* Small top-left logo, the "entry point to the OS" — brightens subtly on
+   hover/focus rather than a hard color swap, so the whole interaction
+   reads as one continuous, restrained gesture. */
+.home-logo-trigger {
+  display: inline-flex;
+  padding: 6px;
+  margin: -6px;
+  border-radius: var(--r-sm);
+  transition: filter 0.3s var(--ease);
+}
+
+.home-logo-trigger img {
+  filter: invert(1);
+  transition: filter 0.3s var(--ease);
+}
+
+.home-logo-trigger:hover img,
+.home-logo-trigger:focus-visible img,
+.home-nav-open .home-logo-trigger img {
+  filter: invert(1) brightness(1.35);
+}
+
+.home-logo-trigger:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: 2px;
+}
+
+/* The panel itself: comes out from behind/below the logo, not a generic
+   centered mega-menu — anchored top-left, expands downward. A soft-edged
+   dark surface one shade up from pure black (--surface, not a hard-lined
+   box) so it reads as the interface surfacing, not a dropdown appearing. */
+.home-nav-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 18px;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: var(--r-md);
+  background: rgba(19, 19, 22, 0.88);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 56px -28px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transform-origin: top left;
+  transition: opacity 0.35s var(--ease), transform 0.35s var(--ease), visibility 0.35s;
+  pointer-events: none;
+}
+
+.home-nav-panel.home-nav-panel-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.home-nav-item {
+  display: block;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-2);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease), color 0.2s var(--ease),
+    background 0.2s var(--ease);
+}
+
+.home-nav-panel-open .home-nav-item {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-nav-item:hover,
+.home-nav-item:focus-visible {
+  color: var(--text-1);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.home-nav-item:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-logo-trigger,
+  .home-logo-trigger img,
+  .home-nav-panel,
+  .home-nav-item {
+    transition: opacity 0.15s ease, visibility 0.15s;
+    transform: none;
+    filter: none;
+  }
+
+  .home-logo-trigger:hover img,
+  .home-logo-trigger:focus-visible img,
+  .home-nav-open .home-logo-trigger img {
+    filter: invert(1);
+  }
+}
+
 .live-status-dot {
   display: inline-block;
   width: 9px;
