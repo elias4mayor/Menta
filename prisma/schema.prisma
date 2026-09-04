@@ -12,8 +12,17 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection — what the query engine uses for every runtime query
+  // (Vercel's serverless functions). directUrl (unpooled) is used only by
+  // `prisma migrate`/`db push`/introspection, which don't work reliably
+  // through a transaction-mode pooler (Neon's PgBouncer-style pooler
+  // included). Note the naming: DATABASE_URL is the *direct* connection
+  // here, DATABASE_URL_POOLED is the pooled one — matches Neon's own
+  // staging connection strings, not Prisma's usual DATABASE_URL-is-primary
+  // convention, so don't "fix" this without re-checking which is which.
+  url       = env("DATABASE_URL_POOLED")
+  directUrl = env("DATABASE_URL")
 }
 
 /// Roles: SUPER_ADMIN, DEVELOPER, MENTA_STAFF, ORG_ADMIN, SCHOOL_ADMIN,
