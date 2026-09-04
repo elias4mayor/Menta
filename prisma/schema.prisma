@@ -51,72 +51,72 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  athleteProfile             AthleteProfile?
-  athleteSportContexts       AthleteSportContext[]
-  coachProfile               CoachProfile?
-  trainerProfile             TrainerProfile?
-  parentProfile              ParentProfile?
-  doctorProfile              DoctorProfile?
-  sessions                   Session[]
-  resetTokens                PasswordResetToken[]
-  emailVerificationCodes     EmailVerificationCode[]
-  memberships                TeamMembership[]
-  messages                   Message[]
-  conversations              ConversationParticipant[]
-  notifications              Notification[]
-  auditLogs                  AuditLog[]                 @relation("AuditActor")
-  aiConversations            AIConversation[]
-  createdEvents              CalendarEvent[]            @relation("EventCreator")
-  goals                      Goal[]
-  createdTeams               Team[]                     @relation("TeamCreator")
-  guardianOf                 GuardianLink[]             @relation("Guardian")
-  athleteGuardians           GuardianLink[]             @relation("AthleteOfGuardian")
-  reportsFiled               Report[]                   @relation("Reporter")
-  blocksMade                 Block[]                    @relation("Blocker")
-  blocksReceived             Block[]                    @relation("Blocked")
-  createdWorkouts            Workout[]                  @relation("WorkoutCreator")
-  assignedWorkouts           Workout[]                  @relation("WorkoutAssignee")
-  workoutCompletions         WorkoutCompletion[]
-  performanceEntries         PerformanceEntry[]
-  uploadedFilms              Film[]                     @relation("FilmUploader")
-  clips                      Clip[]                     @relation("ClipCreator")
-  highlights                 Highlight[]
-  recruitingSchools          RecruitingSchool[]
-  recruitingContacts         RecruitingContact[]
-  recruitingActivities       RecruitingActivity[]
-  wellnessCheckIns           WellnessCheckIn[]
-  mindCheckIns               MindCheckIn[]
-  academicGoals              AcademicGoal[]
-  assignments                Assignment[]
-  academicTerms              AcademicTerm[]
-  eligibilityItems           EligibilityChecklistItem[]
-  emergencyContacts          EmergencyContact[]
-  personalSafetyProfile      PersonalSafetyProfile?
-  safetyChecklistItems       SafetyChecklistItem[]
-  createdTeamSafetyProtocols TeamSafetyProtocol[]       @relation("TeamSafetyProtocolCreator")
-  createdTeamSafetyChecklist TeamSafetyChecklistItem[]  @relation("TeamSafetyChecklistCreator")
-  ownedDocuments             Document[]                 @relation("DocumentOwner")
-  uploadedDocuments          Document[]                 @relation("DocumentUploader")
-  documentRequestsMade       DocumentRequest[]          @relation("DocumentRequester")
-  documentRequestsReceived   DocumentRequest[]          @relation("DocumentRequestAthlete")
-  providerAvailability       ProviderAvailability[]
-  googleClassroomIntegration GoogleClassroomIntegration?
-  careRequestsAsAthlete      CareRequest[]              @relation("CareRequestAthlete")
-  careRequestsAsProvider     CareRequest[]              @relation("CareRequestProvider")
-  filmSharedWithMe           FilmSharedWithUser[]       @relation("FilmSharedWithUser")
-  positionGroupMemberships   PositionGroupMembership[]
-  teamPermissionGrants       TeamPermissionGrant[]
-  filmAssignmentTargets      FilmAssignmentTarget[]
-  filmReviewRequestsAsAthlete FilmReviewRequest[]       @relation("FilmReviewRequestAthlete")
-  coachNotesAboutMe          CoachNote[]                @relation("CoachNoteAthlete")
-  createdExercises           Exercise[]
-  createdTrainingPrograms    TrainingProgram[]          @relation("TrainingProgramCreator")
-  createdTrainingSessions    TrainingSession[]          @relation("TrainingSessionCreator")
-  trainingGroupMemberships   TrainingGroupMember[]
-  athletePrescriptions       AthletePrescription[]      @relation("PrescriptionAthlete")
-  prescriptionsSet           AthletePrescription[]      @relation("PrescriptionSetter")
-  trainingSetsAsAthlete      TrainingSet[]              @relation("TrainingSetAthlete")
-  trainingSetsLogged         TrainingSet[]              @relation("TrainingSetLogger")
+  athleteProfile              AthleteProfile?
+  athleteSportContexts        AthleteSportContext[]
+  coachProfile                CoachProfile?
+  trainerProfile              TrainerProfile?
+  parentProfile               ParentProfile?
+  doctorProfile               DoctorProfile?
+  sessions                    Session[]
+  resetTokens                 PasswordResetToken[]
+  emailVerificationCodes      EmailVerificationCode[]
+  memberships                 TeamMembership[]
+  messages                    Message[]
+  conversations               ConversationParticipant[]
+  notifications               Notification[]
+  auditLogs                   AuditLog[]                  @relation("AuditActor")
+  aiConversations             AIConversation[]
+  createdEvents               CalendarEvent[]             @relation("EventCreator")
+  goals                       Goal[]
+  createdTeams                Team[]                      @relation("TeamCreator")
+  guardianOf                  GuardianLink[]              @relation("Guardian")
+  athleteGuardians            GuardianLink[]              @relation("AthleteOfGuardian")
+  reportsFiled                Report[]                    @relation("Reporter")
+  blocksMade                  Block[]                     @relation("Blocker")
+  blocksReceived              Block[]                     @relation("Blocked")
+  createdWorkouts             Workout[]                   @relation("WorkoutCreator")
+  assignedWorkouts            Workout[]                   @relation("WorkoutAssignee")
+  workoutCompletions          WorkoutCompletion[]
+  performanceEntries          PerformanceEntry[]
+  uploadedFilms               Film[]                      @relation("FilmUploader")
+  clips                       Clip[]                      @relation("ClipCreator")
+  highlights                  Highlight[]
+  recruitingSchools           RecruitingSchool[]
+  recruitingContacts          RecruitingContact[]
+  recruitingActivities        RecruitingActivity[]
+  wellnessCheckIns            WellnessCheckIn[]
+  mindCheckIns                MindCheckIn[]
+  academicGoals               AcademicGoal[]
+  assignments                 Assignment[]
+  academicTerms               AcademicTerm[]
+  eligibilityItems            EligibilityChecklistItem[]
+  emergencyContacts           EmergencyContact[]
+  personalSafetyProfile       PersonalSafetyProfile?
+  safetyChecklistItems        SafetyChecklistItem[]
+  createdTeamSafetyProtocols  TeamSafetyProtocol[]        @relation("TeamSafetyProtocolCreator")
+  createdTeamSafetyChecklist  TeamSafetyChecklistItem[]   @relation("TeamSafetyChecklistCreator")
+  ownedDocuments              Document[]                  @relation("DocumentOwner")
+  uploadedDocuments           Document[]                  @relation("DocumentUploader")
+  documentRequestsMade        DocumentRequest[]           @relation("DocumentRequester")
+  documentRequestsReceived    DocumentRequest[]           @relation("DocumentRequestAthlete")
+  providerAvailability        ProviderAvailability[]
+  googleClassroomIntegration  GoogleClassroomIntegration?
+  careRequestsAsAthlete       CareRequest[]               @relation("CareRequestAthlete")
+  careRequestsAsProvider      CareRequest[]               @relation("CareRequestProvider")
+  filmSharedWithMe            FilmSharedWithUser[]        @relation("FilmSharedWithUser")
+  positionGroupMemberships    PositionGroupMembership[]
+  teamPermissionGrants        TeamPermissionGrant[]
+  filmAssignmentTargets       FilmAssignmentTarget[]
+  filmReviewRequestsAsAthlete FilmReviewRequest[]         @relation("FilmReviewRequestAthlete")
+  coachNotesAboutMe           CoachNote[]                 @relation("CoachNoteAthlete")
+  createdExercises            Exercise[]
+  createdTrainingPrograms     TrainingProgram[]           @relation("TrainingProgramCreator")
+  createdTrainingSessions     TrainingSession[]           @relation("TrainingSessionCreator")
+  trainingGroupMemberships    TrainingGroupMember[]
+  athletePrescriptions        AthletePrescription[]       @relation("PrescriptionAthlete")
+  prescriptionsSet            AthletePrescription[]       @relation("PrescriptionSetter")
+  trainingSetsAsAthlete       TrainingSet[]               @relation("TrainingSetAthlete")
+  trainingSetsLogged          TrainingSet[]               @relation("TrainingSetLogger")
 
   @@index([role])
 }
@@ -413,30 +413,30 @@ model Team {
   createdById    String
   createdAt      DateTime @default(now())
 
-  organization         Organization?             @relation(fields: [organizationId], references: [id])
-  createdBy            User                      @relation("TeamCreator", fields: [createdById], references: [id])
-  memberships          TeamMembership[]
-  events               CalendarEvent[]
-  conversation         Conversation?
-  workouts             Workout[]
-  films                Film[]
-  safetyProtocols      TeamSafetyProtocol[]
-  safetyChecklistItems TeamSafetyChecklistItem[]
-  documents            Document[]
-  providerAvailability ProviderAvailability[]
-  careRequests         CareRequest[]
-  sportContexts        AthleteSportContext[]
-  positionGroups       PositionGroup[]
-  permissionGrants     TeamPermissionGrant[]
-  filmTagDefinitions   FilmTagDefinition[]
-  filmPlaylists        FilmPlaylist[]
-  filmAssignments      FilmAssignment[]
-  filmAnalysisTemplates FilmAnalysisTemplate[]
-  filmReports          FilmReport[]
-  opponents            Opponent[]
-  scoutReports         ScoutReport[]
-  filmShareGrantsSent     FilmShareGrant[] @relation("FilmShareGrantFrom")
-  filmShareGrantsReceived FilmShareGrant[] @relation("FilmShareGrantTo")
+  organization            Organization?             @relation(fields: [organizationId], references: [id])
+  createdBy               User                      @relation("TeamCreator", fields: [createdById], references: [id])
+  memberships             TeamMembership[]
+  events                  CalendarEvent[]
+  conversation            Conversation?
+  workouts                Workout[]
+  films                   Film[]
+  safetyProtocols         TeamSafetyProtocol[]
+  safetyChecklistItems    TeamSafetyChecklistItem[]
+  documents               Document[]
+  providerAvailability    ProviderAvailability[]
+  careRequests            CareRequest[]
+  sportContexts           AthleteSportContext[]
+  positionGroups          PositionGroup[]
+  permissionGrants        TeamPermissionGrant[]
+  filmTagDefinitions      FilmTagDefinition[]
+  filmPlaylists           FilmPlaylist[]
+  filmAssignments         FilmAssignment[]
+  filmAnalysisTemplates   FilmAnalysisTemplate[]
+  filmReports             FilmReport[]
+  opponents               Opponent[]
+  scoutReports            ScoutReport[]
+  filmShareGrantsSent     FilmShareGrant[]          @relation("FilmShareGrantFrom")
+  filmShareGrantsReceived FilmShareGrant[]          @relation("FilmShareGrantTo")
   exercises               Exercise[]
   trainingPrograms        TrainingProgram[]
   trainingSessions        TrainingSession[]
@@ -837,22 +837,22 @@ model Film {
   sportContextId   String?
   createdAt        DateTime @default(now())
 
-  team          Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  positionGroup PositionGroup?       @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
-  opponentRef   Opponent?            @relation(fields: [opponentId], references: [id], onDelete: SetNull)
-  uploadedBy    User                 @relation("FilmUploader", fields: [uploadedById], references: [id])
-  sportContext  AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
-  clips         Clip[]
-  sharedWith    FilmSharedWithUser[]
-  comments      FilmComment[]
-  annotations   FilmAnnotation[]
-  tagInstances  FilmTagInstance[]
-  playlistItems FilmPlaylistItem[]
-  reviewRequests FilmReviewRequest[]
+  team            Team?                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup   PositionGroup?       @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
+  opponentRef     Opponent?            @relation(fields: [opponentId], references: [id], onDelete: SetNull)
+  uploadedBy      User                 @relation("FilmUploader", fields: [uploadedById], references: [id])
+  sportContext    AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  clips           Clip[]
+  sharedWith      FilmSharedWithUser[]
+  comments        FilmComment[]
+  annotations     FilmAnnotation[]
+  tagInstances    FilmTagInstance[]
+  playlistItems   FilmPlaylistItem[]
+  reviewRequests  FilmReviewRequest[]
   analysisEntries FilmAnalysisEntry[]
-  shareGrants   FilmShareGrant[]
-  assignments   FilmAssignment[]
-  coachNotes    CoachNote[]
+  shareGrants     FilmShareGrant[]
+  assignments     FilmAssignment[]
+  coachNotes      CoachNote[]
 
   @@index([teamId])
   @@index([uploadedById])
@@ -865,11 +865,11 @@ model Film {
 /// A user in this table can view the film regardless of team/group
 /// membership; nobody else gets in through this table.
 model FilmSharedWithUser {
-  id        String   @id @default(cuid())
-  filmId    String
-  userId    String
+  id         String   @id @default(cuid())
+  filmId     String
+  userId     String
   sharedById String
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   film Film @relation(fields: [filmId], references: [id], onDelete: Cascade)
   user User @relation("FilmSharedWithUser", fields: [userId], references: [id], onDelete: Cascade)
@@ -888,16 +888,16 @@ model Clip {
   notes       String?
   createdAt   DateTime @default(now())
 
-  film           Film            @relation(fields: [filmId], references: [id], onDelete: Cascade)
-  createdBy      User            @relation("ClipCreator", fields: [createdById], references: [id])
-  highlightItems HighlightItem[]
-  tagInstances   FilmTagInstance[]
-  comments       FilmComment[]
-  annotations    FilmAnnotation[]
-  playlistItems  FilmPlaylistItem[]
-  assignments    FilmAssignment[]
-  reviewRequests FilmReviewRequest[]
-  coachNotes     CoachNote[]
+  film            Film                @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  createdBy       User                @relation("ClipCreator", fields: [createdById], references: [id])
+  highlightItems  HighlightItem[]
+  tagInstances    FilmTagInstance[]
+  comments        FilmComment[]
+  annotations     FilmAnnotation[]
+  playlistItems   FilmPlaylistItem[]
+  assignments     FilmAssignment[]
+  reviewRequests  FilmReviewRequest[]
+  coachNotes      CoachNote[]
   analysisEntries FilmAnalysisEntry[]
 
   @@index([filmId])
@@ -952,11 +952,11 @@ model PositionGroup {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  team        Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  memberships PositionGroupMembership[]
-  films       Film[]
-  playlists   FilmPlaylist[]
-  assignments FilmAssignment[]
+  team             Team                      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  memberships      PositionGroupMembership[]
+  films            Film[]
+  playlists        FilmPlaylist[]
+  assignments      FilmAssignment[]
   permissionGrants TeamPermissionGrant[]
   trainingPrograms TrainingProgram[]
   trainingSessions TrainingSession[]
@@ -1024,7 +1024,7 @@ model FilmTagDefinition {
   createdById String
   createdAt   DateTime @default(now())
 
-  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team      Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
   instances FilmTagInstance[]
 
   @@index([teamId])
@@ -1069,9 +1069,9 @@ model FilmComment {
   editedAt     DateTime?
   deletedAt    DateTime?
 
-  film   Film          @relation(fields: [filmId], references: [id], onDelete: Cascade)
-  clip   Clip?         @relation(fields: [clipId], references: [id], onDelete: Cascade)
-  parent FilmComment?  @relation("FilmCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  film    Film          @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  clip    Clip?         @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  parent  FilmComment?  @relation("FilmCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies FilmComment[] @relation("FilmCommentReplies")
 
   @@index([filmId])
@@ -1118,8 +1118,8 @@ model FilmPlaylist {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  team          Team?          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  positionGroup PositionGroup? @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  team          Team?              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?     @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
   items         FilmPlaylistItem[]
   assignments   FilmAssignment[]
 
@@ -1164,11 +1164,11 @@ model FilmAssignment {
   requiredViewing Boolean   @default(true)
   createdAt       DateTime  @default(now())
 
-  team          Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  positionGroup PositionGroup?           @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
-  film          Film?                    @relation(fields: [filmId], references: [id], onDelete: Cascade)
-  playlist      FilmPlaylist?            @relation(fields: [playlistId], references: [id], onDelete: Cascade)
-  clip          Clip?                    @relation(fields: [clipId], references: [id], onDelete: Cascade)
+  team          Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  positionGroup PositionGroup?         @relation(fields: [positionGroupId], references: [id], onDelete: Cascade)
+  film          Film?                  @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  playlist      FilmPlaylist?          @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  clip          Clip?                  @relation(fields: [clipId], references: [id], onDelete: Cascade)
   targets       FilmAssignmentTarget[]
 
   @@index([teamId])
@@ -1199,18 +1199,18 @@ model FilmAssignmentTarget {
 /// question/answer, not a full thread (FilmComment already covers
 /// open-ended threaded discussion).
 model FilmReviewRequest {
-  id             String    @id @default(cuid())
-  filmId         String
-  clipId         String?
-  athleteId      String
-  coachId        String?
-  timestampSec   Float?
-  question       String
-  status         String    @default("OPEN")
-  response       String?
-  respondedById  String?
-  respondedAt    DateTime?
-  createdAt      DateTime  @default(now())
+  id            String    @id @default(cuid())
+  filmId        String
+  clipId        String?
+  athleteId     String
+  coachId       String?
+  timestampSec  Float?
+  question      String
+  status        String    @default("OPEN")
+  response      String?
+  respondedById String?
+  respondedAt   DateTime?
+  createdAt     DateTime  @default(now())
 
   film    Film  @relation(fields: [filmId], references: [id], onDelete: Cascade)
   clip    Clip? @relation(fields: [clipId], references: [id], onDelete: Cascade)
@@ -1255,7 +1255,7 @@ model FilmAnalysisTemplate {
   createdById String
   createdAt   DateTime @default(now())
 
-  team       Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team       Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   categories FilmAnalysisCategory[]
   entries    FilmAnalysisEntry[]
 
@@ -1280,16 +1280,16 @@ model FilmAnalysisCategory {
 /// presented in the UI as "Coach Assessment" (§25), never as an
 /// objective measurement.
 model FilmAnalysisEntry {
-  id          String   @id @default(cuid())
-  templateId  String
-  categoryId  String
-  filmId      String?
-  clipId      String?
-  athleteId   String?
-  score       Float?
-  notes       String?
-  gradedById  String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  templateId String
+  categoryId String
+  filmId     String?
+  clipId     String?
+  athleteId  String?
+  score      Float?
+  notes      String?
+  gradedById String
+  createdAt  DateTime @default(now())
 
   template FilmAnalysisTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   category FilmAnalysisCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -1361,8 +1361,8 @@ model ScoutReport {
   createdById String
   createdAt   DateTime @default(now())
 
-  opponent Opponent          @relation(fields: [opponentId], references: [id], onDelete: Cascade)
-  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  opponent Opponent         @relation(fields: [opponentId], references: [id], onDelete: Cascade)
+  team     Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
   tags     ScoutReportTag[]
 
   @@index([opponentId])
@@ -1387,33 +1387,40 @@ model ScoutReportTag {
 /// here, never the sending team's broader library. revokedAt (soft
 /// revoke, not delete) preserves the audit trail of what was once shared.
 model FilmShareGrant {
-  id           String    @id @default(cuid())
-  filmId       String?
-  playlistId   String?
-  fromTeamId   String
-  toTeamId     String
-  grantedById  String
-  createdAt    DateTime  @default(now())
-  revokedAt    DateTime?
+  id          String    @id @default(cuid())
+  filmId      String?
+  playlistId  String?
+  fromTeamId  String
+  toTeamId    String
+  grantedById String
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
 
-  film       Film? @relation(fields: [filmId], references: [id], onDelete: Cascade)
-  fromTeam   Team  @relation("FilmShareGrantFrom", fields: [fromTeamId], references: [id], onDelete: Cascade)
-  toTeam     Team  @relation("FilmShareGrantTo", fields: [toTeamId], references: [id], onDelete: Cascade)
+  film     Film? @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  fromTeam Team  @relation("FilmShareGrantFrom", fields: [fromTeamId], references: [id], onDelete: Cascade)
+  toTeam   Team  @relation("FilmShareGrantTo", fields: [toTeamId], references: [id], onDelete: Cascade)
 
   @@index([fromTeamId])
   @@index([toTeamId])
   @@index([filmId])
 }
 
-/// Recruiting — Phase 2. Deliberately does NOT duplicate AthleteProfile
-/// (sport/position/height/weight/gradYear/school/gpa/city/state/bio/
-/// visibility already live there and are reused as-is; RECRUITING is
-/// already a visibility tier). These models hold only what's genuinely
+/// Recruiting — Phase 2 (athlete-entered), extended in Phase 3 with an
+/// optional link to real provider data (College/Program/Coach — see below
+/// this block). Deliberately does NOT duplicate AthleteProfile (sport/
+/// position/height/weight/gradYear/school/gpa/city/state/bio/visibility
+/// already live there and are reused as-is; RECRUITING is already a
+/// visibility tier). These three models hold only what's genuinely
 /// recruiting-specific: the athlete's own target-school list, the contacts
-/// they've entered for those schools, and a log of outreach/notes —
-/// never a college/coach directory. No external data source is
-/// connected; every row here is athlete-entered or AI-drafted-then-saved,
-/// never fabricated or fetched from a third party.
+/// they've entered for those schools, and a log of outreach/notes.
+/// RecruitingSchool/RecruitingContact themselves are still never fabricated
+/// or fetched from a third party — every field on THEM stays exactly what
+/// the athlete typed. `collegeId`/`coachId` below are the one addition:
+/// a nullable, purely additive pointer to a real provider-sourced row when
+/// one has been matched. Enrichment only — matching never overwrites the
+/// athlete's own name/division/location/title/email/phone, and nothing in
+/// this schema change populates those columns yet (no sync/matching job
+/// exists yet; that's later work).
 
 /// Division: freeform (e.g. "D1", "D2", "D3", "NAIA", "JUCO", "Other")
 /// Status: TARGET, INTERESTED, CONTACTED, RESPONDED, VISIT, OFFER, COMMITTED, NOT_PURSUING
@@ -1429,16 +1436,21 @@ model RecruitingSchool {
   /// Nullable — existing schools stay ungrouped/legacy rather than being
   /// guessed into a sport. See the identical note on Goal.sportContextId.
   sportContextId String?
+  /// Nullable, additive-only — see the block comment above. Never set by
+  /// anything in this change; reserved for a future matching step.
+  collegeId      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   sportContext AthleteSportContext? @relation(fields: [sportContextId], references: [id], onDelete: SetNull)
+  college      College?             @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   contacts     RecruitingContact[]
   activities   RecruitingActivity[]
 
   @@index([userId])
   @@index([sportContextId])
+  @@index([collegeId])
 }
 
 /// Status: NOT_CONTACTED, CONTACTED, RESPONDED
@@ -1453,15 +1465,19 @@ model RecruitingContact {
   status          String    @default("NOT_CONTACTED")
   notes           String?
   lastContactedAt DateTime?
+  /// Nullable, additive-only — see the block comment above RecruitingSchool.
+  coachId         String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   school     RecruitingSchool     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  coach      Coach?               @relation(fields: [coachId], references: [id], onDelete: SetNull)
   activities RecruitingActivity[]
 
   @@index([userId])
   @@index([schoolId])
+  @@index([coachId])
 }
 
 /// Type: NOTE, EMAIL_DRAFT, CALL, VISIT, OTHER — a log entry per school/
@@ -1486,6 +1502,220 @@ model RecruitingActivity {
   @@index([userId])
   @@index([schoolId])
   @@index([contactId])
+}
+
+// =====================================================================
+// External recruiting data — Phase 3. Provider-independent normalized
+// domain model (see src/lib/recruiting/provider.ts's RecruitingDataProvider
+// interface, which returns these shapes, never a raw vendor SDK type).
+//
+// House rules for every model below, no exceptions:
+//   - `provider` + `providerRecordId` is that row's stable source identity
+//     (e.g. provider="magisterial"). @@unique on the pair — one row per
+//     source record, upsertable, never duplicated across ingestion runs.
+//   - `observedAt` = when MENTA ingested the row. `publishedAt` (where a
+//     model has one) = when the source says the underlying event
+//     happened. Never conflate the two — a change reported today that
+//     happened three weeks ago must never read as "recent."
+//   - Every field a provider might not return is nullable. In particular:
+//     class year / position / division are freeform strings, never an
+//     enum — providers do not standardize these — and a roster/person
+//     cross-reference (`personId`) is frequently absent even for real,
+//     otherwise-complete rows. Code reading these models must not assume
+//     any optional field is populated.
+//   - Nothing here is fabricated. A field with no data is null, never a
+//     placeholder, guess, or invented value.
+//   - No contact-detail fields (coach email/phone, athlete contact info)
+//     exist on any model below — deliberately not modeled yet, not just
+//     "usually empty." See Coach's own comment.
+//   - These tables are populated only by a provider adapter (none exists
+//     yet — this migration is schema-only); nothing writes to them today.
+// =====================================================================
+
+/// A real-world school. Not a direct 1:1 mirror of any single provider
+/// entity — Magisterial (the only provider integrated so far) exposes
+/// per-sport "teams," not a school-level id shared across a school's
+/// different sports, so cross-sport school identity is a MENTA-side
+/// concept, resolved (imperfectly, by name) whenever that matching logic
+/// is eventually written. Until then, `Program.collegeId` may simply be
+/// null.
+model College {
+  id        String   @id @default(cuid())
+  name      String
+  city      String?
+  state     String?
+  country   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  programs          Program[]
+  recruitingSignals RecruitingSignal[]
+  recruitingSchools RecruitingSchool[]
+
+  @@index([name])
+}
+
+/// One school's roster/staff for one sport — the real unit Magisterial's
+/// `/v1/teams` returns. `sport` is MENTA's own registry key (see
+/// src/lib/sports.ts); mapping a provider's own sport/gender path onto it
+/// is the adapter's job, not this schema's.
+model Program {
+  id               String   @id @default(cuid())
+  collegeId        String?
+  sport            String
+  division         String?
+  conference       String?
+  schoolName       String
+  logoUrl          String?
+  provider         String
+  providerRecordId String
+  observedAt       DateTime @default(now())
+  lastVerifiedAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  college           College?           @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  coaches           Coach[]
+  rosterEntries     RosterEntry[]
+  rosterChanges     RosterChange[]
+  recruitingSignals RecruitingSignal[]
+
+  @@unique([provider, providerRecordId])
+  @@index([collegeId])
+  @@index([sport, division])
+}
+
+/// Identity only — deliberately no email/phone/contact field on this
+/// model. Coach contacts are explicitly not enabled yet; when they are,
+/// that's a new column added deliberately, not something silently
+/// populated by widening what the adapter already writes.
+model Coach {
+  id               String   @id @default(cuid())
+  programId        String
+  name             String
+  role             String?
+  isHeadCoach      Boolean?
+  season           String?
+  headshotUrl      String?
+  bioUrl           String?
+  profileSlug      String?
+  provider         String
+  providerRecordId String
+  observedAt       DateTime @default(now())
+  lastVerifiedAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  program            Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  recruitingContacts RecruitingContact[]
+
+  @@unique([provider, providerRecordId])
+  @@index([programId])
+}
+
+/// One roster row for one program-season. `personId` is the provider's
+/// cross-program person cluster id — frequently null even on real,
+/// verified rows (confirmed against live API responses), so it must be
+/// treated as "sometimes available," never relied on as a guaranteed join
+/// key.
+model RosterEntry {
+  id               String   @id @default(cuid())
+  programId        String
+  name             String
+  position         String?
+  classYear        String?
+  jerseyNumber     String?
+  hometown         String?
+  headshotUrl      String?
+  isVerified       Boolean?
+  personId         String?
+  season           String?
+  provider         String
+  providerRecordId String
+  observedAt       DateTime @default(now())
+  lastVerifiedAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerRecordId])
+  @@index([programId])
+  @@index([personId])
+}
+
+/// A player-side roster movement — addition, departure, or a transfer
+/// portal entry/commit. `changeType` is freeform (mirrors the provider's
+/// own event vocabulary, e.g. "player_added", "player_removed",
+/// "transfer_entry", "transfer_commit") rather than an enum, since a new
+/// provider or a new Magisterial event type must never require a schema
+/// migration to represent. `fromTeamProviderId`/`toTeamProviderId` point
+/// at Program.providerRecordId, not Program.id — resolving them to an
+/// actual Program row (or leaving them unresolved) is adapter/ingestion
+/// work, not this schema's.
+model RosterChange {
+  id                 String    @id @default(cuid())
+  programId          String?
+  changeType         String
+  subjectName        String?
+  subjectPosition    String?
+  subjectClassYear   String?
+  personId           String?
+  sportPath          String?
+  division           String?
+  season             String?
+  schoolName         String?
+  schoolLogoUrl      String?
+  fromTeamProviderId String?
+  toTeamProviderId   String?
+  fromDivision       String?
+  toDivision         String?
+  fromConference     String?
+  toConference       String?
+  provider           String
+  providerRecordId   String
+  /// When the source says this happened — null if the provider didn't say.
+  publishedAt        DateTime?
+  observedAt         DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+
+  program Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerRecordId])
+  @@index([programId])
+  @@index([personId])
+  @@index([publishedAt])
+}
+
+/// Everything that isn't a player-roster movement — coaching-staff
+/// changes today (`signalType`: "coach_added", "coach_removed",
+/// "title_changed"), extensible to other announcement-style signals
+/// later without a schema change, same freeform-string reasoning as
+/// RosterChange.changeType.
+model RecruitingSignal {
+  id               String    @id @default(cuid())
+  programId        String?
+  collegeId        String?
+  signalType       String
+  title            String
+  summary          String?
+  subjectName      String?
+  isHeadCoach      Boolean?
+  fromTitle        String?
+  toTitle          String?
+  provider         String
+  providerRecordId String
+  publishedAt      DateTime?
+  observedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  program Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  college College? @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerRecordId])
+  @@index([programId])
+  @@index([collegeId])
+  @@index([publishedAt])
 }
 
 /// Recovery — Phase 2. A wellness/recovery TRACKER, not a medical record —
@@ -1652,20 +1882,20 @@ model AcademicGoal {
 /// courses/assignments stay attached to something and a reconnect updates
 /// this same row instead of orphaning history.
 model GoogleClassroomIntegration {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  googleUserId     String
-  googleEmail      String
-  accessTokenEnc   String?
-  refreshTokenEnc  String?
-  tokenExpiresAt   DateTime?
-  scope            String?
-  status           String    @default("CONNECTED")
-  connectedAt      DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  lastSyncedAt     DateTime?
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  googleUserId    String
+  googleEmail     String
+  accessTokenEnc  String?
+  refreshTokenEnc String?
+  tokenExpiresAt  DateTime?
+  scope           String?
+  status          String    @default("CONNECTED")
+  connectedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastSyncedAt    DateTime?
 
-  user    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   courses GoogleClassroomCourse[]
 
   @@index([userId])
@@ -1685,7 +1915,7 @@ model GoogleClassroomCourse {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  integration GoogleClassroomIntegration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integration GoogleClassroomIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
   assignments GoogleClassroomAssignment[]
 
   @@unique([integrationId, googleCourseId])
@@ -1709,7 +1939,7 @@ model GoogleClassroomAssignment {
   updateTime         DateTime?
   syncedAt           DateTime  @default(now())
 
-  course      GoogleClassroomCourse         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      GoogleClassroomCourse       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   submissions GoogleClassroomSubmission[]
 
   @@unique([courseId, googleCourseworkId])
@@ -2098,12 +2328,12 @@ model ProgramExercise {
   modeDetails       String?
   createdAt         DateTime @default(now())
 
-  block                  TrainingBlock         @relation(fields: [blockId], references: [id], onDelete: Cascade)
-  exercise               Exercise              @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
-  prescriptions          AthletePrescription[]
-  trainingSets           TrainingSet[]
-  currentInSessions      TrainingSession[]     @relation("SessionCurrentProgramExercise")
-  currentInGroups        TrainingGroup[]       @relation("GroupCurrentProgramExercise")
+  block             TrainingBlock         @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  exercise          Exercise              @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  prescriptions     AthletePrescription[]
+  trainingSets      TrainingSet[]
+  currentInSessions TrainingSession[]     @relation("SessionCurrentProgramExercise")
+  currentInGroups   TrainingGroup[]       @relation("GroupCurrentProgramExercise")
 
   @@index([blockId])
   @@index([exerciseId])
@@ -2163,12 +2393,12 @@ model TrainingSession {
   createdById              String
   createdAt                DateTime  @default(now())
 
-  team                   Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  program                TrainingProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
-  positionGroup          PositionGroup?   @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
-  currentBlock           TrainingBlock?   @relation("SessionCurrentBlock", fields: [currentBlockId], references: [id], onDelete: SetNull)
-  currentProgramExercise ProgramExercise? @relation("SessionCurrentProgramExercise", fields: [currentProgramExerciseId], references: [id], onDelete: SetNull)
-  createdBy              User             @relation("TrainingSessionCreator", fields: [createdById], references: [id])
+  team                   Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  program                TrainingProgram?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+  positionGroup          PositionGroup?        @relation(fields: [positionGroupId], references: [id], onDelete: SetNull)
+  currentBlock           TrainingBlock?        @relation("SessionCurrentBlock", fields: [currentBlockId], references: [id], onDelete: SetNull)
+  currentProgramExercise ProgramExercise?      @relation("SessionCurrentProgramExercise", fields: [currentProgramExerciseId], references: [id], onDelete: SetNull)
+  createdBy              User                  @relation("TrainingSessionCreator", fields: [createdById], references: [id])
   groups                 TrainingGroup[]
   groupMemberships       TrainingGroupMember[]
   sets                   TrainingSet[]
@@ -2207,9 +2437,9 @@ model TrainingGroup {
   currentProgramExerciseId String?
   createdAt                DateTime @default(now())
 
-  session                TrainingSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  currentBlock           TrainingBlock?   @relation("GroupCurrentBlock", fields: [currentBlockId], references: [id], onDelete: SetNull)
-  currentProgramExercise ProgramExercise? @relation("GroupCurrentProgramExercise", fields: [currentProgramExerciseId], references: [id], onDelete: SetNull)
+  session                TrainingSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  currentBlock           TrainingBlock?        @relation("GroupCurrentBlock", fields: [currentBlockId], references: [id], onDelete: SetNull)
+  currentProgramExercise ProgramExercise?      @relation("GroupCurrentProgramExercise", fields: [currentProgramExerciseId], references: [id], onDelete: SetNull)
   members                TrainingGroupMember[]
   sets                   TrainingSet[]
 
