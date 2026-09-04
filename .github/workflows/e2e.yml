@@ -9,10 +9,29 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    services:
+      # Real Postgres for CI, matching every other environment now that the
+      # Postgres migration baseline (staging-foundation pass) replaced the
+      # old SQLite-only setup. A fresh container per run — nothing persists
+      # between runs, same "always starts empty" guarantee the old SQLite
+      # file had, just via a real service container instead.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: menta
+          POSTGRES_PASSWORD: menta
+          POSTGRES_DB: menta_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U menta"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # Fresh SQLite file per run — prisma/dev.db is gitignored, so CI always
-      # starts from an empty database and applies migrations below.
-      DATABASE_URL: "file:./dev.db"
+      # Throwaway credentials for an ephemeral, network-isolated CI service
+      # container — never a real deployment's database.
+      DATABASE_URL: "postgresql://menta:menta@localhost:5432/menta_e2e"
       # Any 32+ byte value works here; this is a throwaway secret for an
       # ephemeral CI database, not a real deployment.
       SESSION_SECRET: "ci-e2e-session-secret-not-for-production-use-only"

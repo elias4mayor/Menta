@@ -1,7 +1,10 @@
 // MENTA — Phase 1 data model.
-// Dev uses SQLite (zero-config). Swap `provider`/`url` to Postgres for production —
-// see .env.example. Role/status fields are plain strings (not native enums) so the
-// schema works unmodified against either connector; allowed values are enforced in
+// PostgreSQL in every environment (local/staging/production each get their own
+// database — see .env.example's DATABASE_URL). Migrated from an earlier SQLite-
+// only dev setup — see prisma/migrations-sqlite-archive/ for that history, kept
+// for reference and not deleted, and prisma/migrations/ for the fresh Postgres
+// baseline. Role/status fields stay plain strings (not native enums), a holdover
+// from when that mattered for SQLite portability; allowed values are enforced in
 // src/lib/permissions.ts and src/lib/validation.ts, not by the database.
 
 generator client {
@@ -9,7 +12,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

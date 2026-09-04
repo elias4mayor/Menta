@@ -130,11 +130,16 @@ export async function grantUnlimitedPlan(ownerType: "USER" | "TEAM" | "ORGANIZAT
 
 /**
  * Deletes every e2e-created user, and everything hanging off them. Most
- * child tables cascade on User deletion, but AuditLog.actor and
- * Workout.createdBy intentionally don't (an audit trail and a coach's
- * workout library should outlive the person, in the real product) — those
- * two get deleted explicitly first so the real FK constraint doesn't
- * block cleanup.
+ * child tables cascade on User deletion, but AuditLog.actor,
+ * Workout.createdBy, Film.uploadedBy, and Document.uploadedBy intentionally
+ * don't (an audit trail, a coach's workout library, and uploaded film/
+ * documents should outlive the person, in the real product — there's no
+ * "delete my account" feature anywhere in the app, so this FK is never hit
+ * outside test cleanup) — those get deleted explicitly first so the real
+ * FK constraint doesn't block cleanup. Film/Document were added once a real
+ * test (e2e/file-storage.spec.ts) started actually creating them; under
+ * Postgres this FK is a real RESTRICT constraint the DB enforces, so this
+ * isn't optional cleanup hygiene, it's required for the delete to succeed.
  */
 export async function cleanupE2eUsers() {
   const users = await testPrisma.user.findMany({
@@ -160,5 +165,7 @@ export async function cleanupE2eUsers() {
 
   await testPrisma.auditLog.deleteMany({ where: { actorId: { in: ids } } });
   await testPrisma.workout.deleteMany({ where: { createdById: { in: ids } } });
+  await testPrisma.film.deleteMany({ where: { uploadedById: { in: ids } } });
+  await testPrisma.document.deleteMany({ where: { uploadedById: { in: ids } } });
   await testPrisma.user.deleteMany({ where: { id: { in: ids } } });
 }

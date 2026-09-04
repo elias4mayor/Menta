@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { documentMetadataSchema } from "@/lib/validation";
-import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_UPLOAD_BYTES, extensionForMimeType, saveFile } from "@/lib/storage";
+import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_UPLOAD_BYTES, extensionForMimeType, isUploadStorageConfigured, saveFile } from "@/lib/storage";
 import { canManageTeam } from "@/lib/permissions";
 import { documentStatus } from "@/lib/documents";
 import { logAudit } from "@/lib/audit";
@@ -62,6 +62,13 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
+  if (!isUploadStorageConfigured()) {
+    return NextResponse.json(
+      { error: "Document storage isn't configured yet. An administrator needs to set up object storage." },
+      { status: 503 }
+    );
+  }
+
   const form = await request.formData().catch(() => null);
   if (!form) return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
 
@@ -117,7 +124,7 @@ export async function POST(request: Request) {
 
   const key = `documents/${crypto.randomUUID()}.${extensionForMimeType(file.type)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await saveFile(key, buffer);
+  await saveFile(key, buffer, file.type);
 
   const document = await prisma.document.create({
     data: {

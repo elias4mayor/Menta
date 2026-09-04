@@ -38,7 +38,10 @@ export async function listVisibleExercises(userId: string, filters: ExerciseFilt
   const visible = await visibleExerciseWhere(userId);
   const and: Prisma.ExerciseWhereInput[] = [visible];
 
-  if (filters.q) and.push({ name: { contains: filters.q } });
+  // mode: "insensitive" (Postgres-only Prisma feature) matches SQLite's
+  // default case-insensitive `contains` behavior for ASCII, which this
+  // free-text search relied on implicitly before the Postgres migration.
+  if (filters.q) and.push({ name: { contains: filters.q, mode: "insensitive" } });
   if (filters.category) and.push({ category: filters.category });
   if (filters.sport) and.push({ sport: filters.sport });
   // positions/equipment are JSON-stringified arrays (see Exercise's own

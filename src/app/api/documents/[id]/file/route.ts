@@ -21,7 +21,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (!doc) return new Response("Not found.", { status: 404 });
   if (!(await canAccessDocument(user, doc))) return new Response("Not found.", { status: 404 });
 
-  const { stream } = readFileRange(doc.storageKey, doc.sizeBytes);
+  const { stream } = await readFileRange(doc.storageKey, doc.sizeBytes);
   return new Response(Readable.toWeb(stream) as ReadableStream, {
     status: 200,
     headers: {

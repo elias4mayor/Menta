@@ -15,8 +15,8 @@ source of truth for build order, permissions, and legal/safety rules).
 - **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript**
 - **Tailwind CSS v4**, design tokens matching the MENTA marketing site (matte
   black, Space Grotesk / Inter / IBM Plex Mono)
-- **Prisma** + **SQLite** in dev (swap to Postgres for production — one
-  `DATABASE_URL` change, see below)
+- **Prisma** + **PostgreSQL**, in every environment (local/staging/production each
+  get their own database — one `DATABASE_URL` per environment, see below)
 - Hand-rolled session auth (bcrypt + server-validated, revocable, DB-backed
   sessions) — no third-party auth SaaS
 - **Anthropic API** for MENTA AI (server-side only, off by default until
@@ -24,10 +24,16 @@ source of truth for build order, permissions, and legal/safety rules).
 
 ## Getting started
 
+Requires a Postgres database — any local install works (Homebrew
+`postgresql@16`, Postgres.app, Docker, or a free-tier hosted instance like
+Neon/Supabase pointed at from `DATABASE_URL`).
+
 ```bash
 npm install
-cp .env.example .env   # then edit SESSION_SECRET at minimum
-npx prisma migrate dev # creates prisma/dev.db and applies migrations
+cp .env.example .env   # then edit DATABASE_URL and SESSION_SECRET at minimum
+npx prisma migrate deploy       # applies the full migration history
+npx tsx prisma/seed-plans.ts    # membership Plan/PlanEntitlement rows
+npx tsx prisma/seed-exercises.ts # global (MENTA-curated) exercise library
 npm run dev
 ```
 
@@ -39,11 +45,12 @@ See `.env.example` for the full list with descriptions. Summary:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | Yes | SQLite file in dev; Postgres connection string in production |
+| `DATABASE_URL` | Yes | Postgres connection string — a separate database per environment, never shared |
 | `SESSION_SECRET` | Yes | Signs session + password-reset tokens. Generate with `openssl rand -base64 32` |
 | `APP_URL` | Yes | Used to build links in emails |
 | `ANTHROPIC_API_KEY` | No | Turns on MENTA AI. Without it, the AI chat clearly shows "not connected" instead of faking a response |
 | `RESEND_API_KEY` / `EMAIL_FROM` | No | Sends real password-reset emails. Without it, reset links are logged to the server console instead |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` | No locally, **required** for uploads to work in any deployed environment | Object storage for avatars/documents/film. Without all four set, uploads fall back to local disk in dev and are honestly refused (`503`) elsewhere |
 
 Never commit `.env`. It's already gitignored.
 
@@ -73,8 +80,9 @@ Never commit `.env`. It's already gitignored.
   sport without a schema change
 - Film: upload, permission-scoped library, HTML5 player with clip marking,
   highlight-reel builder. Video is served through a Range-aware streaming
-  route with the same permission check as the metadata endpoint. Local-disk
-  storage only right now — see "Requires infrastructure before production"
+  route with the same permission check as the metadata endpoint. Storage is
+  Cloudflare R2 when configured (`R2_*` env vars), local disk in dev
+  otherwise — see `src/lib/storage.ts`
 - Guardian linking: a `PARENT` account can request a link to an athlete by
   email; the athlete approves/denies/revokes from Settings
 - Minors (`dateOfBirth` under 18): profile visibility cannot be set to
@@ -207,11 +215,12 @@ as done by an AI writing code:
 
 ## Database
 
-Dev uses local SQLite (`prisma/dev.db`, gitignored) for zero-config setup.
-For production, point `DATABASE_URL` at Postgres — the schema
-(`prisma/schema.prisma`) intentionally avoids native enum types so it works
-unmodified against either connector. Run `npx prisma migrate deploy` in
-production instead of `migrate dev`.
+PostgreSQL in every environment — local, staging, and production each need
+their own database and their own `DATABASE_URL`, never shared. The schema
+(`prisma/schema.prisma`) avoids native enum types (a holdover from when dev
+ran on SQLite; kept because it's still a reasonable convention, not because
+anything still depends on it). Run `npx prisma migrate deploy` (not
+`migrate dev`) against any shared environment — staging or production.
 
 ## Project structure
 

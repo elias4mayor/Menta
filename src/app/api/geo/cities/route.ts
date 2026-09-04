@@ -55,7 +55,10 @@ export async function GET(request: Request) {
     });
   } else {
     const starts = await prisma.city.findMany({
-      where: { ...where, name: { startsWith: q } },
+      // mode: "insensitive" is a Postgres-only Prisma feature — required
+      // here to match SQLite's default case-insensitive `LIKE`/`contains`
+      // behavior for ASCII, which this search relied on implicitly.
+      where: { ...where, name: { startsWith: q, mode: "insensitive" } },
       select: { name: true },
       orderBy: { name: "asc" },
       take: MAX_RESULTS,
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
     if (starts.length < MAX_RESULTS) {
       const startNames = new Set(starts.map((c) => c.name));
       const contains = await prisma.city.findMany({
-        where: { ...where, name: { contains: q } },
+        where: { ...where, name: { contains: q, mode: "insensitive" } },
         select: { name: true },
         orderBy: { name: "asc" },
         take: MAX_RESULTS,

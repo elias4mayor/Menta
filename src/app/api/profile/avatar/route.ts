@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { ALLOWED_IMAGE_TYPES, MAX_AVATAR_UPLOAD_BYTES, extensionForMimeType, saveFile, deleteFile } from "@/lib/storage";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_AVATAR_UPLOAD_BYTES,
+  extensionForMimeType,
+  isUploadStorageConfigured,
+  saveFile,
+  deleteFile,
+} from "@/lib/storage";
 import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -10,6 +17,13 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  if (!isUploadStorageConfigured()) {
+    return NextResponse.json(
+      { error: "Avatar storage isn't configured yet. An administrator needs to set up object storage." },
+      { status: 503 }
+    );
+  }
 
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
@@ -30,7 +44,7 @@ export async function POST(request: Request) {
 
   const key = `avatars/${user.id}-${crypto.randomUUID()}.${extensionForMimeType(file.type)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await saveFile(key, buffer);
+  await saveFile(key, buffer, file.type);
 
   await prisma.user.update({ where: { id: user.id }, data: { avatarKey: key, avatarMime: file.type } });
 

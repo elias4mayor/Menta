@@ -43,13 +43,19 @@ when running/debugging tests locally, it's not a hang.
 
 ## Architecture
 
-**Data model is one Prisma schema, one SQLite file in dev** (`prisma/dev.db`,
-gitignored). Swapping `provider`/`url` in `prisma/schema.prisma` to Postgres is the
-entire production migration — the schema deliberately avoids native enum types
-(role/status/category/visibility fields are plain `String`, with allowed values
-documented in a `///` comment above each model and enforced in
-`src/lib/permissions.ts` / `src/lib/validation.ts`, never by the DB) so it works
-unmodified against either connector.
+**Data model is one Prisma schema, backed by PostgreSQL in every environment**
+(local/staging/production each get their own database — see `DATABASE_URL` in
+`.env.example`). The schema deliberately avoids native enum types (role/status/
+category/visibility fields are plain `String`, with allowed values documented in a
+`///` comment above each model and enforced in `src/lib/permissions.ts` /
+`src/lib/validation.ts`, never by the DB) — a holdover from when dev ran on SQLite
+and Postgres was swapped in only for deployment; kept because it's still true and
+still useful (e.g. `mode: "insensitive"` string filters — the two free-text search
+call sites, `src/app/api/geo/cities/route.ts` and `src/lib/exercises.ts` — use it
+explicitly now, since Postgres's `contains`/`startsWith` are case-sensitive by
+default, unlike SQLite's). Local Postgres: any local install works (Homebrew
+`postgresql@16`, Postgres.app, or Docker) — `npx prisma migrate deploy` then the
+seed scripts in prisma/ get a fresh database to the same state CI's does.
 
 **Authorization is centralized, not per-route ad hoc.** `src/lib/permissions.ts` is
 the single load-bearing authorization module — role checks, minor-status checks,
@@ -130,11 +136,20 @@ touching either feature.
 (Gemini-provider migration, Google Classroom integration) — check `git status`
 before assuming the tree is clean, and don't treat those files as canonical.
 
-**Storage is a swappable local-disk abstraction, not S3.** `src/lib/storage.ts`
-implements only a local-filesystem provider (fine for dev, not durable in
-production — containers are ephemeral). Film upload/streaming and document
-upload both go through this one interface; a production swap to R2/S3 replaces
-this file, not its callers.
+**Storage is Cloudflare R2 (S3-compatible) when configured, local disk otherwise.**
+`src/lib/storage.ts` picks the provider automatically from whether
+`R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET_NAME` are all
+set — same "real config present picks the real provider" pattern as
+`AI_PROVIDER`/`RESEND_API_KEY`/`STRIPE_SECRET_KEY`. `isUploadStorageConfigured()`
+gates all three upload routes (`/api/films`, `/api/documents`,
+`/api/profile/avatar`) and refuses with an honest `503` outside
+`NODE_ENV=development` when R2 isn't configured, rather than silently writing to
+a serverless filesystem that won't still have the file on the next request. The
+R2 bucket is never public and no presigned URLs are issued — every read still
+goes through this app's own authenticated streaming routes
+(`films/[id]/video`, `documents/[id]/file`, `users/[id]/avatar`), exactly as it
+did with local disk; only *where the bytes live* changed, never who's allowed to
+ask for them.
 
 **Rate limiting is in-memory** (`src/lib/rate-limit.ts`), fixed-window, keyed by
 `scope:ip`. Fine for a single instance; resets on redeploy and doesn't coordinate
@@ -158,10 +173,12 @@ should select `status`/`scheduledStart` only; see the model's doc comment in
 
 ## Environment
 
-Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `SESSION_SECRET`,
+Copy `.env.example` to `.env`. Required: `DATABASE_URL` (Postgres), `SESSION_SECRET`,
 `APP_URL`. Everything else (AI provider keys, `RESEND_API_KEY`, OAuth client
-ids/secrets, `TOKEN_ENCRYPTION_KEY` for Google Classroom, `MAX_UPLOAD_MB`,
-`FILM_STORAGE_READY`) is optional and each missing piece degrades to an honest
-"not connected"/"not configured" UI state rather than fake behavior — that pattern
-(explicit disabled state over silent fallback) is the house style; follow it for any
-new optional integration.
+ids/secrets, `TOKEN_ENCRYPTION_KEY` for Google Classroom, the `R2_*` object-storage
+vars) is optional and each missing piece degrades to an honest "not connected"/
+"not configured" UI state rather than fake behavior — that pattern (explicit
+disabled state over silent fallback) is the house style; follow it for any new
+optional integration. The one exception: uploads (`R2_*` unset) degrade to local
+disk only in development — outside it they're honestly refused (`503`), never
+silently written somewhere that won't survive the next request.

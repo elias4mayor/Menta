@@ -40,7 +40,7 @@ export async function GET(
       });
     }
 
-    const { stream } = readFileRange(film.storageKey, totalSize, { start, end });
+    const { stream } = await readFileRange(film.storageKey, totalSize, { start, end });
     return new Response(Readable.toWeb(stream) as ReadableStream, {
       status: 206,
       headers: {
@@ -53,7 +53,7 @@ export async function GET(
     });
   }
 
-  const { stream } = readFileRange(film.storageKey, totalSize);
+  const { stream } = await readFileRange(film.storageKey, totalSize);
   return new Response(Readable.toWeb(stream) as ReadableStream, {
     status: 200,
     headers: {

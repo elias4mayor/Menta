@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { filmMetadataSchema } from "@/lib/validation";
-import { ALLOWED_VIDEO_TYPES, MAX_UPLOAD_BYTES, extensionForMimeType, saveFile } from "@/lib/storage";
+import { ALLOWED_VIDEO_TYPES, MAX_UPLOAD_BYTES, extensionForMimeType, isUploadStorageConfigured, saveFile } from "@/lib/storage";
 import { canUploadFilmToTeam } from "@/lib/permissions";
 import { visibleFilmWhere } from "@/lib/film-visibility";
 import { logAudit } from "@/lib/audit";
@@ -54,6 +54,13 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  if (!isUploadStorageConfigured()) {
+    return NextResponse.json(
+      { error: "Film storage isn't configured yet. An administrator needs to set up object storage." },
+      { status: 503 }
+    );
+  }
 
   const form = await request.formData().catch(() => null);
   if (!form) return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
@@ -151,7 +158,7 @@ export async function POST(request: Request) {
 
   const key = `films/${crypto.randomUUID()}.${extensionForMimeType(file.type)}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await saveFile(key, buffer);
+  await saveFile(key, buffer, file.type);
 
   const film = await prisma.film.create({
     data: {
