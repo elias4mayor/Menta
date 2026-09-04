@@ -72,12 +72,25 @@ export async function resolveMembershipTiers(userId: string | null): Promise<Res
   return MEMBERSHIP_TIER_KEYS.map((key) => {
     const config = MEMBERSHIP_TIERS[key];
     const plan = planByKey.get(key);
-    const limitFor = (entitlementKey: EntitlementKey): number | null =>
-      plan?.entitlements.find((e) => e.key === entitlementKey)?.limitValue ?? 0;
+    // `?? 0` here would be wrong: it can't tell "no PlanEntitlement row for
+    // this key" (should read as 0/not-included) apart from "row exists
+    // with limitValue: null" (the DB's deliberate UNLIMITED sentinel,
+    // same convention entitlements.ts's entitlementLimit() already
+    // respects for real enforcement) — both are nullish, so `??` would
+    // collapse a genuinely unlimited entitlement down to 0 and every
+    // label helper below (aiLabel/highlightsLabel/schoolsLabel/
+    // featureFlagLabel) would then silently omit it as "not included."
+    const limitFor = (entitlementKey: EntitlementKey): number | null => {
+      const entitlement = plan?.entitlements.find((e) => e.key === entitlementKey);
+      return entitlement ? entitlement.limitValue : 0;
+    };
 
     // "Not priced yet" (e.g. ONYX pre-launch) must win regardless of
     // sign-in state — a signed-out visitor must never see a working-
     // looking "Upgrade" button for a plan checkout would reject anyway.
+    // Exception: a user actually already subscribed to that plan (a comped
+    // account, e.g.) must still see "Current plan", not "Pricing coming
+    // soon" on their own active plan — checked first, below.
     const notYetPriced = plan && plan.priceCents === null && !plan.isCustomPricing;
 
     const cta: MembershipCtaState =
@@ -85,12 +98,12 @@ export async function resolveMembershipTiers(userId: string | null): Promise<Res
         ? teamMembership
           ? { kind: "already-on-team", teamName: teamMembership.teamName, teamRole: teamMembership.teamRole }
           : { kind: "team-contact" }
-        : notYetPriced
-          ? { kind: "coming-soon" }
-          : !userId
-            ? { kind: "signed-out" }
-            : currentIndividualKey === key
-              ? { kind: "current" }
+        : currentIndividualKey === key
+          ? { kind: "current" }
+          : notYetPriced
+            ? { kind: "coming-soon" }
+            : !userId
+              ? { kind: "signed-out" }
               : currentIndividualKey && TIER_RANK[key] < TIER_RANK[currentIndividualKey]
                 ? { kind: "manage" }
                 : { kind: "upgrade" };

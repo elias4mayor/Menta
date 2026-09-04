@@ -271,4 +271,63 @@ test.describe("Film Intelligence security", () => {
     const { groups } = await list.json();
     expect(groups.map((g: { name: string }) => g.name).sort()).toEqual(["3-Point Shooters", "Offensive Line"]);
   });
+
+  test("a PRIVATE film annotation is never sent to a non-staff teammate via the film detail page", async ({ request }) => {
+    // Regression coverage: the film detail page's server component
+    // (src/app/(app)/film/[id]/page.tsx) used to fetch every FilmAnnotation
+    // row for a film with no visibility filter at all — unlike the
+    // FilmComment query three lines above it in the same file, and unlike
+    // /api/films/[id]/annotations, both of which correctly restrict
+    // visibility:"PRIVATE" rows to their author or team film staff. That
+    // meant a coach's PRIVATE telestration notes (including the drawing
+    // data itself) were serialized into every teammate's page props
+    // regardless of role. This locks in the fix.
+    const coach = await createTestUser("annot-coach", "COACH");
+    // The film detail page is behind proxy.ts's onboarding gate — a COACH
+    // session with no CoachProfile.onboardingCompletedAt gets redirected to
+    // /onboarding (then /login, since it's an unauthenticated-looking hop)
+    // before ever reaching the page under test, unrelated to the annotation
+    // visibility this test actually checks. createTestUser doesn't create
+    // a profile at all, so this test needs to mark the coach onboarded
+    // itself, the same way createTestAthlete does for athletes.
+    await testPrisma.coachProfile.create({ data: { userId: coach.userId, onboardingCompletedAt: new Date() } });
+    const athlete = await createTestAthlete("annot-athlete", "Football", "QB");
+    const team = await createTestTeam(coach.userId, [
+      { userId: coach.userId, teamRole: "COACH" },
+      { userId: athlete.userId, teamRole: "ATHLETE" },
+    ]);
+
+    const film = await testPrisma.film.create({
+      data: {
+        title: `${E2E_RUN_ID} Annotation Privacy Film`,
+        storageKey: "x",
+        originalFilename: "x.mp4",
+        mimeType: "video/mp4",
+        sizeBytes: 1,
+        teamId: team.id,
+        visibility: "TEAM",
+        uploadedById: coach.userId,
+      },
+    });
+
+    const secretMarker = `SECRET-COACH-ONLY-${E2E_RUN_ID}`;
+    const created = await request.post(`/api/films/${film.id}/annotations`, {
+      headers: { Cookie: coach.cookie, "Content-Type": "application/json" },
+      data: { timestampSec: 1.5, shapes: [{ type: "text", text: secretMarker }], visibility: "PRIVATE" },
+    });
+    expect(created.status(), await created.text()).toBe(200);
+
+    // The API route already filters correctly; this is the actual
+    // regression target — the page route's own server-side query.
+    const pageAsAthlete = await request.get(`/film/${film.id}`, { headers: { Cookie: athlete.cookie } });
+    expect(pageAsAthlete.status()).toBe(200);
+    const html = await pageAsAthlete.text();
+    expect(html).not.toContain(secretMarker);
+
+    // Sanity: the coach (team film staff) does see it, so this isn't
+    // just an over-broad filter hiding it from everyone.
+    const pageAsCoach = await request.get(`/film/${film.id}`, { headers: { Cookie: coach.cookie } });
+    expect(pageAsCoach.status()).toBe(200);
+    expect(await pageAsCoach.text()).toContain(secretMarker);
+  });
 });

@@ -38,7 +38,13 @@ export default async function FilmDetailPage({
     }),
     film.teamId ? prisma.filmTagDefinition.findMany({ where: { teamId: film.teamId }, orderBy: { createdAt: "asc" } }) : [],
     prisma.filmTagInstance.findMany({ where: { filmId: id }, include: { tagDefinition: true }, orderBy: { timestampSec: "asc" } }),
-    prisma.filmAnnotation.findMany({ where: { filmId: id }, orderBy: { timestampSec: "asc" } }),
+    prisma.filmAnnotation.findMany({
+      where: {
+        filmId: id,
+        OR: [{ visibility: "SHARED" }, { createdById: user.id }, ...(isStaff ? [{ visibility: "PRIVATE" as const }] : [])],
+      },
+      orderBy: { timestampSec: "asc" },
+    }),
     prisma.filmReviewRequest.findMany({
       where: { filmId: id, ...(isStaff ? {} : { athleteId: user.id }) },
       orderBy: { createdAt: "desc" },
