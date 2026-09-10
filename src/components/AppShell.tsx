@@ -9,7 +9,7 @@ import { DashboardHero } from "@/components/DashboardHero";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { Avatar } from "@/components/Avatar";
 import { NavIcon } from "@/components/NavIcons";
-import { AskMenta } from "@/components/AskMenta";
+import { MENTAIsland } from "@/components/MENTAIsland";
 import { SportSwitcher } from "@/components/SportSwitcher";
 
 type NavItem = { href: string; label: string; icon: string };
@@ -459,7 +459,7 @@ export function AppShell({
         })}
       </nav>
 
-      <AskMenta />
+      <MENTAIsland user={user} unreadCount={unreadCount} />
     </div>
   );
 }

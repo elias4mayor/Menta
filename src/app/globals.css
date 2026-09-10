@@ -295,6 +295,58 @@ h4 {
   }
 }
 
+/* Section label + a rule filling the rest of the row — an "OS console"
+   heading style used for the homepage's stat/pillar overview block
+   specifically (right where DashboardPreview shows the real product),
+   distinct from the centered dash-prefixed .eyebrow the rest of the page's
+   narrative sections use. Same token-driven mechanism as .eyebrow, just a
+   different shape — not a second design system, one more shared label
+   style alongside the existing one. */
+.rule-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.rule-heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-soft);
+}
+
+/* Metric tile content — the card SHELL is the existing .card/.card-hover
+   (background/border/shadow/hover-lift), this only styles what's inside:
+   a small mono label, a big value, and an optional one-line caption. */
+.metric-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.metric-value {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  margin: 10px 0 4px;
+}
+
+.metric-caption {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -369,6 +421,15 @@ h4 {
 .field-textarea:focus {
   outline: none;
   border-color: rgba(0, 0, 0, 0.35);
+}
+
+/* These fields are shared with the rest of the (still light) app, so the
+   default focus ring above stays dark — this is the one place it needs
+   to flip, since .onb-root is always dark. */
+.onb-root .field-input:focus,
+.onb-root .field-select:focus,
+.onb-root .field-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 /* Custom listbox replacing native <select> — the browser popup can't be
@@ -744,6 +805,15 @@ h4 {
   color: var(--success);
   border-color: rgba(126, 217, 160, 0.35);
   background: rgba(126, 217, 160, 0.08);
+}
+
+/* Configured but not actually reachable (invalid key, exhausted billing) —
+   distinct from .badge-demo's calmer "nothing set up yet" amber, since this
+   is a more urgent, actionable state: something IS set up and IS broken. */
+.badge-warn {
+  color: var(--danger);
+  border-color: rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.08);
 }
 
 /* Scroll-reveal: toggled by useScrollReveal (client-side, marketing pages only). */
@@ -1483,12 +1553,14 @@ h4 {
 }
 
 /* ---------- onboarding: first-launch experience ----------
-   Full-screen, quiet, white — one question at a time inside a single
+   Full-screen, quiet, black — one question at a time inside a single
    persistent environment (the ambient glow never unmounts; only the
-   content swaps). See OnboardingExperience.tsx. Scoped light-theme
-   tokens, same mechanism as .app-shell: every .onb-* rule below reads
+   content swaps). See OnboardingExperience.tsx. Scoped dark-theme
+   tokens, same mechanism as .home-os-root: every .onb-* rule below reads
    color through var(--text-1)/var(--text-2)/etc., so overriding them
-   here re-themes the whole experience without touching each rule. */
+   here re-themes the whole experience without touching each rule.
+   Same #08080a/white-alpha-border values as .home-os-root — one MENTA
+   dark, not a second one invented for onboarding. */
 .onb-root {
   position: relative;
   min-height: 100dvh;
@@ -1501,21 +1573,25 @@ h4 {
   background: var(--bg);
   padding: max(32px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
 
-  --bg: #ffffff;
-  --surface: #f5f5f7;
-  --surface-2: #eeeef0;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-soft: rgba(0, 0, 0, 0.05);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --text-1: #0a0a0c;
-  --text-2: #45454a;
-  --text-3: #6b6b70;
-  --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
-  --glow-wave-color: rgba(0, 0, 0, 0.28);
-  /* Was missing entirely, so .select-option's hover/highlight background
-     fell through to the root (dark-theme) value — a near-invisible white
-     tint on this white background instead of a visible dark one. */
-  --nav-hover-bg: rgba(0, 0, 0, 0.08);
+  --bg: #08080a;
+  --surface: #131316;
+  --surface-2: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text-1: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.66);
+  --text-3: rgba(245, 245, 247, 0.4);
+  /* Same fix .home-os-root already applies — --grad-signal's default is a
+     dark gradient meant for light backgrounds (the multi-select "selected"
+     checkmark background clips to it), and --on-signal (the icon color on
+     top of it) defaults to white at :root — both need to flip together or
+     the checkmark either disappears into the fill or the fill disappears
+     into the page. */
+  --grad-signal: linear-gradient(90deg, #f5f5f7, #ffffff);
+  --on-signal: #08080a;
+  --glow-wave-color: rgba(255, 255, 255, 0.5);
+  --nav-hover-bg: rgba(255, 255, 255, 0.08);
 }
 
 .onb-ambient {
@@ -1525,7 +1601,7 @@ h4 {
   max-width: 640px;
   max-height: 640px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.05), transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 70%);
   pointer-events: none;
   animation: onbAmbientBreathe 9s ease-in-out infinite;
 }
@@ -1559,7 +1635,10 @@ h4 {
   height: 22px;
   width: auto;
   z-index: 2;
-  filter: invert(1);
+  /* logo.png is already a white wordmark — no inversion needed to stay
+     white on this dark background (see the identical fix on the homepage
+     logo, confirmed via an actual rendered screenshot there). */
+  filter: invert(0);
   animation:
     onbLogoBoot 0.8s var(--ease) both,
     onbLogoFloat 6s ease-in-out 1.3s infinite;
@@ -1972,13 +2051,16 @@ h4 {
 
 /* ---------- MENTA cinematic first-launch intro ----------
    Plays once, immediately after signup, before the role's onboarding
-   questions — see MentaIntro.tsx. Fixed full-screen overlay, white like
-   every other scope in the product now (no more black->white crossfade
-   needed — it just reads the same :root tokens .onb-root also mirrors),
-   so it composites with zero visible seam on top of whichever onboarding
-   root is mounted underneath it. Same fade grammar as .onb-content
-   (.mi-enter/.mi-exit mirror .onb-enter/.onb-exit) so the motion reads
-   as the same product, not a different animation system bolted on. */
+   questions — see MentaIntro.tsx. Fixed full-screen overlay, dark like
+   every other scope in the product now — OnboardingGate renders this
+   BEFORE the .onb-root-wrapped children mount (not nested inside them),
+   so it can't inherit .onb-root's tokens and needs its own identical
+   dark mirror here, same as .onb-root mirrors .home-os-root rather than
+   depending on it. Composites with zero visible seam on top of the
+   .onb-root content it hands off to (same values, same logo mark, same
+   spot). Same fade grammar as .onb-content (.mi-enter/.mi-exit mirror
+   .onb-enter/.onb-exit) so the motion reads as the same product, not a
+   different animation system bolted on. */
 .mi-root {
   position: fixed;
   inset: 0;
@@ -1991,10 +2073,20 @@ h4 {
   background: var(--bg);
   opacity: 1;
   transition: opacity 0.6s var(--ease);
+
+  --bg: #08080a;
+  --surface: #131316;
+  --surface-2: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text-1: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.66);
+  --text-3: rgba(245, 245, 247, 0.4);
 }
 
 /* Both this overlay and the .onb-root it hands off to are already the
-   same white, with the same small logo mark in the same spot by this
+   same black, with the same small logo mark in the same spot by this
    point — nothing left to crossfade colors for. This is just a final,
    graceful fade of the overlay itself so the handoff to the mounting
    onboarding content never reads as an abrupt cut, down to the pixel. */
@@ -2009,7 +2101,7 @@ h4 {
   max-width: 600px;
   max-height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0.05), transparent 72%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 72%);
   opacity: 0;
   transition: opacity 1.2s ease;
   pointer-events: none;
@@ -2034,18 +2126,18 @@ h4 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0.96);
-  /* Raw asset is light-colored, built for the old dark background — same
-     invert(1) this logo gets everywhere else it sits on white. blur(6px)
-     is the "slight blur → sharp" part of the reveal, alongside the
-     existing opacity/scale — a physical materialize, not a plain fade. */
-  filter: blur(6px) invert(1);
+  /* logo.png is already a white wordmark — no inversion needed to stay
+     white on this dark background. blur(6px) is the "slight blur → sharp"
+     part of the reveal, alongside the existing opacity/scale — a physical
+     materialize, not a plain fade. */
+  filter: blur(6px) invert(0);
   transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), top 0.9s var(--ease),
     height 0.9s var(--ease), filter 0.9s var(--ease);
 }
 
 .mi-logo.mi-logo-on {
   opacity: 0.92;
-  filter: blur(0) invert(1);
+  filter: blur(0) invert(0);
 }
 
 .mi-logo.mi-logo-small {
@@ -2917,13 +3009,19 @@ h4 {
   color: var(--text-1);
 }
 
-/* ---------- Home OS: premium black homepage header + hero ----------
+/* ---------- Home OS: MENTA's black marketing pages ----------
    Same override-the-custom-properties mechanism as .live-root above —
    deliberately reuses its exact token values (same #08080a, same white-
    alpha borders) for one consistent "MENTA dark" rather than inventing a
-   second black. Scoped to HomeHeader.tsx/HomeHero.tsx only (see
-   src/app/page.tsx) — the rest of the marketing site (MarketingNav, the
-   sections below the hero) stays on the white :root theme untouched. */
+   second black. Wraps the homepage plus its dedicated pages (/platform,
+   /athletes, /coaches, /parents, /trainers, /menta-safety, /about) — one
+   consistent dark identity across all of them. Deliberately a single,
+   static scope: no scroll-based zone switching, no per-section tone
+   changes. /faq, /trust, /terms, /privacy stay on the white :root theme,
+   untouched. min-height guarantees the dark background fills the full
+   viewport even on a short page (several of these dedicated pages are
+   intentionally brief) instead of the white body background showing
+   through below a short page's content. */
 .home-os-root {
   --bg: #08080a;
   --surface: #131316;
@@ -2934,113 +3032,59 @@ h4 {
   --text-1: #f5f5f7;
   --text-2: rgba(245, 245, 247, 0.66);
   --text-3: rgba(245, 245, 247, 0.4);
+  /* Same fix .live-root already applies below: --grad-signal's default is
+     a dark gradient meant for light backgrounds (.signal-text clips text
+     to it) — left unset here it renders near-invisible dark-on-dark. Match
+     .live-root's own light-on-dark values exactly, one dark scope to another. */
+  --grad-signal: linear-gradient(90deg, #f5f5f7, #ffffff);
+  --on-signal: #08080a;
+  min-height: 100dvh;
+  min-height: 100vh;
   background: var(--bg);
   color: var(--text-1);
 }
 
-/* Small top-left logo, the "entry point to the OS" — brightens subtly on
-   hover/focus rather than a hard color swap, so the whole interaction
-   reads as one continuous, restrained gesture. */
-.home-logo-trigger {
-  display: inline-flex;
-  padding: 6px;
-  margin: -6px;
-  border-radius: var(--r-sm);
-  transition: filter 0.3s var(--ease);
+/* MarketingNav's background/logo are shared with /faq, /trust, /terms,
+   /privacy (still white) — so these can't just be recolored in place.
+   Default values below match MarketingNav.tsx's/MarketingFooter.tsx's
+   original inline styles exactly (unchanged for
+   every page except the homepage); the .home-os-root-scoped overrides are
+   the only place anything actually goes dark. logo.png itself is already
+   a white wordmark, so invert(1) (the default, for white pages) turns it
+   black, and invert(0) (only inside .home-os-root) leaves it white. */
+.marketing-nav-bg {
+  background: rgba(255, 255, 255, 0.78);
 }
 
-.home-logo-trigger img {
+.marketing-nav-mobile-bg {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.marketing-nav-logo,
+.marketing-footer-logo {
   filter: invert(1);
-  transition: filter 0.3s var(--ease);
 }
 
-.home-logo-trigger:hover img,
-.home-logo-trigger:focus-visible img,
-.home-nav-open .home-logo-trigger img {
-  filter: invert(1) brightness(1.35);
+.home-os-root .marketing-nav-bg {
+  background: rgba(8, 8, 10, 0.78);
 }
 
-.home-logo-trigger:focus-visible {
-  outline: 1px solid var(--border-strong);
-  outline-offset: 2px;
+.home-os-root .marketing-nav-mobile-bg {
+  background: rgba(8, 8, 10, 0.98);
 }
 
-/* The panel itself: comes out from behind/below the logo, not a generic
-   centered mega-menu — anchored top-left, expands downward. A soft-edged
-   dark surface one shade up from pure black (--surface, not a hard-lined
-   box) so it reads as the interface surfacing, not a dropdown appearing. */
-.home-nav-panel {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 18px;
-  min-width: 220px;
-  padding: 10px;
-  border-radius: var(--r-md);
-  background: rgba(19, 19, 22, 0.88);
-  backdrop-filter: blur(28px) saturate(140%);
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  border: 1px solid var(--border);
-  box-shadow: 0 24px 56px -28px rgba(0, 0, 0, 0.9);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-6px);
-  transform-origin: top left;
-  transition: opacity 0.35s var(--ease), transform 0.35s var(--ease), visibility 0.35s;
-  pointer-events: none;
+.home-os-root .marketing-nav-logo,
+.home-os-root .marketing-footer-logo {
+  filter: invert(0);
 }
 
-.home-nav-panel.home-nav-panel-open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
+.home-os-root .nav-dropdown {
+  background: rgba(19, 19, 22, 0.92);
 }
 
-.home-nav-item {
-  display: block;
-  padding: 9px 12px;
-  border-radius: var(--r-sm);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  color: var(--text-2);
-  opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease), color 0.2s var(--ease),
-    background 0.2s var(--ease);
-}
-
-.home-nav-panel-open .home-nav-item {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.home-nav-item:hover,
-.home-nav-item:focus-visible {
-  color: var(--text-1);
+.home-os-root .nav-dropdown-item:hover,
+.home-os-root .nav-dropdown-item:focus-visible {
   background: rgba(255, 255, 255, 0.06);
-}
-
-.home-nav-item:focus-visible {
-  outline: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-logo-trigger,
-  .home-logo-trigger img,
-  .home-nav-panel,
-  .home-nav-item {
-    transition: opacity 0.15s ease, visibility 0.15s;
-    transform: none;
-    filter: none;
-  }
-
-  .home-logo-trigger:hover img,
-  .home-logo-trigger:focus-visible img,
-  .home-nav-open .home-logo-trigger img {
-    filter: invert(1);
-  }
 }
 
 .live-status-dot {
@@ -3514,5 +3558,645 @@ h4 {
   }
   .membership-node[aria-current="true"] .membership-node-label {
     font-size: 26px;
+  }
+}
+
+/* ---------- MENTA Membership: story/compare/team/final-CTA ----------
+   Everything below the wheel (MembershipStory.tsx). Same .live-root dark
+   theme tokens as the wheel above — one visual system, not a second
+   theme bolted on. Large type + whitespace do the work; no cards, no
+   gradients, no shadows beyond what .live-card/.live-primary-btn already
+   define elsewhere. */
+
+.membership-story {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 120px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 140px;
+}
+
+.membership-feature {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 48px;
+}
+
+.membership-feature-reverse {
+  direction: rtl;
+}
+
+.membership-feature-reverse > * {
+  direction: ltr;
+}
+
+.membership-feature-numeral {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(96px, 14vw, 180px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--border-strong);
+}
+
+.membership-feature-title {
+  font-family: var(--font-heading);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-size: clamp(28px, 4vw, 42px);
+  color: var(--text-1);
+  margin-bottom: 12px;
+}
+
+.membership-feature-copy .live-sub {
+  max-width: 440px;
+  font-size: clamp(15px, 1.8vw, 17px);
+}
+
+.membership-why {
+  padding: 160px 24px;
+}
+
+.membership-why-line {
+  font-family: var(--font-heading);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  font-size: clamp(20px, 3.4vw, 32px);
+  color: var(--text-3);
+  line-height: 1.3;
+}
+
+.membership-why-headline {
+  margin-top: 28px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  font-size: clamp(40px, 7vw, 76px);
+  color: var(--text-1);
+}
+
+.membership-compare {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 100px 24px 140px;
+}
+
+.membership-compare-title {
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-size: clamp(30px, 5vw, 44px);
+  color: var(--text-1);
+  margin-bottom: 56px;
+}
+
+.membership-compare-scroll {
+  overflow-x: auto;
+}
+
+.membership-compare-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.membership-compare-table th,
+.membership-compare-table td {
+  padding: 16px 18px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.membership-compare-table thead th {
+  font-family: var(--font-heading);
+  font-weight: 650;
+  font-size: 16px;
+  color: var(--text-1);
+  padding-bottom: 20px;
+}
+
+.membership-compare-row-label {
+  text-align: left !important;
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.membership-compare-dash {
+  color: var(--text-3);
+}
+
+/* Gentle scroll-reveal (ScrollReveal.tsx) — opacity+rise only, no scale/
+   blur, so it reads as "settling into place" rather than a flashy
+   entrance. Instant (no transition) when JS never adds the -visible
+   class, e.g. a client hydration failure — content stays visible by
+   default via .scroll-reveal's own opacity:1 fallback below, not hidden
+   behind JS that might not run. */
+.scroll-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+  }
+  .scroll-reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.membership-team-inner,
+.membership-final-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.membership-compare-price {
+  font-family: var(--font-heading);
+  font-weight: 650;
+  color: var(--text-1);
+}
+
+.membership-team-section {
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.membership-final-cta {
+  padding-top: 100px;
+}
+
+.membership-final-wordmark {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: clamp(22px, 3vw, 28px);
+  color: var(--text-3);
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .membership-feature {
+    grid-template-columns: 1fr;
+    text-align: left;
+    gap: 20px;
+  }
+  .membership-feature-reverse {
+    direction: ltr;
+  }
+  .membership-feature-numeral {
+    font-size: clamp(64px, 20vw, 96px);
+  }
+  .membership-story {
+    padding: 90px 24px;
+    gap: 96px;
+  }
+  .membership-why {
+    padding: 110px 24px;
+  }
+}
+
+/* ---------- MENTA Island: the athlete's command center ----------
+   Floats above AppShell's existing chrome (sidebar/topbar/bottom nav are
+   untouched) — see MENTAIsland.tsx. Deliberately dark glass regardless of
+   the light authenticated app underneath: reads as a distinct system
+   layer, the same way Apple's own Dynamic Island stays black no matter
+   what app is open, rather than re-theming to match the page. Text colors
+   below are explicit rgba(255,255,255,…) rather than var(--text-1) on
+   purpose — this panel is always dark, so it can't read through the
+   ambient (light) :root tokens the way .home-nav-panel/.nav-dropdown
+   already don't either. */
+.menta-island {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* AppShell's sidebar (md:w-64 = 256px) sits to the left of the actual
+   content column, but this element is `position: fixed` against the full
+   viewport, so a bare `left: 50%` centers it against the whole window,
+   not the content area beside the sidebar — visibly off-center once the
+   sidebar appears at md. Shifting by exactly half that already-fixed
+   256px re-centers it on the remaining (viewport - 256px) content width
+   for every viewport size at md and up, rather than a fixed value tuned
+   to one screen. */
+@media (min-width: 768px) {
+  .menta-island {
+    left: calc(50% + 128px);
+  }
+}
+
+.menta-island-capsule {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(10, 10, 12, 0.82);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  color: rgba(245, 245, 247, 0.92);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.35s var(--ease), opacity 0.35s var(--ease), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.menta-island-capsule:hover,
+.menta-island-capsule:focus-visible {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 22px 48px -16px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+}
+
+.menta-island-capsule:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.menta-island-capsule:active {
+  transform: scale(0.97);
+}
+
+.menta-island-open .menta-island-capsule {
+  background: rgba(18, 18, 21, 0.9);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.menta-island-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #30d158;
+  box-shadow: 0 0 8px rgba(48, 209, 88, 0.6);
+  flex-shrink: 0;
+  animation: islandDotPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes islandDotPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.82);
+  }
+}
+
+.menta-island-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 46vw;
+}
+
+/* Ghost mode: real inactivity, not a fixed timer meant to be noticed —
+   shrinks to a bare minimum rather than disappearing outright (still
+   discoverable, never demands attention back). */
+.menta-island-ghost .menta-island-capsule {
+  padding: 7px 12px;
+  background: rgba(10, 10, 12, 0.55);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+  opacity: 0.62;
+}
+
+.menta-island-ghost .menta-island-label {
+  max-width: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.menta-island-ghost .menta-island-dot {
+  animation-play-state: paused;
+  opacity: 0.5;
+}
+
+/* The glass bubble — grows from the capsule rather than appearing as a
+   generic rectangular dropdown. Always in the DOM (not conditionally
+   mounted) and toggled via .menta-island-panel-open, same mechanism
+   .home-nav-panel already uses elsewhere in this app — a transition
+   (not a one-shot animation) plays both opening AND closing, rather than
+   the panel appearing with a nice entrance and then just vanishing with
+   no exit. visibility:hidden (not just opacity:0) also keeps its real
+   links/buttons out of the tab order while closed, for free. */
+.menta-island-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 18px;
+  border-radius: 28px;
+  background: rgba(14, 14, 16, 0.86);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 32px 72px -24px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.07) inset;
+  color: rgba(245, 245, 247, 0.92);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-6px) scale(0.96);
+  transform-origin: top center;
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.28s;
+}
+
+.menta-island-panel-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.menta-island-journey {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow-x: auto;
+}
+
+.menta-island-journey-stage {
+  position: relative;
+  flex: 1;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 247, 0.45);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+
+/* Hover and active must read as clearly different states, not two shades
+   of the same thing — hover only lifts the text color; active additionally
+   gets its own background, a real border, a soft inward+outward glow, and
+   a tiny dot, so it doesn't depend on color/brightness alone (also why
+   aria-current carries the same information non-visually — see
+   MENTAIsland.tsx). */
+.menta-island-journey-stage:hover {
+  color: rgba(245, 245, 247, 0.75);
+}
+
+.menta-island-journey-stage.active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset, 0 0 14px rgba(255, 255, 255, 0.22);
+}
+
+.menta-island-section {
+  padding: 12px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.menta-island-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.menta-island-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(245, 245, 247, 0.4);
+  margin-bottom: 8px;
+}
+
+/* Next Move is meant to read as the panel's centerpiece — larger/heavier
+   than Pulse rows (13px) or Quick Actions (12.5px), not the same weight as
+   everything else. Two lines rather than a single truncated line: these
+   titles are short (a goal/assignment name or a real item title, see
+   shortTitleForSignal() in island.ts) but not guaranteed to fit one line
+   at this width, and cutting off mid-word read as unfinished. */
+.menta-island-next-move-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.menta-island-why {
+  font-size: 12px;
+  color: rgba(245, 245, 247, 0.5);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-top: 2px;
+}
+
+.menta-island-why:hover {
+  color: rgba(245, 245, 247, 0.8);
+}
+
+.menta-island-why-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(245, 245, 247, 0.65);
+  margin-top: 6px;
+}
+
+.menta-island-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0a0a0c;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: transform 0.2s var(--ease), opacity 0.15s ease;
+}
+
+.menta-island-chip-btn:hover {
+  transform: translateY(-1px);
+}
+
+.menta-island-pulse-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: rgba(245, 245, 247, 0.92);
+  transition: background 0.15s var(--ease);
+}
+
+.menta-island-pulse-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.menta-island-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.menta-island-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(245, 245, 247, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.menta-island-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.menta-island-ask-trigger {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(245, 245, 247, 0.55);
+  font-size: 13px;
+}
+
+.menta-island-ask-trigger:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 245, 247, 0.8);
+}
+
+.menta-island-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+
+.menta-island-input::placeholder {
+  color: rgba(245, 245, 247, 0.4);
+}
+
+.menta-island-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.menta-island-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.menta-island-action {
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(245, 245, 247, 0.85);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.menta-island-action:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Same restrained "lit from within" treatment as the active Journey stage,
+   scaled to a rectangular action rather than a pill — shown when a quick
+   action's own route is the one currently open. */
+.menta-island-action.active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset, 0 0 12px rgba(255, 255, 255, 0.18);
+}
+
+@media (max-width: 640px) {
+  .menta-island {
+    top: max(10px, env(safe-area-inset-top));
+  }
+  .menta-island-panel {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 100px);
+  }
+  .menta-island-label {
+    max-width: 38vw;
+  }
+  .menta-island-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menta-island-capsule,
+  .menta-island-panel {
+    transition: opacity 0.15s ease !important;
+    transform: none !important;
+  }
+  .menta-island-dot {
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .menta-island-capsule,
+  .menta-island-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #0a0a0c;
   }
 }

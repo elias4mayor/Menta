@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
  */
 export type MyDayItem = {
   id: string;
-  kind: "Event" | "Academic" | "Film";
+  kind: "Event" | "Academic" | "Film" | "Goal";
   title: string;
   at: Date;
   href: string;
@@ -133,7 +133,7 @@ export async function getMyDay(
   const todayEnd = endOfDay(now);
   const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [todaysEvents, upcomingEvents, openAssignments, openFilmTargets, todaySession] = await Promise.all([
+  const [todaysEvents, upcomingEvents, openAssignments, openFilmTargets, dueGoals, todaySession] = await Promise.all([
     prisma.calendarEvent.findMany({
       where: {
         startsAt: { gte: startOfDay(now), lte: todayEnd },
@@ -162,16 +162,27 @@ export async function getMyDay(
       orderBy: { assignment: { dueAt: "asc" } },
       take: 10,
     }),
+    // Only goals with a real target date the athlete set themselves —
+    // same ACTIVE-goal universe the dashboard's own GoalsPanel/
+    // TodaysPriorities already read, just also folded into the unified
+    // chronological timeline here.
+    prisma.goal.findMany({
+      where: { userId, status: "ACTIVE", targetDate: { lte: weekAhead } },
+      orderBy: { targetDate: "asc" },
+      take: 10,
+    }),
     getTodaySession(userId, now),
   ]);
 
   const dueTodayAssignments = openAssignments.filter((a) => a.dueDate && a.dueDate <= todayEnd);
   const dueTodayFilm = openFilmTargets.filter((t) => t.assignment.dueAt && t.assignment.dueAt <= todayEnd);
+  const dueTodayGoals = dueGoals.filter((g) => g.targetDate && g.targetDate <= todayEnd);
 
   const today: MyDayItem[] = [
     ...todaysEvents.map((e) => ({ id: e.id, kind: "Event" as const, title: e.title, at: e.startsAt, href: "/calendar", teamName: e.team?.name })),
     ...dueTodayAssignments.map((a) => ({ id: a.id, kind: "Academic" as const, title: a.title, at: a.dueDate as Date, href: "/school" })),
     ...dueTodayFilm.map((t) => ({ id: t.id, kind: "Film" as const, title: t.assignment.title, at: t.assignment.dueAt as Date, href: "/assignments" })),
+    ...dueTodayGoals.map((g) => ({ id: g.id, kind: "Goal" as const, title: g.title, at: g.targetDate as Date, href: "/dashboard#goals" })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
 
   const upcoming: MyDayItem[] = [
@@ -182,6 +193,9 @@ export async function getMyDay(
     ...openFilmTargets
       .filter((t) => t.assignment.dueAt && t.assignment.dueAt > todayEnd)
       .map((t) => ({ id: t.id, kind: "Film" as const, title: t.assignment.title, at: t.assignment.dueAt as Date, href: "/assignments" })),
+    ...dueGoals
+      .filter((g) => g.targetDate && g.targetDate > todayEnd)
+      .map((g) => ({ id: g.id, kind: "Goal" as const, title: g.title, at: g.targetDate as Date, href: "/dashboard#goals" })),
   ]
     .sort((a, b) => a.at.getTime() - b.at.getTime())
     .slice(0, 6);

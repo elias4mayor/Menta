@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { askGemini, isGeminiConfigured } from "@/lib/ai/gemini";
 import { getMyDay } from "@/lib/my-day";
@@ -17,7 +18,77 @@ export function isAiConfigured(): boolean {
     return Boolean(process.env.ANTHROPIC_API_KEY);
   }
 
+  if (provider === "openai") {
+    return Boolean(process.env.OPENAI_API_KEY);
+  }
+
   return false;
+}
+
+/**
+ * Dashboard "Connected" badge status. isAiConfigured() only proves a key
+ * is *present* — it can't catch an invalid key or (confirmed directly
+ * against the real API while diagnosing this) a billing-exhausted OpenAI
+ * account, since OpenAI's own models.list() succeeds even at zero credits.
+ * The only reliable way to detect that is a real minimal generation call,
+ * so this makes one — but caches the result for HEALTH_CACHE_TTL_MS in a
+ * single process-wide slot (reachability is a fact about the configured
+ * key, not about any one athlete) so it's an occasional background cost,
+ * not one more request per dashboard load. Never throws; never leaks the
+ * underlying error to a caller — server-side console.error only, same
+ * pattern /api/ai's own catch block already uses.
+ */
+export type AiHealthStatus = "connected" | "unavailable" | "not-configured";
+
+const HEALTH_CACHE_TTL_MS = 5 * 60 * 1000;
+let healthCache: { status: AiHealthStatus; checkedAt: number } | null = null;
+
+async function pingProvider(provider: string): Promise<boolean> {
+  try {
+    if (provider === "gemini") {
+      await askGemini({ systemPrompt: "Health check.", conversation: [{ role: "user", content: "ping" }] });
+      return true;
+    }
+
+    if (provider === "anthropic") {
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      await client.messages.create({
+        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+      });
+      return true;
+    }
+
+    if (provider === "openai") {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 1,
+      });
+      return true;
+    }
+  } catch (err) {
+    console.error("[ai-health] provider ping failed", err);
+    return false;
+  }
+
+  return false;
+}
+
+export async function getAiHealth(): Promise<AiHealthStatus> {
+  if (!isAiConfigured()) return "not-configured";
+
+  if (healthCache && Date.now() - healthCache.checkedAt < HEALTH_CACHE_TTL_MS) {
+    return healthCache.status;
+  }
+
+  const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+  const reachable = await pingProvider(provider);
+  const status: AiHealthStatus = reachable ? "connected" : "unavailable";
+  healthCache = { status, checkedAt: Date.now() };
+  return status;
 }
 
 const SYSTEM_PROMPT = `You are MENTA AI, the assistant inside the MENTA Athlete Operating System.
@@ -128,22 +199,22 @@ Additional non-negotiable rules for this task, on top of your ground rules above
 - End with one clear, specific, actionable suggestion drawn from the real data (e.g. which item to do first), not generic motivational filler.`;
 
 /**
- * Deliberately a separate, additive composition on top of buildAthleteContext()
- * rather than a change to that function's own output — buildAthleteContext()
- * also backs draftRecruitingOutreach() below, and today's homework/film-review
- * due-dates have no business leaking into a recruiting email draft. This
- * layers today's/upcoming schedule (titles + times only, via the same
- * getMyDay() the dashboard uses — never full assignment descriptions, grades,
- * or notes) on top of the existing athlete context, for the Daily Brief only.
+ * Today's/upcoming schedule (titles + times only, via the same getMyDay()
+ * the dashboard uses — never full assignment descriptions, grades, or
+ * notes) plus deterministic signals (src/lib/athlete-signals.ts — the AI
+ * narrates these, it never calculates them itself). Deliberately a
+ * separate, additive layer rather than folded into buildAthleteContext()
+ * itself — buildAthleteContext() also backs draftRecruitingOutreach(), and
+ * today's homework/film-review due-dates have no business leaking into a
+ * recruiting email draft. Shared by the Daily Brief and the general AI
+ * Coach chat (both layer this on top of buildAthleteContext() themselves)
+ * so "what should I focus on today" gets a real answer from either one,
+ * not just the dedicated Daily Brief tool.
  */
-export async function buildDailyBriefContext(user: SessionUser): Promise<string> {
-  const [athleteContext, myDay, signals] = await Promise.all([
-    buildAthleteContext(user),
-    getMyDay(user.id),
-    getAthleteSignals(user.id),
-  ]);
+export async function buildTodayScheduleSummary(user: SessionUser): Promise<string> {
+  const [myDay, signals] = await Promise.all([getMyDay(user.id), getAthleteSignals(user.id)]);
 
-  const lines: string[] = [athleteContext, ""];
+  const lines: string[] = [];
 
   // "Event" alone doesn't tell the AI whether something is personal or a
   // whole-team commitment (e.g. "your team has practice tomorrow" vs. a
@@ -167,13 +238,21 @@ export async function buildDailyBriefContext(user: SessionUser): Promise<string>
       : "Nothing else on the horizon yet."
   );
 
-  // Pre-computed, deterministic observations (src/lib/athlete-signals.ts) —
-  // the AI narrates these, it never calculates them itself.
   if (signals.length > 0) {
     lines.push(`Notable: ${signals.map((s) => s.message).join(" ")}`);
   }
 
   return lines.join("\n");
+}
+
+/** Daily Brief's context: base athlete context + today's schedule layer. */
+export async function buildDailyBriefContext(user: SessionUser): Promise<string> {
+  const [athleteContext, scheduleSummary] = await Promise.all([
+    buildAthleteContext(user),
+    buildTodayScheduleSummary(user),
+  ]);
+
+  return `${athleteContext}\n\n${scheduleSummary}`;
 }
 
 /** Generates one Daily Brief reply — a single, non-conversational turn, same pattern draftRecruitingOutreach() below uses. */
@@ -361,6 +440,37 @@ export async function askMentaAi(params: {
 
     if (!text) {
       throw new Error("Anthropic returned an empty response.");
+    }
+
+    return text;
+  }
+
+  if (provider === "openai") {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY is not configured.");
+    }
+
+    const client = new OpenAI({ apiKey });
+
+    const model = process.env.OPENAI_MODEL || "gpt-4.1";
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...params.history.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      ],
+    });
+
+    const text = response.choices[0]?.message?.content?.trim();
+
+    if (!text) {
+      throw new Error("OpenAI returned an empty response.");
     }
 
     return text;

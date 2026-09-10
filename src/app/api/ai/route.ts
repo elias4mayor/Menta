@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { aiChatSchema } from "@/lib/validation";
-import { askMentaAi, buildAthleteContext, isAiConfigured } from "@/lib/ai";
+import { askMentaAi, buildAthleteContext, buildTodayScheduleSummary, isAiConfigured } from "@/lib/ai";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { checkUsageLimit, recordUsage } from "@/lib/entitlements";
@@ -87,7 +87,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const context = await buildAthleteContext(user);
+    // Same "today" layer the Daily Brief already uses, added here too so
+    // the general chat can actually answer "what should I focus on today"
+    // instead of only knowing profile/goals/upcoming-calendar/training —
+    // buildAthleteContext() itself stays untouched since draftRecruitingOutreach()
+    // reads that function directly and today's homework/film-review due
+    // dates have no business in a recruiting email draft.
+    const [athleteContext, scheduleSummary] = await Promise.all([
+      buildAthleteContext(user),
+      buildTodayScheduleSummary(user),
+    ]);
+    const context = `${athleteContext}\n\n${scheduleSummary}`;
     const history = [
       ...conversation.messages.map((m) => ({
         role: m.role as "user" | "assistant",

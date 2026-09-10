@@ -2,12 +2,19 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { LiveGallery, GALLERY_SLIDES } from "@/components/LiveGallery";
+import { AuthVideoBackground } from "@/components/AuthVideoBackground";
 
 /**
  * Split-panel login/signup layout: a full-bleed rotating athlete-photo
  * panel on one side, a clean black form panel on the other. On mobile the
  * photo panel collapses to an ambient full-bleed background behind the
  * form instead of a separate column (there's no room for both).
+ *
+ * `background="video"` swaps the rotating photo gallery for a single
+ * looping video (see AuthVideoBackground) — opt-in per page rather than a
+ * change to this shell's default, so pages that don't explicitly ask for
+ * it (verify-email, reset-password, the global error page) keep the
+ * existing photo gallery exactly as before.
  */
 export function SplitAuthShell({
   eyebrow,
@@ -15,17 +22,23 @@ export function SplitAuthShell({
   subtitle,
   children,
   footer,
+  background = "gallery",
 }: {
   eyebrow: string;
   title: string;
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
+  background?: "gallery" | "video";
 }) {
   return (
     <div className="split-auth-shell relative min-h-screen flex flex-col md:flex-row bg-bg overflow-hidden">
       <div className="absolute inset-0 md:relative md:inset-auto md:w-[46%] lg:w-1/2 overflow-hidden">
-        <LiveGallery slides={GALLERY_SLIDES} heroBg />
+        {background === "video" ? (
+          <AuthVideoBackground src="/media/mentabg.mp4" />
+        ) : (
+          <LiveGallery slides={GALLERY_SLIDES} heroBg />
+        )}
         <div className="absolute inset-0 z-[1]" style={{ background: "rgba(8,8,10,0.5)" }} />
         <div className="hidden md:flex absolute inset-0 z-10 flex-col justify-between p-10 lg:p-14">
           <Link href="/" className="inline-flex w-fit">

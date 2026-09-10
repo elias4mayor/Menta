@@ -25,7 +25,7 @@ export function Hero() {
               <path d="M5 12h14M13 5l7 7-7 7" />
             </svg>
           </Link>
-          <Link href="#platform" className="btn-secondary">
+          <Link href="/platform" className="btn-secondary">
             Explore MENTA
           </Link>
         </div>

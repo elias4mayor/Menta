@@ -51,6 +51,7 @@ export default function SignupPage() {
 
   return (
     <SplitAuthShell
+      background="video"
       eyebrow="Create account"
       title="Join MENTA"
       subtitle="Free during the beta. Athletes under 18 need a parent or guardian to approve their account."

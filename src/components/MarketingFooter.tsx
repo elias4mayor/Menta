@@ -9,11 +9,12 @@ export function MarketingFooter() {
         alt="MENTA"
         width={863}
         height={194}
-        className="h-5 w-auto"
-        style={{ filter: "invert(1)" }}
+        className="h-5 w-auto marketing-footer-logo"
         priority={false}
       />
       <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-text-2">
+        <Link href="/platform" className="hover:text-text-1">Platform</Link>
+        <Link href="/membership" className="hover:text-text-1">Membership</Link>
         <Link href="/faq" className="hover:text-text-1">FAQ</Link>
         <Link href="/trust" className="hover:text-text-1">Trust &amp; Safety</Link>
         <Link href="/privacy" className="hover:text-text-1">Privacy (draft)</Link>

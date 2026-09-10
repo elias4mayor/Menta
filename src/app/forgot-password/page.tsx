@@ -29,6 +29,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <SplitAuthShell
+      background="video"
       eyebrow="Reset password"
       title="Forgot your password?"
       subtitle="We'll send a reset link to your email."

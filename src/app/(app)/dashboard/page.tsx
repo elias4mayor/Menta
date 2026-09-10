@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { isAiConfigured } from "@/lib/ai";
+import { getAiHealth } from "@/lib/ai";
 import { getMyDay } from "@/lib/my-day";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
@@ -52,7 +52,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
     myDay,
     goals,
     notifications,
-    aiConfigured,
+    aiHealth,
     completionsThisWeek,
     latestPerformanceEntry,
     planWorkouts,
@@ -73,7 +73,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
-    Promise.resolve(isAiConfigured()),
+    getAiHealth(),
     prisma.workoutCompletion.count({
       where: { userId: user.id, completedAt: { gte: weekAgo } },
     }),
@@ -89,7 +89,8 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
   ]);
 
   const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
-  const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
+  const aiEnvVar =
+    aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : aiProvider === "openai" ? "OPENAI_API_KEY" : "GEMINI_API_KEY";
 
   const activeGoalsCount = goals.filter((g) => g.status === "ACTIVE").length;
   const todayEnd = endOfDay(now);
@@ -105,6 +106,13 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
     }));
 
   const demands = profile?.sport ? demandsFor(profile.sport, profile.position) : null;
+
+  // A day-one athlete: no training logged, no goals, no team, nothing on
+  // today's schedule — every signal already fetched above, nothing new
+  // queried. Drives which Quick Action gets visual priority below; never
+  // used to fabricate activity, stats, or copy that isn't already honest.
+  const isNewAthlete =
+    completionsThisWeek === 0 && activeGoalsCount === 0 && teamMemberships.length === 0 && myDay.today.length === 0;
 
   // Everything below derives from the shared getMyDay() layer (src/lib/my-day.ts)
   // instead of re-deriving from raw Calendar/Assignment/FilmAssignmentTarget rows —
@@ -225,8 +233,13 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
 
           <div className="context-card">
             <div className="mono text-text-3 mb-3">Quick actions</div>
+            {isNewAthlete && (
+              <p className="text-text-3 text-xs mb-3">New to MENTA — start here.</p>
+            )}
             <div className="flex flex-col gap-2">
-              <Link href="/train" className="btn-secondary justify-start">Start a workout</Link>
+              <Link href="/train" className={isNewAthlete ? "btn-primary justify-start" : "btn-secondary justify-start"}>
+                Start a workout
+              </Link>
               <Link href="/film" className="btn-secondary justify-start">Upload film</Link>
               <Link href="/ai-coach" className="btn-secondary justify-start">
                 <GlowWaveText intensity="subtle">Ask MENTA AI</GlowWaveText>
@@ -306,16 +319,20 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           <div className="context-card">
             <div className="flex items-center justify-between mb-3">
               <div className="mono text-text-3">MENTA AI</div>
-              {aiConfigured ? (
+              {aiHealth === "connected" ? (
                 <span className="badge badge-live">Connected</span>
+              ) : aiHealth === "unavailable" ? (
+                <span className="badge badge-warn">Needs attention</span>
               ) : (
                 <span className="badge badge-demo">Not connected</span>
               )}
             </div>
             <p className="text-text-2 text-sm mb-4">
-              {aiConfigured
+              {aiHealth === "connected"
                 ? "Ask about training, recovery, recruiting, or academics."
-                : `Set ${aiEnvVar} to turn on the live assistant.`}
+                : aiHealth === "unavailable"
+                  ? "MENTA's AI service needs attention right now. Try again shortly."
+                  : `Set ${aiEnvVar} to turn on the live assistant.`}
             </p>
             <Link href="/ai-coach" className="btn-secondary w-full justify-center">
               <GlowWaveText intensity="subtle">Open MENTA AI</GlowWaveText>

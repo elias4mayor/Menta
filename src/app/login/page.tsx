@@ -56,6 +56,7 @@ function LoginForm() {
 
   return (
     <SplitAuthShell
+      background="video"
       eyebrow="Welcome back"
       title="Log in"
       footer={
