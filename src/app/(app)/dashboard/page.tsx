@@ -5,9 +5,11 @@ import { isAiConfigured } from "@/lib/ai";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
+import { NextMoveCard } from "@/components/NextMoveCard";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { PlanCard } from "@/components/PlanCard";
 import { demandsFor } from "@/lib/sports";
+import { getNextMove } from "@/lib/next-move";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { TrainerDashboard } from "@/components/TrainerDashboard";
@@ -106,6 +108,8 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       orderBy: { createdAt: "asc" },
     }),
   ]);
+
+  const nextMove = await getNextMove(user.id);
 
   const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
   const aiEnvVar = aiProvider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
@@ -207,6 +211,21 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           </div>
         </div>
       </div>
+
+      <NextMoveCard
+        initial={
+          nextMove.current
+            ? {
+                id: nextMove.current.id,
+                kind: nextMove.current.kind,
+                title: nextMove.current.title,
+                reasoning: nextMove.current.reasoning,
+                evidence: nextMove.current.evidence,
+                actionHref: nextMove.current.actionHref,
+              }
+            : null
+        }
+      />
 
       <div className="dash-in dash-in-4">
         <PlanCard

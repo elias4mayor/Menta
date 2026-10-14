@@ -97,6 +97,7 @@ model User {
   filmAssignmentTargets      FilmAssignmentTarget[]
   filmReviewRequestsAsAthlete FilmReviewRequest[]       @relation("FilmReviewRequestAthlete")
   coachNotesAboutMe          CoachNote[]                @relation("CoachNoteAthlete")
+  nextMoveRecommendations    NextMoveRecommendation[]
 
   @@index([role])
 }
@@ -1899,4 +1900,48 @@ model DocumentRequest {
   athlete     User @relation("DocumentRequestAthlete", fields: [athleteId], references: [id])
 
   @@index([athleteId])
+}
+
+// =====================================================================
+// Next Move Engine — MENTA's cross-domain recommendation system.
+//
+// Every signal that feeds this is computed fresh, server-side, from the
+// athlete's own real rows in Goal/Workout/PerformanceEntry/
+// FilmAssignmentTarget/FilmReviewRequest/Assignment/EligibilityChecklistItem/
+// RecruitingSchool — see src/lib/next-move.ts, the single place this logic
+// lives. WellnessCheckIn/MindCheckIn are deliberately never read here,
+// same hard boundary as the AI context builder in src/lib/ai.ts. This
+// table exists only to persist WHAT was recommended and WHEN, so "did this
+// actually help" is answerable later — the recommendation itself is never
+// computed from this table, only logged to it.
+// =====================================================================
+
+/// kind: a signal-source tag (GOAL_STALE, TRAINING_GAP, PERFORMANCE_STALE,
+/// FILM_ASSIGNMENT_OVERDUE, FILM_REVIEW_UNANSWERED, ACADEMIC_OVERDUE,
+/// ELIGIBILITY_INCOMPLETE, RECRUITING_STALE) — see RECOMMENDATION_KINDS in
+/// src/lib/next-move.ts, extend there first.
+/// status: ACTIVE (currently the top recommendation shown), RESOLVED
+/// (the underlying condition cleared — tracked automatically), DISMISSED
+/// (athlete said not now), SUPERSEDED (a new computation replaced it
+/// before it resolved).
+model NextMoveRecommendation {
+  id          String    @id @default(cuid())
+  userId      String
+  kind        String
+  title       String
+  reasoning   String
+  /// JSON-stringified array of {label, value} evidence pairs shown next to
+  /// the reasoning — e.g. [{"label":"Film assignment","value":"3 days overdue"}].
+  /// Never free-text claims; only references to the real rows that produced them.
+  evidence    String
+  actionHref  String
+  score       Float
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
 }
