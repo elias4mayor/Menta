@@ -1,4 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "fs";
+
+// This container pre-installs Chrome at /opt/pw-browsers/chromium (revision
+// 1194), but @playwright/test@1.62.1's bundled browsers.json expects
+// revision 1234's headless_shell, which isn't present here and has an
+// incompatible directory layout from 1194's anyway. Pointing at the real
+// Chrome binary directly bypasses Playwright's own revision resolution —
+// but ONLY in this specific container: CI (.github/workflows/e2e.yml) runs
+// `playwright install --with-deps chromium`, which correctly fetches
+// revision 1234 and has no reason to touch this path, and a real deploy
+// target won't have it either. Gate on the path actually existing so this
+// fix never silently breaks a different environment by pointing it at a
+// binary that isn't there.
+const LOCAL_CHROMIUM_PATH = "/opt/pw-browsers/chromium";
+const localChromiumLaunchOptions = fs.existsSync(LOCAL_CHROMIUM_PATH)
+  ? { executablePath: LOCAL_CHROMIUM_PATH }
+  : undefined;
 
 // Real server output, captured to a fixed path so e2e/fixtures.ts can read
 // the actual 6-digit email-verification code that src/lib/email.ts's
@@ -30,13 +47,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        // This container pre-installs Chrome at /opt/pw-browsers/chromium
-        // (revision 1194), but @playwright/test@1.62.1's bundled
-        // browsers.json expects revision 1234's headless_shell, which isn't
-        // present and has an incompatible directory layout from 1194's.
-        // Launching the real Chrome binary directly bypasses Playwright's
-        // own revision resolution/download instead of patching around it.
-        launchOptions: { executablePath: "/opt/pw-browsers/chromium" },
+        ...(localChromiumLaunchOptions ? { launchOptions: localChromiumLaunchOptions } : {}),
       },
     },
   ],
