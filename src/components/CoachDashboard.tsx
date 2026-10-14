@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/session";
 import { CARE_OPERATIONAL_STATUS_LABELS, type CareStatus } from "@/lib/care";
+import { getCoachQueue } from "@/lib/next-move";
+import { CoachNextMoveQueue } from "@/components/CoachNextMoveQueue";
 
 /**
  * Coach dashboard — Phase 1 scope: real data only (teams the coach
@@ -14,6 +16,8 @@ import { CARE_OPERATIONAL_STATUS_LABELS, type CareStatus } from "@/lib/care";
  */
 export async function CoachDashboard({ user }: { user: SessionUser }) {
   const now = new Date();
+
+  const coachQueue = await getCoachQueue(user.id);
 
   const [coachProfile, teams, notifications] = await Promise.all([
     prisma.coachProfile.findUnique({ where: { userId: user.id } }),
@@ -113,6 +117,19 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
           </div>
         </div>
       </div>
+
+      <CoachNextMoveQueue
+        initialQueue={coachQueue.queue.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          athleteId: item.athleteId,
+          athleteName: item.athleteName,
+          title: item.title,
+          reasoning: item.reasoning,
+          evidence: item.evidence,
+          actionHref: item.actionHref,
+        }))}
+      />
 
       <div className="card p-5 mb-8 dash-in dash-in-5">
         <div className="flex items-center justify-between mb-3">

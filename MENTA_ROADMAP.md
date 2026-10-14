@@ -123,21 +123,167 @@ Why this is defensible and why it's the right first slice:
   revision mismatch fixed before it can run here (see above) — flagging so
   the next session doesn't waste time assuming it's a code regression.
 
+## Increment 2: Coach Next Move — the connected, two-sided loop (2026-10-14)
+
+**Checkpoint discipline:** before starting this increment, committed
+increment 1 locally (commit `0858fa2`) as a clean baseline — diff
+inspected, confirmed no secrets/generated artifacts/unrelated changes, not
+pushed. This increment is a second local-only checkpoint on top of it,
+same rules.
+
+### Architecture decision: same engine, narrower authorization — not a second system
+
+`computeCoachCandidates()` and `getCoachQueue()` live in the same
+`src/lib/next-move.ts`, reuse `Candidate`/`EvidenceItem`/
+`StoredRecommendation`, and persist into the same `NextMoveRecommendation`
+table (one additive nullable column, `subjectAthleteId`, distinguishes "my
+own recommendation" from "my coaching queue, about this athlete"). Nothing
+in the athlete-side `computeCandidates()`/`getNextMove()`/`dismissNextMove()`
+was touched — same functions, same behavior, re-verified passing.
+
+**The deliberate scope cut, and why it's not an oversight:** the coach
+signal set is two kinds (`FILM_ASSIGNMENT_OVERDUE`, `FILM_REVIEW_UNANSWERED`),
+not the athlete's seven. `src/lib/permissions.ts` and `CoachDashboard.tsx`
+(its own doc comment says so explicitly) grant a coach zero read access
+today to `Goal`, `PerformanceEntry`, `Assignment` (academics),
+`EligibilityChecklistItem`, or `RecruitingSchool`. Building those views is
+real, separate, privacy-sensitive product work — a coach seeing an
+athlete's specific overdue homework assignment or GPA is a genuinely
+different decision than a coach seeing that a film they assigned is
+unwatched. This engine does not quietly assume that decision has been
+made. A live test (`coach queue ... never surfaces academic, recruiting,
+goal, or performance signals`) asserts the private evidence strings never
+appear in the coach-queue response at all, not just that they're filtered
+from the "top" item.
+
+Also deliberately excluded: Care. A coach can see *operational* care
+status today (`canViewTeamCareStatus`), but only the assigned *provider*
+can act on a care request (`canManageCareRequest`) — surfacing it as a
+coach "next move" would imply an action the coach cannot actually take.
+
+### What's built
+
+- `COACH_ONLY_KINDS`, `CoachCandidate`, `computeCoachCandidates(coachUserId)`
+  — queries only the coach's own `TeamMembership.teamRole IN (COACH, ADMIN)`
+  teams (same coarse check `CoachDashboard.tsx` already uses — not a new
+  authorization path), scores overdue film targets and open film-review
+  questions with the athlete's name attached.
+- `getCoachQueue(coachUserId)` — the list-shaped counterpart to
+  `getNextMove()`: reconciles every candidate independently (resolves what
+  cleared, persists what's new), returns a ranked queue instead of one
+  slot, since "which of my athletes needs attention" is naturally a list.
+- `/api/coach-queue` — GET queue + recent history, POST to dismiss (reuses
+  `dismissNextMove` unchanged — it was already generic over `userId`).
+- `CoachNextMoveQueue` — leads `CoachDashboard`, same visual language as
+  the athlete's `NextMoveCard`: the single top item emphasized, the rest
+  as a compact, dismissible list, an honest "your roster is caught up"
+  state when it's genuinely empty.
+
+### The live demonstration (scripts/seed-demo-scenario.mjs)
+
+A real, runnable, clearly-labeled scenario (`@menta-demo.local` emails,
+`[MENTA DEMO]` name prefix — `scripts/reset-demo-scenario.mjs` only ever
+matches that domain, cannot touch real data): one coach, two athletes, one
+team. The primary athlete has real competing signals across training,
+film, academics, a goal, and recruiting — scored by the same formulas as
+everything else, not hand-picked to "look right." The required film
+assignment is the one signal that is simultaneously the athlete's own top
+Next Move and the coach's top queue item.
+
+**Verified live, through the real login → API path (not a mock):**
+1. Jordan's Next Move: *"Watch Week 4 scrimmage — release points"*
+   (`FILM_ASSIGNMENT_OVERDUE`, beating the overdue Chemistry assignment,
+   the overdue goal, the training gap, and the stale recruiting
+   follow-up on real scores).
+2. The coach's queue, independently computed: the *same* item about
+   Jordan, ranked above a lower-priority optional assignment for the
+   second athlete and an open film question.
+3. Jordan marks the film complete through the existing, already-shipped
+   `/api/assignments/[id]/targets/me` endpoint (`AssignmentsList.tsx`'s
+   own "Mark complete" button — no new UI needed for this step).
+4. Both sides update on the next request, independently: Jordan's Next
+   Move advances to the Chemistry assignment; the coach's queue drops the
+   resolved item into history and promotes the next real priority.
+
+This is the "show, don't tell" moment for investors: two different
+people's screens, reflecting one underlying fact, changing together
+because the data actually changed — not because either screen was told to
+refresh.
+
+### Tests added (`e2e/next-move-engine.spec.ts`, 7 tests, all passing)
+
+Unauthenticated rejection (both routes) · deterministic ranking across
+competing real signals · honest caught-up state with real (not absent)
+data · auto-resolution and promotion on condition-clear · ownership-scoped
+dismissal (own vs. another athlete's, 404 not 403, to avoid confirming the
+row exists) · coach cross-team isolation · coach privacy boundary (the
+excluded-domain assertion above) · required-vs-optional film ranking ·
+directed-vs-open film-question ranking · a coach with no teams getting an
+empty (not fabricated) queue.
+
+**Full suite after this increment: 22/22 passing**
+(`e2e/next-move-engine.spec.ts` + `e2e/sport-contexts-api.spec.ts` +
+`e2e/film-intelligence-security.spec.ts`), `tsc`/`eslint`/`npm run build`
+all clean. Browser-driven specs (auth/onboarding/page-smoke) still can't
+run in this container — same pre-existing Chromium-revision mismatch
+noted in increment 1, unrelated to this change, not re-investigated this
+pass (diminishing returns relative to this engine's own scope).
+
+**Not tested this pass, honestly:** literal API-failure/missing-integration
+handling, because there is none to test yet — this engine makes zero
+external calls by design (no AI provider, no third-party API), so "handle
+a failed integration gracefully" doesn't currently apply to it. Worth
+revisiting the moment any future increment adds one (e.g., an AI
+phrasing layer).
+
+### What's genuinely differentiated vs. what's standard engineering
+
+**Genuinely differentiated (the actual hypothesis to validate with real
+athletes/coaches):** the cross-domain ranking itself — that one engine,
+reading real rows no other sports-tech product has in one place
+(training + film + academics + recruiting), can produce a single ranked
+priority with real evidence, and that the *same* signal can be
+simultaneously meaningful to an athlete and their coach without either
+side needing to manually reconcile it. That the recommendation
+self-updates when the underlying data changes, with zero manual
+refresh/reconciliation step, is the "nobody else connects these" claim —
+and it's currently a hypothesis proven by one clean demo scenario, not by
+real usage data yet.
+
+**Standard, not differentiated (true and worth saying plainly):** the
+reconciliation mechanics (match-or-create against a persisted table), the
+scoring formulas (linear point additions with caps), the authorization
+pattern (team-role-scoped queries) — all ordinary, correct engineering,
+not a moat on their own. A competitor could build the mechanics in a
+sprint. What they can't trivially copy is the *data* MENTA already has in
+one schema to feed it.
+
+**Still needs real pilot evidence, not assumed:** whether athletes who
+act on a Next Move recommendation measurably develop faster or more
+consistently than those who don't; whether coaches who get a ranked queue
+actually intervene more effectively than scanning a roster by hand;
+whether the specific signal thresholds (21-day goal staleness, 14-day
+recruiting staleness, etc.) match what real coaches consider urgent. None
+of this is claimed as proven anywhere in this codebase or this document —
+it's the next real validation work, not a demo-script footnote.
+
 ## Next highest-value increment (not yet started)
 
-Options considered, in rough priority order:
-1. **Coach-side Next Move** — a position coach's own ranked list ("3 of
-   your QBs have overdue film assignments, 1 has a stale recruiting list")
-   using the exact same engine pattern, scoped through the existing
-   Film Center permission system. Reuses almost everything just built.
-2. **Outcome tracking** — once there's enough resolved-recommendation
-   history, show "athletes who acted on a training-gap recommendation
-   logged performance entries this often afterward" — turns the engine
-   from reactive to a measurable product claim for the PEAKS demo.
-3. **Extend signal domains** — Care (open-but-unscheduled care requests),
-   Safety (incomplete personal safety profile for a minor).
+1. **Outcome tracking** — now that both athlete and coach history persist
+   in `NextMoveRecommendation`, the next real step is measuring what
+   happens *after* resolution: did a performance entry improve following a
+   `TRAINING_GAP` resolution? Did grades recover after an `ACADEMIC_OVERDUE`
+   resolution? This turns the engine from "reactive and real" into
+   "evidenced," which is the actual investor-grade claim.
+2. **Extend signal domains with real new coach-facing views** — Safety
+   (incomplete personal safety profile for a minor) and a genuine,
+   separately-designed Academic-alerts view for coaches (not assumed —
+   built deliberately, with its own consent/visibility rules, the way
+   `CoachDashboard.tsx`'s own comment always intended).
+3. **Fix the Chromium-revision mismatch** in this container so the
+   browser-driven Playwright suite (auth, onboarding, full-page smoke)
+   can run again — currently a blind spot for any future UI-only change.
 
-Recommend (1): it directly extends the signature experience to the other
-side of the product (coach) instead of adding a new category of feature,
-and it's the natural next vertical slice for a live two-sided demo
-(athlete gets a recommendation → acts on it → coach's queue reflects it).
+Recommend (1): it's the difference between "MENTA connects your data" and
+"MENTA's connections measurably help," which is the exact distinction the
+mission brief draws between a promising hypothesis and a proven moat.

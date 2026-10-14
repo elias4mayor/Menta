@@ -25,8 +25,20 @@ export const RECOMMENDATION_KINDS = [
   "ACADEMIC_OVERDUE",
   "ELIGIBILITY_INCOMPLETE",
   "RECRUITING_STALE",
+  /// Coach-only — see COACH_ONLY_KINDS and computeCoachCandidates below.
+  /// Never appears in computeCandidates()'s athlete-facing output.
+  "FILM_REVIEW_UNANSWERED",
 ] as const;
 export type RecommendationKind = (typeof RECOMMENDATION_KINDS)[number];
+
+/**
+ * Kinds that are ONLY ever shown to a coach, never to the athlete they're
+ * about. Deliberately a short list: a coach's authorized view into an
+ * athlete's data is narrower than the athlete's own (see the big comment
+ * on computeCoachCandidates for exactly why Academics/Recruiting/Goals/
+ * Performance are excluded, not just forgotten).
+ */
+export const COACH_ONLY_KINDS: RecommendationKind[] = ["FILM_REVIEW_UNANSWERED"];
 
 export type EvidenceItem = { label: string; value: string };
 
@@ -327,11 +339,231 @@ function toStored(row: { id: string; kind: string; title: string; reasoning: str
   return { id: row.id, kind: row.kind, title: row.title, reasoning: row.reasoning, evidence, actionHref: row.actionHref, createdAt: row.createdAt };
 }
 
-/** Athlete said "not now" — dismiss their own current recommendation. Ownership-checked. */
+/** Athlete said "not now" — dismiss their own current recommendation. Ownership-checked. Also used by coaches to dismiss their own queue items — same ownership check (userId), nothing coach-specific needed. */
 export async function dismissNextMove(userId: string, recommendationId: string): Promise<boolean> {
   const result = await prisma.nextMoveRecommendation.updateMany({
     where: { id: recommendationId, userId, status: "ACTIVE" },
     data: { status: "DISMISSED", resolvedAt: new Date() },
   });
   return result.count > 0;
+}
+
+// =====================================================================
+// Coach Next Move — the SAME engine, authorized for a narrower, explicit
+// set of signals. This is deliberately not a parallel system: it reuses
+// Candidate/EvidenceItem/StoredRecommendation, the same scoring approach,
+// and the same NextMoveRecommendation table (via subjectAthleteId).
+//
+// Why the signal set is narrower than the athlete's own: a coach's
+// legitimate view into an athlete's records is narrower than the
+// athlete's own view of themselves. Today, nothing in src/lib/
+// permissions.ts grants a coach read access to Goal, PerformanceEntry,
+// Assignment (academics), EligibilityChecklistItem, or RecruitingSchool —
+// CoachDashboard.tsx's own doc comment says as much ("film review queue,
+// safety checklist status, academic alerts are later-phase work once
+// those features have coach-facing views of their own"). Building those
+// views is real, separate, privacy-sensitive work, not something this
+// engine should quietly assume. So Coach Next Move only surfaces what a
+// coach can ALREADY legitimately see today:
+//   - FILM_ASSIGNMENT_OVERDUE: the coach's own team assigned this film;
+//     FilmAssignmentTarget status is already visible to team film staff
+//     (see isTeamFilmStaff in src/lib/permissions.ts).
+//   - FILM_REVIEW_UNANSWERED: an athlete asked a question through
+//     FilmReviewRequest, which is either directed at this coach by id or
+//     explicitly open to any team coach (see that model's own doc
+//     comment in prisma/schema.prisma) — never a confidential record.
+// Never Wellness/Mind (same hard boundary as the athlete engine), never
+// CareRequest.reasonNote/providerNote (only operational status is ever
+// coach-visible, per canViewTeamCareStatus — and this engine doesn't even
+// use that, since a coach can't act on a care request; only the assigned
+// provider can per canManageCareRequest).
+// =====================================================================
+
+export type CoachCandidate = Candidate & { athleteId: string; athleteName: string };
+
+/**
+ * Every legitimate "this athlete needs your attention" candidate across
+ * every team this user coaches or admins (TeamMembership.teamRole COACH
+ * or ADMIN — the same coarse check CoachDashboard.tsx already uses, not a
+ * new authorization path). Returns an empty array for a user who coaches
+ * no team, or whose athletes have nothing outstanding.
+ */
+export async function computeCoachCandidates(coachUserId: string): Promise<CoachCandidate[]> {
+  const now = new Date();
+
+  const coachTeams = await prisma.teamMembership.findMany({
+    where: { userId: coachUserId, teamRole: { in: ["COACH", "ADMIN"] } },
+    select: { teamId: true },
+  });
+  const teamIds = coachTeams.map((t) => t.teamId);
+  if (teamIds.length === 0) return [];
+
+  const [overdueTargets, openReviewRequests] = await Promise.all([
+    prisma.filmAssignmentTarget.findMany({
+      where: {
+        status: { in: ["ASSIGNED", "WATCHED"] },
+        assignment: { teamId: { in: teamIds }, dueAt: { lt: now } },
+      },
+      include: {
+        assignment: { select: { title: true, dueAt: true, filmId: true, requiredViewing: true } },
+        user: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.filmReviewRequest.findMany({
+      where: {
+        status: "OPEN",
+        film: { teamId: { in: teamIds } },
+        OR: [{ coachId: coachUserId }, { coachId: null }],
+      },
+      include: { athlete: { select: { id: true, name: true } } },
+    }),
+  ]);
+
+  const candidates: CoachCandidate[] = [];
+
+  for (const target of overdueTargets) {
+    const overdueDays = daysBetween(now, target.assignment.dueAt!);
+    candidates.push({
+      kind: "FILM_ASSIGNMENT_OVERDUE",
+      resolutionKey: target.id,
+      athleteId: target.user.id,
+      athleteName: target.user.name,
+      title: `${target.user.name} hasn't watched "${target.assignment.title}"`,
+      reasoning: `You assigned this film and it's ${overdueDays} day(s) past due. ${target.assignment.requiredViewing ? "It's marked required." : "It's optional, but still unopened."}`,
+      evidence: [
+        { label: "Athlete", value: target.user.name },
+        { label: "Assignment", value: target.assignment.title },
+        { label: "Due", value: target.assignment.dueAt!.toLocaleDateString() },
+        { label: "Status", value: target.status },
+      ],
+      actionHref: target.assignment.filmId ? `/film/${target.assignment.filmId}` : "/assignments",
+      score: (target.assignment.requiredViewing ? 65 : 45) + Math.min(overdueDays * 3, 25),
+    });
+  }
+
+  for (const req of openReviewRequests) {
+    const openDays = daysBetween(now, req.createdAt);
+    const directedAtMe = req.coachId === coachUserId;
+    candidates.push({
+      kind: "FILM_REVIEW_UNANSWERED",
+      resolutionKey: req.id,
+      athleteId: req.athlete.id,
+      athleteName: req.athlete.name,
+      title: `Answer ${req.athlete.name}'s film question`,
+      reasoning: `${req.athlete.name} asked this ${openDays} day(s) ago and it's still unanswered. ${directedAtMe ? "It was sent directly to you." : "It's open to any coach on the team."}`,
+      evidence: [
+        { label: "Athlete", value: req.athlete.name },
+        { label: "Question", value: req.question.length > 80 ? `${req.question.slice(0, 80)}…` : req.question },
+        { label: "Asked", value: `${openDays} day(s) ago` },
+      ],
+      actionHref: `/film/${req.filmId}`,
+      score: (directedAtMe ? 55 : 40) + Math.min(openDays * 4, 25),
+    });
+  }
+
+  return candidates.sort((a, b) => b.score - a.score);
+}
+
+export type CoachQueueItem = StoredRecommendation & { athleteId: string; athleteName: string };
+
+export type CoachQueueResult = {
+  /** Every currently-active item, ranked — the first is "which athlete needs my attention most right now." */
+  queue: CoachQueueItem[];
+  recentlyResolved: CoachQueueItem[];
+};
+
+/**
+ * Coach-side counterpart to getNextMove() — same reconciliation idea
+ * (auto-resolve what cleared, persist what's new), generalized to a
+ * ranked list instead of one slot, since "which of my athletes needs
+ * attention" is naturally a queue, not a single card. Never touches or
+ * depends on getNextMove()'s athlete-side rows — they're the same table,
+ * disjoint by subjectAthleteId being set.
+ */
+export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResult> {
+  const candidates = await computeCoachCandidates(coachUserId);
+  const nameByAthleteId = new Map(candidates.map((c) => [c.athleteId, c.athleteName]));
+
+  const activeRows = await prisma.nextMoveRecommendation.findMany({
+    where: { userId: coachUserId, status: "ACTIVE", subjectAthleteId: { not: null } },
+  });
+
+  const stillMatched = new Set<string>();
+  for (const row of activeRows) {
+    const match = candidates.find((c) => matchesCoachStored(c, row));
+    if (match) {
+      stillMatched.add(row.id);
+    } else {
+      // The underlying condition cleared (film watched, question answered)
+      // — the Development Loop closing on the coach's side.
+      await prisma.nextMoveRecommendation.update({
+        where: { id: row.id },
+        data: { status: "RESOLVED", resolvedAt: new Date() },
+      });
+    }
+  }
+
+  const alreadyPersisted = new Set(
+    activeRows.filter((r) => stillMatched.has(r.id)).map((r) => `${r.kind}:${parseEvidence(r.evidence, "resolutionKey")}`)
+  );
+  for (const candidate of candidates) {
+    const key = `${candidate.kind}:${candidate.resolutionKey}`;
+    if (alreadyPersisted.has(key)) continue;
+    await prisma.nextMoveRecommendation.create({
+      data: {
+        userId: coachUserId,
+        subjectAthleteId: candidate.athleteId,
+        kind: candidate.kind,
+        title: candidate.title,
+        reasoning: candidate.reasoning,
+        evidence: JSON.stringify([...candidate.evidence, { label: "resolutionKey", value: candidate.resolutionKey }]),
+        actionHref: candidate.actionHref,
+        score: candidate.score,
+      },
+    });
+  }
+
+  const [queueRows, recentlyResolvedRows] = await Promise.all([
+    prisma.nextMoveRecommendation.findMany({
+      where: { userId: coachUserId, status: "ACTIVE", subjectAthleteId: { not: null } },
+      orderBy: { score: "desc" },
+    }),
+    prisma.nextMoveRecommendation.findMany({
+      where: { userId: coachUserId, status: { in: ["RESOLVED", "DISMISSED"] }, subjectAthleteId: { not: null } },
+      orderBy: { resolvedAt: "desc" },
+      take: 5,
+    }),
+  ]);
+
+  // A resolved row's athlete may no longer appear in the fresh candidate
+  // list (that's the whole point — their condition cleared), so the name
+  // map built from candidates alone would miss them. Fill the gap.
+  const missingAthleteIds = [...queueRows, ...recentlyResolvedRows]
+    .map((r) => r.subjectAthleteId)
+    .filter((id): id is string => Boolean(id) && !nameByAthleteId.has(id!));
+  if (missingAthleteIds.length > 0) {
+    const missingUsers = await prisma.user.findMany({ where: { id: { in: missingAthleteIds } }, select: { id: true, name: true } });
+    for (const u of missingUsers) nameByAthleteId.set(u.id, u.name);
+  }
+
+  return {
+    queue: queueRows.map((r) => toCoachStored(r, nameByAthleteId)),
+    recentlyResolved: recentlyResolvedRows.map((r) => toCoachStored(r, nameByAthleteId)),
+  };
+}
+
+function matchesCoachStored(candidate: CoachCandidate, stored: { kind: string; evidence: string }): boolean {
+  return candidate.kind === stored.kind && parseEvidence(stored.evidence, "resolutionKey") === candidate.resolutionKey;
+}
+
+function toCoachStored(
+  row: { id: string; kind: string; title: string; reasoning: string; evidence: string; actionHref: string; createdAt: Date; subjectAthleteId: string | null },
+  nameByAthleteId: Map<string, string>
+): CoachQueueItem {
+  const stored = toStored(row);
+  return {
+    ...stored,
+    athleteId: row.subjectAthleteId ?? "",
+    athleteName: (row.subjectAthleteId && nameByAthleteId.get(row.subjectAthleteId)) || "Athlete",
+  };
 }
