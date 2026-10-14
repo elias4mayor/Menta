@@ -225,6 +225,13 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
               }
             : null
         }
+        initialCompetingCount={nextMove.competingCount}
+        initialHistory={nextMove.recentlyResolved.map((r) => ({
+          id: r.id,
+          kind: r.kind,
+          title: r.title,
+          outcome: r.outcome,
+        }))}
       />
 
       <div className="dash-in dash-in-4">

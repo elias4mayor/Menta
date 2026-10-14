@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { getCoachQueue, dismissNextMove } from "@/lib/next-move";
+import { getCoachQueue, dismissNextMove, acceptNextMove } from "@/lib/next-move";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -16,10 +16,10 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const id = typeof body?.id === "string" ? body.id : null;
-  const action = body?.action === "dismiss" ? "dismiss" : null;
+  const action = body?.action === "dismiss" ? "dismiss" : body?.action === "accept" ? "accept" : null;
   if (!id || !action) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
 
-  const ok = await dismissNextMove(user.id, id);
+  const ok = action === "dismiss" ? await dismissNextMove(user.id, id) : await acceptNextMove(user.id, id);
   if (!ok) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   return NextResponse.json({ ok: true });

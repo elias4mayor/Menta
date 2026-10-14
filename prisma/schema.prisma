@@ -1949,6 +1949,12 @@ model NextMoveRecommendation {
   score       Float
   status      String    @default("ACTIVE")
   createdAt   DateTime  @default(now())
+  /// Set the first time the owner clicks through the primary action —
+  /// "recommendation accepted," distinct from "completed." Never set by
+  /// anything other than that one click (see acceptNextMove in
+  /// src/lib/next-move.ts) — not inferred from a page view or any other
+  /// passive signal.
+  acceptedAt  DateTime?
   resolvedAt  DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

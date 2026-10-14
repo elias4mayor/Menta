@@ -208,4 +208,82 @@ test.describe("Next Move Engine", () => {
     expect(queue).toEqual([]);
     expect(recentlyResolved).toEqual([]);
   });
+
+  test("accepting a recommendation records acceptedAt exactly once, idempotently, and never for another athlete's row", async ({ request }) => {
+    const athlete = await createTestAthlete("accept-flow", "Baseball", "Pitcher");
+    const otherAthlete = await createTestAthlete("accept-flow-other", "Baseball", "Pitcher");
+    await testPrisma.goal.create({
+      data: { userId: athlete.userId, title: "Acceptable goal", status: "ACTIVE", progress: 10, targetDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
+    });
+
+    const before = await request.get("/api/next-move", { headers: { Cookie: athlete.cookie } });
+    const { current } = await before.json();
+    expect(current).not.toBeNull();
+    expect(current.acceptedAt).toBeNull();
+
+    const wrongUser = await request.post("/api/next-move", {
+      headers: { Cookie: otherAthlete.cookie, "Content-Type": "application/json" },
+      data: { id: current.id, action: "accept" },
+    });
+    expect(wrongUser.status()).toBe(404);
+
+    const accept1 = await request.post("/api/next-move", {
+      headers: { Cookie: athlete.cookie, "Content-Type": "application/json" },
+      data: { id: current.id, action: "accept" },
+    });
+    expect(accept1.status()).toBe(200);
+
+    const afterFirstAccept = await request.get("/api/next-move", { headers: { Cookie: athlete.cookie } });
+    const firstAcceptedAt = (await afterFirstAccept.json()).current.acceptedAt;
+    expect(firstAcceptedAt).not.toBeNull();
+
+    // A second accept click (e.g. the athlete clicks the CTA again) must stay
+    // idempotent — same acceptedAt, still a 200, never a false 404.
+    const accept2 = await request.post("/api/next-move", {
+      headers: { Cookie: athlete.cookie, "Content-Type": "application/json" },
+      data: { id: current.id, action: "accept" },
+    });
+    expect(accept2.status()).toBe(200);
+    const afterSecondAccept = await request.get("/api/next-move", { headers: { Cookie: athlete.cookie } });
+    expect((await afterSecondAccept.json()).current.acceptedAt).toBe(firstAcceptedAt);
+  });
+
+  test("outcome evidence distinguishes real improvement from mere completion, and never invents a direction for a freeform stat", async ({ request }) => {
+    const athlete = await createTestAthlete("outcome-evidence", "Track", "Sprinter");
+    const headers = { Cookie: athlete.cookie };
+
+    const goal = await testPrisma.goal.create({
+      data: { userId: athlete.userId, title: "Outcome goal", status: "ACTIVE", progress: 20, targetDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+    });
+
+    const first = await request.get("/api/next-move", { headers });
+    const { current } = await first.json();
+    expect(current.kind).toBe("GOAL_STALE");
+
+    // Real before/after: progress genuinely rose, and the goal leaves ACTIVE
+    // status so the candidate clears — this is the one kind with a true baseline.
+    await testPrisma.goal.update({ where: { id: goal.id }, data: { progress: 75, status: "ACHIEVED" } });
+    const afterGoal = await request.get("/api/next-move", { headers });
+    const { recentlyResolved } = await afterGoal.json();
+    const resolvedGoal = recentlyResolved.find((r: { kind: string }) => r.kind === "GOAL_STALE");
+    expect(resolvedGoal).toBeTruthy();
+    expect(resolvedGoal.outcome.status).toBe("IMPROVED");
+    expect(resolvedGoal.outcome.detail).toContain("20%");
+    expect(resolvedGoal.outcome.detail).toContain("75%");
+
+    // Performance: a stale/never-logged stat is a different kind of
+    // resolution entirely — logging a new one must never be labeled
+    // IMPROVED/DECLINED, since this schema has no notion of which direction
+    // is "better" for a freeform stat name.
+    const perfBefore = await request.get("/api/next-move", { headers });
+    const perfCurrent = (await perfBefore.json()).current;
+    expect(perfCurrent.kind).toBe("PERFORMANCE_STALE");
+    await testPrisma.performanceEntry.create({ data: { userId: athlete.userId, statName: "Mile time", value: 5.2, recordedAt: new Date() } });
+    const afterPerf = await request.get("/api/next-move", { headers });
+    const { recentlyResolved: resolvedAfterPerf } = await afterPerf.json();
+    const resolvedPerf = resolvedAfterPerf.find((r: { kind: string }) => r.kind === "PERFORMANCE_STALE");
+    expect(resolvedPerf).toBeTruthy();
+    expect(resolvedPerf.outcome.status).toBe("NEW_DATA");
+    expect(resolvedPerf.outcome.detail).not.toMatch(/improv|declin/i);
+  });
 });

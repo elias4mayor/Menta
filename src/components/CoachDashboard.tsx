@@ -129,6 +129,13 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
           evidence: item.evidence,
           actionHref: item.actionHref,
         }))}
+        initialHistory={coachQueue.recentlyResolved.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          athleteName: item.athleteName,
+          title: item.title,
+          outcome: item.outcome,
+        }))}
       />
 
       <div className="card p-5 mb-8 dash-in dash-in-5">

@@ -85,6 +85,10 @@ export async function computeCandidates(userId: string): Promise<Candidate[]> {
   for (const goal of activeGoals) {
     const overdueDays = goal.targetDate ? daysBetween(now, goal.targetDate) : -1;
     const staleDays = daysBetween(now, goal.updatedAt);
+    // __baselineProgress: hidden evidence (stripped before display, see
+    // toStored) — the only way to later say "progress went from X% to Y%"
+    // is to record what it was right now, at the moment this was flagged.
+    // Goal doesn't keep its own progress history.
     if (overdueDays > 0) {
       candidates.push({
         kind: "GOAL_STALE",
@@ -96,6 +100,7 @@ export async function computeCandidates(userId: string): Promise<Candidate[]> {
           { label: "Target date", value: goal.targetDate!.toLocaleDateString() },
           { label: "Days overdue", value: String(overdueDays) },
           { label: "Progress", value: `${goal.progress}%` },
+          { label: "__baselineProgress", value: String(goal.progress) },
         ],
         actionHref: "/dashboard#goals",
         score: 55 + Math.min(overdueDays, 20),
@@ -110,6 +115,7 @@ export async function computeCandidates(userId: string): Promise<Candidate[]> {
           { label: "Goal", value: goal.title },
           { label: "Last updated", value: `${staleDays} days ago` },
           { label: "Progress", value: `${goal.progress}%` },
+          { label: "__baselineProgress", value: String(goal.progress) },
         ],
         actionHref: "/dashboard#goals",
         score: 30 + Math.min(Math.floor(staleDays / 7), 15),
@@ -243,10 +249,15 @@ export type StoredRecommendation = {
   evidence: EvidenceItem[];
   actionHref: string;
   createdAt: Date;
+  acceptedAt: Date | null;
+  /** Only ever set for RESOLVED rows — see getOutcomeEvidence. Honestly distinguishes "completed" from "measurably improved"; never fabricates the latter from the former. */
+  outcome?: OutcomeEvidence;
 };
 
 export type NextMoveResult = {
   current: StoredRecommendation | null;
+  /** How many OTHER real candidates existed at this read — the honest answer to "why this one, not something else." Recomputed live every call, not frozen at creation. */
+  competingCount: number;
   recentlyResolved: StoredRecommendation[];
 };
 
@@ -312,7 +323,8 @@ export async function getNextMove(userId: string): Promise<NextMoveResult> {
 
   return {
     current: current ? toStored(current) : null,
-    recentlyResolved: recentlyResolved.map(toStored),
+    competingCount: Math.max(0, candidates.length - 1),
+    recentlyResolved: await Promise.all(recentlyResolved.map(toStoredWithOutcome)),
   };
 }
 
@@ -329,14 +341,137 @@ function parseEvidence(evidenceJson: string, label: string): string | null {
   }
 }
 
-function toStored(row: { id: string; kind: string; title: string; reasoning: string; evidence: string; actionHref: string; createdAt: Date }): StoredRecommendation {
+type StoredRow = {
+  id: string;
+  kind: string;
+  title: string;
+  reasoning: string;
+  evidence: string;
+  actionHref: string;
+  createdAt: Date;
+  acceptedAt: Date | null;
+};
+
+function toStored(row: StoredRow): StoredRecommendation {
   let evidence: EvidenceItem[] = [];
   try {
-    evidence = (JSON.parse(row.evidence) as EvidenceItem[]).filter((e) => e.label !== "resolutionKey");
+    // Every hidden bookkeeping field (resolutionKey, __baselineProgress,
+    // ...) uses a reserved "__"-prefixed or exact "resolutionKey" label —
+    // never shown to anyone, athlete or coach.
+    evidence = (JSON.parse(row.evidence) as EvidenceItem[]).filter((e) => e.label !== "resolutionKey" && !e.label.startsWith("__"));
   } catch {
     evidence = [];
   }
-  return { id: row.id, kind: row.kind, title: row.title, reasoning: row.reasoning, evidence, actionHref: row.actionHref, createdAt: row.createdAt };
+  return {
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    reasoning: row.reasoning,
+    evidence,
+    actionHref: row.actionHref,
+    createdAt: row.createdAt,
+    acceptedAt: row.acceptedAt,
+  };
+}
+
+export type OutcomeEvidence = {
+  status: "IMPROVED" | "DECLINED" | "NEW_DATA" | "COMPLETED_ONLY" | "INSUFFICIENT_DATA";
+  detail: string;
+};
+
+/**
+ * For a RESOLVED row only: what, if anything, can honestly be said
+ * happened afterward. This is the line between "completed" and
+ * "measurably improved" the whole engine is built never to blur —
+ * IMPROVED/DECLINED only appear where there's a real before/after number
+ * to compare (currently just Goal.progress, captured as a hidden baseline
+ * at creation time, since Goal keeps no history of its own). Everything
+ * else honestly reports completion only, or that there's nothing new to
+ * show yet — never infers improvement from mere completion, and never
+ * judges direction on a freeform PerformanceEntry stat where "higher is
+ * better" isn't something this schema knows.
+ */
+async function getOutcomeEvidence(row: {
+  kind: string;
+  evidence: string;
+  resolvedAt: Date | null;
+  subjectAthleteId?: string | null;
+  userId: string;
+}): Promise<OutcomeEvidence | undefined> {
+  if (!row.resolvedAt) return undefined;
+  const resolutionKey = parseEvidence(row.evidence, "resolutionKey");
+  const subjectUserId = row.subjectAthleteId ?? row.userId;
+  if (!resolutionKey) return undefined;
+
+  switch (row.kind) {
+    case "GOAL_STALE": {
+      const goal = await prisma.goal.findUnique({ where: { id: resolutionKey } });
+      const baseline = parseEvidence(row.evidence, "__baselineProgress");
+      if (!goal || baseline === null) return { status: "INSUFFICIENT_DATA", detail: "This goal no longer exists." };
+      const before = Number(baseline);
+      const after = goal.progress;
+      if (after > before) return { status: "IMPROVED", detail: `Progress went from ${before}% to ${after}%.` };
+      if (after < before) return { status: "DECLINED", detail: `Progress dropped from ${before}% to ${after}% since this was flagged.` };
+      return { status: "COMPLETED_ONLY", detail: `Resolved, but progress is still ${after}% — worth a real check-in, not just a cleared flag.` };
+    }
+    case "PERFORMANCE_STALE": {
+      const latest = await prisma.performanceEntry.findFirst({ where: { userId: subjectUserId }, orderBy: { recordedAt: "desc" } });
+      if (!latest) return { status: "INSUFFICIENT_DATA", detail: "No performance entry found yet." };
+      const previous = await prisma.performanceEntry.findFirst({
+        where: { userId: subjectUserId, statName: latest.statName, id: { not: latest.id } },
+        orderBy: { recordedAt: "desc" },
+      });
+      return {
+        status: "NEW_DATA",
+        detail: previous
+          ? `New ${latest.statName} logged: ${latest.value}${latest.unit ?? ""} (previous: ${previous.value}${previous.unit ?? ""}). Not labeled better or worse — MENTA doesn't assume which direction is good for a freeform stat.`
+          : `First ${latest.statName} measurement logged: ${latest.value}${latest.unit ?? ""}.`,
+      };
+    }
+    case "TRAINING_GAP": {
+      const resumed = await prisma.workoutCompletion.findFirst({ where: { userId: subjectUserId, completedAt: { gt: row.resolvedAt } } });
+      return resumed
+        ? { status: "COMPLETED_ONLY", detail: `Logged a workout on ${resumed.completedAt.toLocaleDateString()}.` }
+        : { status: "INSUFFICIENT_DATA", detail: "Resolved, but no new workout completion found yet." };
+    }
+    case "ACADEMIC_OVERDUE": {
+      const assignment = await prisma.assignment.findUnique({ where: { id: resolutionKey } });
+      if (!assignment) return { status: "INSUFFICIENT_DATA", detail: "This assignment no longer exists." };
+      return { status: "COMPLETED_ONLY", detail: assignment.grade ? `Completed — grade recorded: ${assignment.grade}.` : "Completed — no grade recorded yet." };
+    }
+    case "ELIGIBILITY_INCOMPLETE":
+      return { status: "COMPLETED_ONLY", detail: "The outstanding eligibility items were completed." };
+    case "RECRUITING_STALE": {
+      const recent = await prisma.recruitingActivity.findFirst({
+        where: { schoolId: resolutionKey, createdAt: { gt: row.resolvedAt } },
+        orderBy: { createdAt: "desc" },
+      });
+      return recent
+        ? { status: "COMPLETED_ONLY", detail: `New outreach logged on ${recent.createdAt.toLocaleDateString()}.` }
+        : { status: "INSUFFICIENT_DATA", detail: "Resolved, but no newly logged activity found." };
+    }
+    case "FILM_ASSIGNMENT_OVERDUE": {
+      const target = await prisma.filmAssignmentTarget.findUnique({ where: { id: resolutionKey } });
+      if (!target) return { status: "INSUFFICIENT_DATA", detail: "This assignment target no longer exists." };
+      return {
+        status: "COMPLETED_ONLY",
+        detail: `Marked ${target.status.toLowerCase()}${target.completedAt ? ` on ${target.completedAt.toLocaleDateString()}` : ""}.`,
+      };
+    }
+    case "FILM_REVIEW_UNANSWERED": {
+      const req = await prisma.filmReviewRequest.findUnique({ where: { id: resolutionKey } });
+      if (!req?.response) return { status: "INSUFFICIENT_DATA", detail: "No response found yet." };
+      return { status: "COMPLETED_ONLY", detail: `Answered${req.respondedAt ? ` on ${req.respondedAt.toLocaleDateString()}` : ""}.` };
+    }
+    default:
+      return undefined;
+  }
+}
+
+async function toStoredWithOutcome(row: StoredRow & { resolvedAt: Date | null; subjectAthleteId?: string | null; userId: string }): Promise<StoredRecommendation> {
+  const stored = toStored(row);
+  const outcome = await getOutcomeEvidence(row);
+  return outcome ? { ...stored, outcome } : stored;
 }
 
 /** Athlete said "not now" — dismiss their own current recommendation. Ownership-checked. Also used by coaches to dismiss their own queue items — same ownership check (userId), nothing coach-specific needed. */
@@ -346,6 +481,22 @@ export async function dismissNextMove(userId: string, recommendationId: string):
     data: { status: "DISMISSED", resolvedAt: new Date() },
   });
   return result.count > 0;
+}
+
+/**
+ * Marks "recommendation accepted" — the real click-through on the primary
+ * action, the stage between "generated" and "completed." Only ever set by
+ * this one call site (the UI's CTA click), never inferred from a page
+ * view or any other passive signal. Idempotent: a second call on an
+ * already-accepted row is a harmless no-op.
+ */
+export async function acceptNextMove(userId: string, recommendationId: string): Promise<boolean> {
+  const row = await prisma.nextMoveRecommendation.findFirst({ where: { id: recommendationId, userId, status: "ACTIVE" } });
+  if (!row) return false;
+  if (!row.acceptedAt) {
+    await prisma.nextMoveRecommendation.update({ where: { id: row.id }, data: { acceptedAt: new Date() } });
+  }
+  return true;
 }
 
 // =====================================================================
@@ -548,7 +699,7 @@ export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResu
 
   return {
     queue: queueRows.map((r) => toCoachStored(r, nameByAthleteId)),
-    recentlyResolved: recentlyResolvedRows.map((r) => toCoachStored(r, nameByAthleteId)),
+    recentlyResolved: await Promise.all(recentlyResolvedRows.map((r) => toCoachStoredWithOutcome(r, nameByAthleteId))),
   };
 }
 
@@ -556,14 +707,22 @@ function matchesCoachStored(candidate: CoachCandidate, stored: { kind: string; e
   return candidate.kind === stored.kind && parseEvidence(stored.evidence, "resolutionKey") === candidate.resolutionKey;
 }
 
-function toCoachStored(
-  row: { id: string; kind: string; title: string; reasoning: string; evidence: string; actionHref: string; createdAt: Date; subjectAthleteId: string | null },
-  nameByAthleteId: Map<string, string>
-): CoachQueueItem {
+type CoachStoredRow = StoredRow & { subjectAthleteId: string | null };
+
+function toCoachStored(row: CoachStoredRow, nameByAthleteId: Map<string, string>): CoachQueueItem {
   const stored = toStored(row);
   return {
     ...stored,
     athleteId: row.subjectAthleteId ?? "",
     athleteName: (row.subjectAthleteId && nameByAthleteId.get(row.subjectAthleteId)) || "Athlete",
   };
+}
+
+async function toCoachStoredWithOutcome(
+  row: CoachStoredRow & { resolvedAt: Date | null; userId: string },
+  nameByAthleteId: Map<string, string>
+): Promise<CoachQueueItem> {
+  const base = toCoachStored(row, nameByAthleteId);
+  const outcome = await getOutcomeEvidence(row);
+  return outcome ? { ...base, outcome } : base;
 }

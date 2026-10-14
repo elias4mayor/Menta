@@ -28,7 +28,16 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // This container pre-installs Chrome at /opt/pw-browsers/chromium
+        // (revision 1194), but @playwright/test@1.62.1's bundled
+        // browsers.json expects revision 1234's headless_shell, which isn't
+        // present and has an incompatible directory layout from 1194's.
+        // Launching the real Chrome binary directly bypasses Playwright's
+        // own revision resolution/download instead of patching around it.
+        launchOptions: { executablePath: "/opt/pw-browsers/chromium" },
+      },
     },
   ],
   webServer: {

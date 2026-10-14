@@ -5,6 +5,14 @@ import Link from "next/link";
 import { GlowWaveText } from "@/components/GlowWaveText";
 
 export type CoachQueueEvidence = { label: string; value: string };
+export type CoachQueueOutcome = { status: string; detail: string };
+export type CoachQueueHistoryItem = {
+  id: string;
+  kind: string;
+  athleteName: string;
+  title: string;
+  outcome?: CoachQueueOutcome;
+};
 export type CoachQueueItemData = {
   id: string;
   kind: string;
@@ -21,16 +29,44 @@ const KIND_LABEL: Record<string, string> = {
   FILM_REVIEW_UNANSWERED: "Film question",
 };
 
+const OUTCOME_LABEL: Record<string, string> = {
+  IMPROVED: "Improved",
+  DECLINED: "Changed",
+  NEW_DATA: "New data logged",
+  COMPLETED_ONLY: "Completed",
+  INSUFFICIENT_DATA: "Not enough data yet",
+};
+
 /**
  * Coach-side Next Move — the same engine as the athlete dashboard's
  * NextMoveCard, scoped to what a coach is actually authorized to see
  * (film assignments the team assigned, film questions directed at the
  * team's coaches). Answers "which athlete needs my attention most right
- * now" with the top item emphasized and the rest as a compact queue.
+ * now" with the top item emphasized and the rest as a compact queue. The
+ * history below is the same honest completed-vs-improved distinction as
+ * the athlete side — never inferred, only what the underlying records show.
  */
-export function CoachNextMoveQueue({ initialQueue }: { initialQueue: CoachQueueItemData[] }) {
+export function CoachNextMoveQueue({
+  initialQueue,
+  initialHistory,
+}: {
+  initialQueue: CoachQueueItemData[];
+  initialHistory: CoachQueueHistoryItem[];
+}) {
   const [queue, setQueue] = useState(initialQueue);
+  const [history] = useState(initialHistory);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
+
+  function acceptPing(id: string) {
+    // Fire-and-forget: the link navigates immediately either way. Records
+    // "recommendation accepted" only from this real click, never inferred.
+    fetch("/api/coach-queue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "accept" }),
+      keepalive: true,
+    }).catch(() => {});
+  }
 
   async function dismiss(id: string) {
     setDismissingId(id);
@@ -90,7 +126,7 @@ export function CoachNextMoveQueue({ initialQueue }: { initialQueue: CoachQueueI
               </div>
             )}
             <div className="flex items-center gap-3">
-              <Link href={top.actionHref} className="btn-primary">
+              <Link href={top.actionHref} className="btn-primary" onClick={() => acceptPing(top.id)}>
                 Open
               </Link>
               <button
@@ -112,7 +148,11 @@ export function CoachNextMoveQueue({ initialQueue }: { initialQueue: CoachQueueI
           <ul className="space-y-2 text-sm">
             {rest.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-3">
-                <Link href={item.actionHref} className="hover:text-text-2 transition-colors min-w-0">
+                <Link
+                  href={item.actionHref}
+                  className="hover:text-text-2 transition-colors min-w-0"
+                  onClick={() => acceptPing(item.id)}
+                >
                   <span className="text-text-3">{item.athleteName}</span> — {item.title}
                 </Link>
                 <button
@@ -127,6 +167,29 @@ export function CoachNextMoveQueue({ initialQueue }: { initialQueue: CoachQueueI
             ))}
           </ul>
         </div>
+      )}
+
+      {history.length > 0 && (
+        <details className="card p-4 mt-3">
+          <summary className="mono text-text-3 text-xs cursor-pointer select-none">
+            Recently resolved ({history.length})
+          </summary>
+          <ul className="space-y-2 mt-3 text-sm">
+            {history.map((item) => (
+              <li key={item.id} className="flex items-start justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="text-text-3">{item.athleteName}</span> — {item.title}
+                </span>
+                {item.outcome && (
+                  <span className="text-right shrink-0">
+                    <span className="badge">{OUTCOME_LABEL[item.outcome.status] ?? item.outcome.status}</span>
+                    <div className="text-text-3 text-xs mt-1 max-w-[220px]">{item.outcome.detail}</div>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   );

@@ -267,23 +267,215 @@ recruiting staleness, etc.) match what real coaches consider urgent. None
 of this is claimed as proven anywhere in this codebase or this document —
 it's the next real validation work, not a demo-script footnote.
 
+## Increment 3: the Intelligence Experience — honest outcomes, not just alerts (2026-10-14)
+
+**Checkpoint discipline:** increment 2 was committed locally as a second
+checkpoint before this increment began (per the user's explicit "keep both
+commits local, do not push yet"). This increment's changes are not yet
+committed at the time of writing — see end-of-increment report for the
+commit decision. No push has occurred at any point in this project.
+
+### Priority 1 — perfected Next Move experience, both audiences
+
+Both `NextMoveCard.tsx` (athlete) and `CoachNextMoveQueue.tsx` (coach) now
+answer the same four questions the mission brief named, not just "what's
+next":
+
+- **Why this, not something else** — a live-recomputed `competingCount`
+  ("chosen over N other outstanding items") on the athlete side. The coach
+  side already shows this structurally (`CoachNextMoveQueue` is a visible
+  ranked queue, not a single slot — "also waiting (N)" already answers
+  "why this one first").
+- **What happens when it's done** — a new "Recently resolved" history
+  panel on both interfaces, each row showing the real outcome (see
+  Priority 2), not just a checkmark.
+- **A real signal that the athlete/coach actually engaged** — `acceptedAt`
+  on `NextMoveRecommendation`, set only by a genuine click on the primary
+  action (fire-and-forget `keepalive` POST to `/api/next-move` or
+  `/api/coach-queue` with `action: "accept"`), never inferred from a page
+  view. Idempotent on repeat clicks (second click returns success, not a
+  false 404 — fixed before shipping, see below).
+
+No new visual language was introduced — same card/badge/mono-label system
+as increment 1 and 2, a collapsible `<details>` for history so it doesn't
+compete visually with the primary recommendation.
+
+### Priority 2 — the outcome evidence engine (the actual "development loop")
+
+New `getOutcomeEvidence()` in `src/lib/next-move.ts`, computed only for
+RESOLVED rows, returns one of five honest states —
+`IMPROVED` / `DECLINED` / `NEW_DATA` / `COMPLETED_ONLY` / `INSUFFICIENT_DATA`
+— per recommendation kind:
+
+- **`GOAL_STALE` is the one kind with a real before/after number.** A
+  hidden `__baselineProgress` evidence field (stripped before any client
+  sees it, same convention as `resolutionKey`) captures `Goal.progress` at
+  the moment the recommendation is created — the only way to later say
+  "progress went from 20% to 75%" honestly, since `Goal` keeps no history
+  of its own. Verified live: a goal flagged at 20% progress, later updated
+  to 75% and marked `ACHIEVED`, resolves with
+  `{status: "IMPROVED", detail: "Progress went from 20% to 75%."}`.
+- **`PERFORMANCE_STALE` deliberately never says IMPROVED/DECLINED.** A
+  freeform `PerformanceEntry.statName` has no schema-level notion of which
+  direction is "better" — a new 40-yard-dash time and a new bench-press max
+  mean opposite things for "higher is better." Logging a new entry always
+  resolves as `NEW_DATA` with a neutral, factual detail string. This was a
+  deliberate design choice to avoid exactly the kind of fabricated
+  "improvement" claim the mission brief explicitly forbids, verified by a
+  dedicated test asserting the detail text never contains "improv" or
+  "declin".
+- The remaining five kinds (`TRAINING_GAP`, `ACADEMIC_OVERDUE`,
+  `ELIGIBILITY_INCOMPLETE`, `RECRUITING_STALE`, `FILM_ASSIGNMENT_OVERDUE`,
+  `FILM_REVIEW_UNANSWERED`) honestly report `COMPLETED_ONLY` (a real
+  follow-up event was observed — a new workout, a graded assignment, a new
+  outreach log, etc.) or `INSUFFICIENT_DATA` (resolved, but no follow-up
+  evidence exists yet) — never promoted to "improved" without a genuine
+  before/after number, exactly the completion-vs-improvement line the
+  mission brief draws.
+
+**Bug caught before shipping:** the first version of `acceptNextMove()`
+used a single `updateMany({ where: { acceptedAt: null } })` guard, so a
+second click on an already-accepted recommendation returned `count: 0` →
+the API responded `404 Not Found` — misleading, since the row exists and
+belongs to the caller, it's just already accepted. Fixed by looking the
+row up first and only conditionally writing `acceptedAt`, so repeat clicks
+are idempotently successful. Covered by a new test asserting the second
+accept returns 200 with the same `acceptedAt` timestamp as the first.
+
+### Priority 3 — further module connections: audited, none added this pass
+
+Explicitly asked not to connect every domain automatically. Audited the
+remaining unconnected domains against the same bar increment 2 already
+established (sound product reason + sufficient evidence + real
+authorization):
+
+- **Messages/Conversations** — no sound reason found: surfacing "unanswered
+  coach DM" as a Next Move item would require knowing message *content* is
+  non-sensitive, which isn't true in general (a DM thread can turn into
+  exactly the kind of personal conversation Recovery/Mindset already treats
+  as private). Not added.
+- **Safety checklists** (`SafetyChecklistItem`, `TeamSafetyChecklistItem`)
+  — plausible on its face (same shape as `EligibilityChecklistItem`), but
+  `src/lib/permissions.ts` grants no existing coach-visibility model for an
+  individual athlete's safety profile, and it's adjacent to medical/safety
+  data (CLAUDE.md's `CareRequest` privacy rule neighbors this domain
+  closely). Needs its own deliberately-designed authorization pass, not an
+  engine addition riding on an assumption. Not added.
+- **Documents** — no existing due-date/staleness concept at all (no
+  `dueDate`/`status` field to key a "stale" signal off of); would require
+  new product definition of what "needs attention" even means for a
+  document, not just new engine code. Not added.
+- **Academics → coach visibility** — confirmed by grep against
+  `permissions.ts`: zero existing coach read-access to `Assignment` today.
+  Adding a coach-facing academic signal is real, separately-designed
+  product work (the increment 2 roadmap already named this as a future
+  item) — still correctly not assumed into this engine.
+
+**Conclusion: zero new domain connections this increment.** The honest
+finding is that the right next investment is building the *authorization*
+for a new domain (e.g., a real, consented academic-alerts view for
+coaches) before the engine reads from it — not quietly widening the
+engine's queries into data nothing has explicitly authorized a coach or
+engine to see.
+
+### Priority 4 — live demonstration hardened, and the Chromium blocker is fixed
+
+**Demo scripts reviewed, re-verified live, still safe:**
+`scripts/seed-demo-scenario.mjs`/`reset-demo-scenario.mjs` isolation
+(`@menta-demo.local` domain, `[MENTA DEMO]` name prefix) re-confirmed by
+actually running the full round trip against this container's dev
+database: seed → real login via `/api/auth/login` for both the coach and
+the primary athlete → `GET /api/next-move` and `GET /api/coach-queue` both
+point at the exact same required film assignment (the connected-loop
+claim, re-verified against the current, post-increment-3 code, not just
+asserted from increment 2) → `PATCH .../targets/me` with `status:
+"COMPLETED"` (the real, already-shipped "Mark complete" button's endpoint)
+→ both sides independently re-fetch and show the loop closing: the
+athlete's Next Move advances to the next real priority, the coach's queue
+drops the item into history with an honest `COMPLETED_ONLY` outcome and
+promotes the next athlete needing attention → `reset-demo-scenario.mjs`
+removes exactly the 3 demo users and leaves the database at the same
+`user: 0, team: 0, nextMoveRecommendation: 0` baseline it started at.
+
+**The Chromium browser-revision mismatch (documented as a blocker in
+increments 1 and 2) is now fixed, not just re-documented.** Root cause
+confirmed: `@playwright/test@1.62.1`'s bundled `browsers.json` expects
+Chromium revision `1234`, but this container only pre-installs revision
+`1194` (`chromium-1194`, `chromium_headless_shell-1194`) — a real
+version gap, not a path/naming issue (an earlier symlink attempt in
+increment 1 correctly identified this as unfixable by renaming alone,
+since `1194`'s headless-shell directory layout genuinely differs from what
+`1234` expects). The fix: `/opt/pw-browsers/chromium` is a working symlink
+straight to the full `1194` Chrome binary (not the headless-shell variant
+Playwright was trying to resolve by revision number) — pointing
+`playwright.config.ts`'s `chromium` project at it directly via
+`launchOptions.executablePath` bypasses Playwright's own revision
+resolution entirely. **Verified: the full previously-blocked
+browser-driven suite (`auth.spec.ts`, `onboarding-multisport.spec.ts`,
+`onboarding-regression.spec.ts`, `page-smoke.spec.ts`) now runs and
+passes**, in addition to the API-level suites — see Priority 5 for the
+actual numbers. This removes a real blind spot: any future UI-only change
+(the kind increment 3's own `NextMoveCard`/`CoachNextMoveQueue` edits are)
+can now be verified end-to-end through a real browser, not just by API
+round-trips plus manual reasoning about the JSX.
+
+### Priority 5 — full verification
+
+- `npx tsc --noEmit` — clean.
+- `npm run lint` (ESLint) — clean.
+- `npm run build` — clean production build, no new warnings.
+- `npx playwright test` (full suite, all 7 spec files, 35 tests,
+  browser-driven and API-level together) — **35/35 passing**, including 2
+  new tests added this increment (`acceptedAt` idempotency and
+  cross-athlete isolation; outcome evidence for both the real-baseline
+  `GOAL_STALE` case and the deliberately-neutral `PERFORMANCE_STALE` case).
+  One run of the full suite produced 2 failures in
+  `film-intelligence-security.spec.ts` on two deeply-nested dynamic routes
+  (`.../position-groups/[groupId]/members`, `.../athletes/[athleteId]/notes`)
+  that are not touched by this increment; re-running that file alone, and
+  re-running the full suite a second time, both passed clean — consistent
+  with this repo's already-documented "first cold request per route is
+  slow under Turbopack dev mode" characteristic racing against a
+  first-compile on a rarely-hit nested route, not a real regression. Not
+  swept under the rug: written down here exactly as observed, including
+  that it reproduced once and did not reproduce on retry.
+- `git status` reviewed before and after — only the files this increment
+  actually intended to touch, one additive migration folder (`ALTER TABLE
+  "NextMoveRecommendation" ADD COLUMN "acceptedAt"`), no secrets, no
+  generated artifacts, nothing unrelated.
+
+### What's genuinely new vs. what increment 2 already established
+
+The cross-domain ranking and connected-loop claims are unchanged from
+increment 2 — still a demonstrated architecture, still not yet validated
+with real athletes/coaches. What's new and real in increment 3: the
+engine now honestly distinguishes "this got done" from "this got better,"
+with one domain (`GOAL_STALE`) actually proving the latter with a real
+number, and explicitly refuses to manufacture that distinction for domains
+where the schema doesn't support it. That refusal — NEW_DATA instead of a
+fabricated IMPROVED — is itself the product decision most worth being
+honest about in an investor conversation: MENTA can prove progress where
+it has a real baseline, and says so plainly where it can't yet.
+
 ## Next highest-value increment (not yet started)
 
-1. **Outcome tracking** — now that both athlete and coach history persist
-   in `NextMoveRecommendation`, the next real step is measuring what
-   happens *after* resolution: did a performance entry improve following a
-   `TRAINING_GAP` resolution? Did grades recover after an `ACADEMIC_OVERDUE`
-   resolution? This turns the engine from "reactive and real" into
-   "evidenced," which is the actual investor-grade claim.
-2. **Extend signal domains with real new coach-facing views** — Safety
-   (incomplete personal safety profile for a minor) and a genuine,
-   separately-designed Academic-alerts view for coaches (not assumed —
-   built deliberately, with its own consent/visibility rules, the way
-   `CoachDashboard.tsx`'s own comment always intended).
-3. **Fix the Chromium-revision mismatch** in this container so the
-   browser-driven Playwright suite (auth, onboarding, full-page smoke)
-   can run again — currently a blind spot for any future UI-only change.
+1. **Real pilot validation** — every "genuinely differentiated" claim in
+   this document (increments 1–3) is still an architecture-stage
+   hypothesis. The single highest-value next step is getting this in front
+   of real athletes and coaches and observing whether the ranking actually
+   matches what they'd prioritize themselves, and whether outcome evidence
+   changes behavior.
+2. **A real, separately-designed coach-facing academic-alerts view** — the
+   one concrete "next domain connection" this increment's audit identified
+   as sound in principle but requiring new authorization work first (its
+   own consent/visibility model), not an assumption riding on the existing
+   engine.
+3. **Extend outcome evidence to more kinds as the schema allows** — e.g. if
+   `PerformanceEntry` ever gains a per-stat "higher is better" direction
+   (a real schema/product decision, not an engine-side guess), 
+   `PERFORMANCE_STALE` could honestly graduate from `NEW_DATA` to
+   `IMPROVED`/`DECLINED` — but only once that ground truth actually exists.
 
-Recommend (1): it's the difference between "MENTA connects your data" and
-"MENTA's connections measurably help," which is the exact distinction the
-mission brief draws between a promising hypothesis and a proven moat.
+Recommend (1): everything else in this document is architecture and
+honest self-assessment; the one thing no amount of further internal
+engineering can substitute for is real usage evidence.
