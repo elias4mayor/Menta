@@ -1,0 +1,26 @@
+name: School integrations
+on:
+  pull_request:
+    paths:
+      - 'src/lib/school/**'
+      - 'src/components/SchoolConnections.tsx'
+      - 'src/app/api/integrations/school/**'
+      - 'src/app/(app)/school/**'
+      - 'scripts/test-school-integrations.cjs'
+      - 'prisma/**'
+      - '.github/workflows/school-integrations.yml'
+permissions:
+  contents: read
+jobs:
+  school-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/test-school-integrations.cjs
+      - run: npx next typegen && npx tsc --noEmit
+      - run: npx eslint src/lib/school src/components/SchoolConnections.tsx 'src/app/api/integrations/school/[schoolId]/[action]/route.ts' 'src/app/(app)/school/page.tsx' scripts/test-school-integrations.cjs

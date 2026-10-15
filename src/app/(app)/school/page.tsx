@@ -1,3 +1,6 @@
+import { SchoolConnections } from "@/components/SchoolConnections";
+import { schoolInstances } from "@/lib/school/config";
+import type { SchoolSnapshot } from "@/lib/school/catalog";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
@@ -14,8 +17,14 @@ import { GoogleClassroomCourses, type ClassroomAssignmentItem } from "@/componen
 
 const STUDY_HELP_TOPIC = "ACADEMICS";
 
-export default async function SchoolPage() {
+export default async function SchoolPage({ searchParams }: { searchParams: Promise<{ schoolConnection?: string }> }) {
   const user = await requireUser();
+  const query = await searchParams;
+  const connections = await prisma.schoolConnection.findMany({ where: { userId: user.id } });
+  const schools = schoolInstances().map(({ id, name, provider }) => {
+    const c = connections.find((connection) => connection.schoolId === id);
+    return { id, name, provider, connection: c ? { status: c.status, lastSyncedAt: c.lastSyncedAt?.toISOString() ?? null, snapshot: c.snapshot as SchoolSnapshot | null } : null };
+  });
 
   const [profile, assignments, academicGoals, academicTerms, eligibilityItems, studyHelpConversation, classroomIntegration] =
     await Promise.all([
@@ -86,10 +95,12 @@ export default async function SchoolPage() {
       <div className="mono text-text-3 mb-2">Academics</div>
       <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Academics</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-8 max-w-2xl">
-        Academic information is currently entered manually. This is your own tracking, not an official
+        Connect an approved school platform or track academics manually. This is your own tracking, not an official
         school record — see the Eligibility section for how that distinction matters for eligibility
         decisions.
       </p>
+
+      <SchoolConnections schools={schools} notice={query.schoolConnection} />
 
       <GoogleClassroomCard
         configured={isGoogleClassroomConfigured()}

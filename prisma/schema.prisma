@@ -100,6 +100,7 @@ model User {
   documentRequestsMade        DocumentRequest[]           @relation("DocumentRequester")
   documentRequestsReceived    DocumentRequest[]           @relation("DocumentRequestAthlete")
   providerAvailability        ProviderAvailability[]
+  schoolConnections           SchoolConnection[]
   googleClassroomIntegration  GoogleClassroomIntegration?
   careRequestsAsAthlete       CareRequest[]               @relation("CareRequestAthlete")
   careRequestsAsProvider      CareRequest[]               @relation("CareRequestProvider")
@@ -2607,4 +2608,23 @@ model UsageCounter {
   count       Int      @default(0)
 
   @@unique([ownerType, ownerId, key, periodStart])
+}
+
+// Student-delegated school connections. Separate from Google login/Classroom.
+model SchoolConnection {
+  id              String    @id @default(cuid())
+  userId          String
+  schoolId        String
+  provider        String
+  accessTokenEnc  String
+  refreshTokenEnc String?
+  expiresAt       DateTime?
+  status          String    @default("CONNECTED")
+  snapshot        Json?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schoolId])
 }
