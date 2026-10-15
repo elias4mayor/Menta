@@ -24,7 +24,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U menta"
+          --health-cmd "pg_isready -U menta -d menta_e2e"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -32,6 +32,8 @@ jobs:
       # Throwaway credentials for an ephemeral, network-isolated CI service
       # container — never a real deployment's database.
       DATABASE_URL: "postgresql://menta:menta@localhost:5432/menta_e2e"
+      # This local Postgres service has no pooler; both URLs use the same DB.
+      DATABASE_URL_POOLED: "postgresql://menta:menta@localhost:5432/menta_e2e"
       # Any 32+ byte value works here; this is a throwaway secret for an
       # ephemeral CI database, not a real deployment.
       SESSION_SECRET: "ci-e2e-session-secret-not-for-production-use-only"
