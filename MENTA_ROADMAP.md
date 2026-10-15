@@ -479,3 +479,55 @@ it has a real baseline, and says so plainly where it can't yet.
 Recommend (1): everything else in this document is architecture and
 honest self-assessment; the one thing no amount of further internal
 engineering can substitute for is real usage evidence.
+
+## Pilot-readiness audit (2026-10-15)
+
+Shifted from feature development to pilot readiness per explicit
+instruction. No feature work this pass — audit, verification, and small
+targeted fixes to things the audit itself broke or found broken. Full
+findings delivered in-session; summarized here for the running record.
+
+**Fixed this pass (small, scoped, not new features):**
+- `playwright.config.ts`'s Chromium `executablePath` fix (increment 3) was
+  gated behind `fs.existsSync()` after discovering it would have silently
+  broken CI (`.github/workflows/e2e.yml` installs its own correct
+  Chromium revision and never needs the hardcoded container path).
+- A real-browser, two-session walkthrough of the full demo (seed → login
+  as both Jordan and the coach → "Act on this" → the real `/assignments`
+  "Mark complete" button → both dashboards re-verified) surfaced a visible
+  bug: the dashboard's time-of-day greeting reads `name.split(" ")[0]`,
+  and `"[MENTA DEMO] Jordan Carter"` split to `"[MENTA"` — rendering "Good
+  evening, [MENTA." on the single most visible screen of the demo. Fixed
+  by moving the demo tag to the end of each name
+  (`scripts/seed-demo-scenario.mjs`); reset safety unaffected (reset
+  matches on email domain and team name, never user name).
+
+**Blockers found, ranked, not yet fixed (see in-session report for full
+detail and severity reasoning):**
+1. Email delivery (`RESEND_API_KEY`) is unconfigured by default — real
+   signup/password-reset codes only reach the server console, not a real
+   pilot participant's inbox.
+2. Film/document storage is local-disk (`src/lib/storage.ts`), which does
+   not survive a restart in an ephemeral container — a real risk if the
+   pilot is hosted anywhere non-persistent.
+3. No account/data-deletion path exists in the product itself for a real
+   user (only a raw DB script scoped to demo accounts).
+4. Minor-status protection fails open: `dateOfBirth` is optional at
+   signup and `isMinor(null) === false`, so leaving it blank silently
+   skips minor-specific protections.
+5. Signup is rate-limited to 8/IP per 15 minutes — a real risk if an
+   entire pilot team signs up together from one shared network.
+6. The Next Move primary action for an overdue film assignment
+   (`FILM_ASSIGNMENT_OVERDUE`) sends the athlete to `/film/[id]`, which has
+   no completion control — they must separately navigate to
+   `/assignments` to actually mark it done. Not broken, just not the one
+   smooth click the product's own design principle calls for; the
+   recommended single highest-value engineering task before pilot.
+7. The demo seed's placeholder video has no real file on disk — pressing
+   play in a live demo throws a 500 from the streaming route. Avoid
+   clicking play, or pre-load a small real video file before presenting.
+
+Full minimum-viable-pilot plan, validation protocol, and investor-demo
+runbook (exact seed/login/demo/reset commands, now verified through a real
+two-browser-session walkthrough) delivered in-session rather than
+duplicated here.
