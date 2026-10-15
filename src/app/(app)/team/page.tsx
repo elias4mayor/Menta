@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { TeamActions } from "@/components/TeamActions";
 import { MessageButton } from "@/components/MessageButton";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { VerifyProviderButton } from "@/components/VerifyProviderButton";
 import { NavTile } from "@/components/NavTile";
@@ -43,9 +43,8 @@ export default async function TeamPage() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Team</div>
-      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Your teams</GlowWaveText></h1>
+    <div className="workspace-page dash-in dash-in-1">
+      <WorkspaceHeader section="Together" title="Your teams" description="Your people. One place for the programs, sessions, and conversations you share." icon="team" />
 
       {memberships.length === 0 ? (
         <div className="card mb-8">

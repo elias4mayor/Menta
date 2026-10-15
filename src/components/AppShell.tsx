@@ -3,10 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useId } from "react";
 import type { ReactNode } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
-import { GlowWaveText } from "@/components/GlowWaveText";
 import { Avatar } from "@/components/Avatar";
 import { NavIcon } from "@/components/NavIcons";
 import { MENTAIsland } from "@/components/MENTAIsland";
@@ -265,200 +264,125 @@ function useTimeOfDayGreeting(): string {
   return greeting;
 }
 
-export function AppShell({
-  user,
-  unreadCount,
-  children,
-}: {
+function WorkspaceNavigation({ sections, pathname, onNavigate }: {
+  sections: NavSection[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const id = useId();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const activeHref = sections.flatMap((section) => section.items)
+    .filter((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
+  return <nav className="workspace-navigation" aria-label="Workspace navigation">
+    {sections.map((section, index) => {
+      const containsActive = section.items.some((item) => item.href === activeHref);
+      const stateKey = `${section.label}:${containsActive}`;
+      const open = expanded[stateKey] ?? (containsActive || section.label === "Home");
+      const panelId = `${id}-${index}`;
+      return <section className="workspace-nav-group" key={section.label}>
+        <button type="button" className="workspace-nav-toggle" aria-expanded={open} aria-controls={panelId}
+          onClick={() => setExpanded((current) => ({ ...current, [stateKey]: !open }))}>
+          <span>{section.label}</span>
+          <svg className={open ? "is-open" : ""} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m8 10 4 4 4-4" /></svg>
+        </button>
+        <div id={panelId} hidden={!open} className="workspace-nav-links">
+          {section.items.map((item) => <Link key={item.href} href={item.href} onClick={onNavigate}
+            aria-current={activeHref === item.href ? "page" : undefined}
+            className={`workspace-nav-link${activeHref === item.href ? " is-active" : ""}`}>
+            <NavIcon name={item.icon} className="shrink-0" /><span>{item.label}</span>
+            {activeHref === item.href ? <span className="workspace-active-dot" aria-hidden="true" /> : null}
+          </Link>)}
+        </div>
+      </section>;
+    })}
+  </nav>;
+}
+
+export function AppShell({ user, unreadCount, children }: {
   user: { id: string; name: string; role: string };
   unreadCount: number;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const drawer = useRef<HTMLDialogElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const greeting = useTimeOfDayGreeting();
   const navSections = navSectionsForRole(user.role);
-  const mobileItems = mobileItemsForRole(user.role);
+  const mobileItems = mobileItemsForRole(user.role).slice(0, 4);
+  const currentSection = navSections.find((section) => section.items.some((item) => pathname === item.href));
+  const currentItem = navSections.flatMap((section) => section.items)
+    .filter((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0];
 
   async function handleLogout() {
     setLoggingOut(true);
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
+    setLogoutError("");
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok) throw new Error("Unable to sign out. Please try again.");
+      router.push("/");
+      router.refresh();
+    } catch {
+      setLogoutError("Unable to sign out. Please try again.");
+      setLoggingOut(false);
+    }
   }
 
-  return (
-    <div className="app-shell min-h-screen flex bg-bg">
-      <aside
-        className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 shrink-0 flex-col px-4 py-6 dash-in dash-in-1"
-        style={{ borderRight: "1px solid var(--border-soft)", background: "var(--sidebar-tint)" }}
-      >
-        <Link href="/dashboard" className="flex items-center px-2 mb-10">
-          <Image
-            src="/logo.png"
-            alt="MENTA"
-            width={863}
-            height={194}
-            className="h-6 w-auto"
-            style={{ filter: "invert(1)" }}
-            priority
-          />
-        </Link>
-        <nav className="flex-1 space-y-6 overflow-y-auto">
-          {navSections.map((section) => (
-            <div key={section.label} className="nav-section">
-              <div className="mono text-text-3 px-3 mb-2.5" style={{ opacity: 0.75 }}>
-                {section.label}
-              </div>
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + "/");
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-full text-sm active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
-                      style={{
-                        color: active ? "var(--text-1)" : "var(--text-2)",
-                        background: active ? "var(--nav-hover-bg)" : "transparent",
-                      }}
-                    >
-                      {active && (
-                        <span
-                          className="absolute left-0 top-1/2 rounded-full nav-dot-in"
-                          style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
-                        />
-                      )}
-                      <NavIcon name={item.icon} className="shrink-0" />
-                      {active ? (
-                        <GlowWaveText intensity="subtle" hoverBoost={false}>
-                          {item.label}
-                        </GlowWaveText>
-                      ) : (
-                        <span className="truncate">{item.label}</span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-        {/* Persistent account area — never inside the scrollable nav above,
-            so Profile/Settings/Sign out are always reachable without
-            scrolling past the nav list, regardless of how long it is. */}
-        <div className="pt-3 mt-3 shrink-0" style={{ borderTop: "1px solid var(--border-soft)" }}>
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 px-2 py-2 rounded-[var(--r-sm)] transition-colors"
-            style={{ color: "var(--text-1)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--nav-hover-bg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            <Avatar userId={user.id} name={user.name} size={28} />
-            <div className="min-w-0">
-              <div className="text-sm truncate">{user.name}</div>
-              <div className="mono text-text-3">{user.role}</div>
-            </div>
-          </Link>
-          <div className="flex items-center gap-1 mt-1">
-            <Link
-              href="/profile"
-              className="nav-rail-item nav-rail-item-idle flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-xs"
-              style={{ color: "var(--text-2)" }}
-            >
-              <NavIcon name="profile" className="shrink-0" />
-              Profile
-            </Link>
-            <Link
-              href="/settings"
-              className="nav-rail-item nav-rail-item-idle flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-xs"
-              style={{ color: "var(--text-2)" }}
-            >
-              <NavIcon name="settings" className="shrink-0" />
-              Settings
-            </Link>
-          </div>
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="nav-rail-item nav-rail-item-idle w-full text-center mt-1 px-2 py-1.5 rounded-full text-xs"
-            style={{ color: "var(--text-2)" }}
-          >
-            {loggingOut ? "Signing out…" : "Sign out"}
-          </button>
-        </div>
-      </aside>
+  const account = <div className="workspace-account">
+    <Link href="/profile" className="workspace-account-profile" onClick={() => drawer.current?.close()}>
+      <Avatar userId={user.id} name={user.name} size={34} />
+      <span><strong>{user.name}</strong><small>{user.role.toLowerCase()}</small></span>
+      <NavIcon name="profile" />
+    </Link>
+    <div className="workspace-account-actions">
+      <Link href="/settings" onClick={() => drawer.current?.close()}>Settings</Link>
+      <button type="button" onClick={handleLogout} disabled={loggingOut}>{loggingOut ? "Signing out…" : "Sign out"}</button>
+    </div>
+    {logoutError ? <p role="alert">{logoutError}</p> : null}
+  </div>;
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 dash-in dash-in-2 topbar-material chrome-edge-bottom"
-        >
-          <Link href="/dashboard" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="MENTA"
-              width={863}
-              height={194}
-              className="h-5 md:h-6 w-auto"
-              style={{ filter: "invert(1)" }}
-              priority
-            />
-          </Link>
-          <div className="flex items-center gap-4">
+  return (
+    <div className="app-shell workspace-shell">
+      <a href="#workspace-content" className="workspace-skip">Skip to content</a>
+      <aside className="workspace-sidebar" aria-label="Main sidebar">
+        <Link href="/dashboard" className="workspace-brand"><Image src="/logo.png" alt="MENTA" width={863} height={194} priority /><span>Athlete operating system</span></Link>
+        <WorkspaceNavigation sections={navSections} pathname={pathname} />
+        <Link href="/ai-coach" className="workspace-ai-entry"><NavIcon name="spark" /><span>Ask MENTA<small>Find your next step</small></span><span aria-hidden="true">↗</span></Link>
+        {account}
+      </aside>
+      <div className="workspace-body">
+        <header className="workspace-topbar">
+          <div className="workspace-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong>{currentSection?.label ?? currentItem?.label ?? "My MENTA"}</strong></div>
+          <Link href="/dashboard" className="workspace-mobile-brand"><Image src="/logo.png" alt="MENTA" width={863} height={194} /></Link>
+          <div className="workspace-topbar-actions">
             <SportSwitcher role={user.role} />
-            <Link
-              href="/notifications"
-              className="relative text-text-2 hover:text-text-1 transition-colors active:scale-90"
-              aria-label="Notifications"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-              {unreadCount > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[10px] font-semibold"
-                  style={{ background: "var(--grad-signal)", color: "var(--on-signal)", minWidth: 16, height: 16, padding: "0 4px" }}
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
+            <Link href="/notifications" className="workspace-icon-button" aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M10 21h4" /></svg>
+              {unreadCount > 0 ? <span className="workspace-notification-dot" /> : null}
             </Link>
-            <div className="md:hidden text-sm text-text-2">{user.name.split(" ")[0]}</div>
+            <Link href="/profile" className="workspace-topbar-avatar" aria-label="Your profile"><Avatar userId={user.id} name={user.name} size={30} /></Link>
           </div>
         </header>
-        <main className="flex-1 px-6 py-8 pb-24 md:pb-8 flex justify-center">
-          <div className="w-full max-w-6xl">
-            {/* Rendered once here (not per-page) so navigating between dashboard
-                pages doesn't remount it — the gallery keeps rotating in the same
-                order instead of restarting on every click. */}
-            <DashboardHero greeting={`${greeting}, ${user.name.split(" ")[0]}.`} />
+        <main id="workspace-content" className="workspace-main" tabIndex={-1}>
+          <div className="workspace-content">
+            {pathname === "/dashboard" ? <DashboardHero greeting={`${greeting}, ${user.name.split(" ")[0]}.`} /> : null}
             {children}
           </div>
         </main>
       </div>
-
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 bottomnav-material chrome-edge-top"
-      >
-        {mobileItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors active:scale-95"
-              style={{ color: active ? "var(--text-1)" : "var(--text-3)" }}
-            >
-              <NavIcon name={item.icon} className="shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="workspace-bottomnav" aria-label="Quick navigation">
+        {mobileItems.map((item) => <Link key={item.href} href={item.href} aria-current={pathname === item.href ? "page" : undefined}><NavIcon name={item.icon} /><span>{item.label}</span></Link>)}
+        <button type="button" onClick={() => drawer.current?.showModal()} aria-haspopup="dialog"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg><span>More</span></button>
       </nav>
-
+      <dialog className="workspace-drawer" ref={drawer} aria-label="All workspace sections">
+        <div className="workspace-drawer-header"><strong>Your workspace</strong><button type="button" className="workspace-icon-button" onClick={() => drawer.current?.close()} aria-label="Close navigation">✕</button></div>
+        <WorkspaceNavigation sections={navSections} pathname={pathname} onNavigate={() => drawer.current?.close()} />
+        {account}
+      </dialog>
       <MENTAIsland user={user} unreadCount={unreadCount} />
     </div>
   );
