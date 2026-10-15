@@ -121,16 +121,14 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
     expect(body.error.length).toBeGreaterThan(0);
   });
 
-  test("12. the homepage teases all five membership tiers and links to /membership", async ({ request }) => {
+  test("12. the homepage links to signup and the dedicated membership page", async ({ request }) => {
     const res = await request.get("/");
     expect(res.status()).toBe(200);
     const html = await res.text();
-    expect(html).toContain("Choose your level");
-    expect(html).toContain("Rookie");
-    expect(html).toContain("Underdog");
-    expect(html).toContain("MVP");
-    expect(html).toContain("Onyx");
-    expect(html).toContain("MENTA Team");
+    // The homepage redesign moved the tier presentation to /membership.
+    // Test 13 verifies all five tiers and their pricing on that page.
+    expect(html).toContain('href="/signup"');
+    expect(html).toContain("Join the MENTA Beta");
     expect(html).toContain('href="/membership"');
   });
 
