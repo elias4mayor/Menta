@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 import { CareRequestFlow } from "@/components/CareRequestFlow";
 import { CareParentStatus } from "@/components/CareParentStatus";
 
@@ -14,9 +14,8 @@ export default async function CarePage() {
     });
 
     return (
-      <div className="max-w-2xl mx-auto dash-in dash-in-1">
-        <div className="mono text-text-3 mb-2">Care</div>
-        <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Care status</GlowWaveText></h1>
+      <div className="workspace-page dash-in dash-in-1">
+        <WorkspaceHeader section="You" title="Care status" description="Stay informed through your approved care connections." icon="safety" />
         {links.length === 0 ? (
           <div className="card p-6 text-center">
             <p className="text-text-2 text-sm">Once you&rsquo;re an approved guardian for an athlete, their care status appears here.</p>
@@ -38,9 +37,8 @@ export default async function CarePage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Care</div>
-      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">MENTA Care</GlowWaveText></h1>
+    <div className="workspace-page dash-in dash-in-1">
+      <WorkspaceHeader section="You" title="MENTA Care" description="Get support from the people authorized to care for you." icon="safety" />
       <p className="text-text-2 text-sm mb-8">
         Connect with an authorized athletic trainer, doctor, or physical therapist on your team. Only your provider sees the details of your request — never your coach.
       </p>

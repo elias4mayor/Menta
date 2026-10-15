@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { RecruitingSchools } from "@/components/RecruitingSchools";
 import { RecruitingOutreachPanel } from "@/components/RecruitingOutreachPanel";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 import { isAiConfigured } from "@/lib/ai";
 import { isRecruitingIntelligenceConnected } from "@/lib/recruiting/provider-status";
 import { computeOpportunities, type OpportunityRosterChangeInput, type OpportunitySignalInput } from "@/lib/recruiting/opportunities";
@@ -153,9 +153,8 @@ export default async function RecruitPage() {
   }));
 
   return (
-    <div className="max-w-5xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Recruiting</div>
-      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Your recruiting dashboard</GlowWaveText></h1>
+    <div className="workspace-page dash-in dash-in-1">
+      <WorkspaceHeader section="Future" title="Your recruiting dashboard" description="Build your path. Organize your profile, target schools, and next conversations." icon="recruit" />
       <p className="text-text-2 text-sm mb-8 max-w-2xl">
         These are organizational and drafting tools — MENTA never guarantees a scholarship, offer,
         admission, or roster spot, and doesn&rsquo;t contact schools on your behalf. Everything here is

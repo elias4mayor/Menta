@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { visibleFilmWhere } from "@/lib/film-visibility";
 import { hasTeamPermission, getUserPositionGroupIds } from "@/lib/permissions";
 import { FilmLibrary } from "@/components/FilmLibrary";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 
 export default async function FilmPage() {
   const user = await requireUser();
@@ -40,9 +40,8 @@ export default async function FilmPage() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Film</div>
-      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Film library</GlowWaveText></h1>
+    <div className="workspace-page dash-in dash-in-1">
+      <WorkspaceHeader section="Development" title="Film library" description="Study the details. Keep your film, clips, and team feedback together." icon="film" />
       <FilmLibrary
         initialFilms={films.map((f) => ({
           id: f.id,

@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { TrainingView } from "@/components/TrainingView";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 
 export default async function TrainPage() {
   const user = await requireUser();
@@ -43,9 +43,8 @@ export default async function TrainPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Training</div>
-      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Workout library</GlowWaveText></h1>
+    <div className="workspace-page dash-in dash-in-1">
+      <WorkspaceHeader section="Training" title="Workout library" description="Build consistency. Follow your plan, finish your sessions, and keep moving forward." icon="train" />
       <TrainingView
         initialWorkouts={workouts.map((w) => ({
           id: w.id,

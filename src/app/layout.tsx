@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
+import "./workspace.css";
 
 // Fallback for the --font-heading/--font-body chain in globals.css, which
 // puts the real system-font stack (-apple-system/BlinkMacSystemFont, so

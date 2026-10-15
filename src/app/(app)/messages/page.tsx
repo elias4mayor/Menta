@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { WorkspaceHeader } from "@/components/WorkspaceHeader";
 
 export default async function MessagesPage() {
   const user = await requireUser();
@@ -16,9 +16,8 @@ export default async function MessagesPage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Messages</div>
-      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Conversations</GlowWaveText></h1>
+    <div className="workspace-page dash-in dash-in-1">
+      <WorkspaceHeader section="Together" title="Conversations" description="Stay connected. Pick up a conversation with your teammates and coaches." icon="messages" />
 
       {conversations.length === 0 ? (
         <div className="card p-6">

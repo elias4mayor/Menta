@@ -162,6 +162,7 @@ test.describe("Today's Session visibility (Phase B)", () => {
     const html = await (await request.get("/dashboard", { headers: { Cookie: athletes[0].cookie } })).text();
     expect(html).not.toContain(`${E2E_RUN_ID} Canceled Session`);
     expect(html).not.toContain(`${E2E_RUN_ID} Complete Session`);
-    expect(html).toContain("No training session today");
+    expect(html).toContain("Your day at a glance");
+    expect(html).not.toContain("No training session today");
   });
 });
