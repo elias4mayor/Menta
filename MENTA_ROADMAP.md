@@ -531,3 +531,37 @@ Full minimum-viable-pilot plan, validation protocol, and investor-demo
 runbook (exact seed/login/demo/reset commands, now verified through a real
 two-browser-session walkthrough) delivered in-session rather than
 duplicated here.
+
+## Increment 4: the completion-gap fix, and verifying blockers against reality (2026-10-15)
+
+**Fixed:** blocker #6 above. `FilmAssignmentBanner` on `/film/[id]` now
+gives a one-click "Mark complete" directly where the athlete is watching
+the assigned film, reusing the exact same `/api/assignments/[id]/targets/me`
+endpoint `/assignments` already uses — no second completion system, and
+authorization is structural (the endpoint keys off the caller's own
+`(assignmentId, userId)` row), not a new permission check to get wrong.
+4 new regression tests (`e2e/film-assignment-completion.spec.ts`). Full
+suite: **39/39 passing.**
+
+**Blockers re-checked against this actual environment, not assumed:**
+- `RESEND_API_KEY` confirmed present-but-empty in this `.env` right now —
+  email verification/reset codes are server-console-only here, concretely,
+  not just "by default somewhere."
+- `src/lib/storage.ts` writes to `process.cwd()/storage` — on this
+  session's own container, confirmed ephemeral by this environment's own
+  documentation. **This says nothing about the user's actual pilot
+  deployment target**, which this session has no visibility into — the
+  durability question has to be answered against wherever MENTA actually
+  gets deployed, not assumed either way.
+- No self-serve account-deletion path exists anywhere in the API — only
+  the demo-reset script, scoped to `@menta-demo.local`.
+- `dateOfBirth` is optional at signup and `isMinor(null) === false` —
+  confirmed by reading `permissions.ts` directly, not inferred.
+
+Full severity categorization (must-fix-before-any-pilot /
+must-fix-before-minors / can-handle-manually-for-a-small-pilot / can-wait)
+delivered in-session. **Key distinction: the demo loop is verified
+end-to-end through a real browser; the live production environment's
+readiness (email, storage durability, deletion process) is a separate,
+not-yet-verified milestone that depends on where MENTA is actually
+deployed.**
