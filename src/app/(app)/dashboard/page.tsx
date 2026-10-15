@@ -134,8 +134,16 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
     <div className="workspace-home">
       {myDay.todaySession ? <TodaysSessionCard session={myDay.todaySession} /> : null}
       <div className="workspace-cockpit">
-      <section className="workspace-today">
+      <section className="workspace-today" aria-label="Overview">
         <div className="workspace-today-top"><span className="workspace-eyebrow">Your day at a glance</span><time dateTime={now.toISOString().slice(0, 10)}>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</time></div>
+      <div className="workspace-metrics" aria-label="Your progress overview">
+        {[
+          { label: "Workouts this week", value: completionsThisWeek, href: "/train" },
+          { label: latestPerformanceEntry?.statName ?? "Latest stat", value: latestPerformanceEntry ? `${latestPerformanceEntry.value}${latestPerformanceEntry.unit ? ` ${latestPerformanceEntry.unit}` : ""}` : "—", href: "/performance" },
+          { label: "Active goals", value: activeGoalsCount, href: "/dashboard#goals" },
+          { label: "Teams", value: teamMemberships.length, href: "/team" },
+        ].map((stat) => <Link key={stat.label} href={stat.href}><span>{typeof stat.value === "number" ? <CountUpValue value={stat.value} /> : stat.value}</span><small>{stat.label}</small></Link>)}
+      </div>
         <h2>{heroHeadline}</h2>
         <p>{todayItemCount > 0 ? "Focus on what matters today. Everything else can wait." : "A little room to focus. Choose one thing to move forward."}</p>
         {moreToday.length ? <ul className="workspace-today-items">{moreToday.map((item) => <li key={item.id}>{item.label}</li>)}</ul> : null}
@@ -143,6 +151,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       </section>
 
       <aside className="workspace-cockpit-stack" aria-label="Your next moves">
+        <h2 className="workspace-panel-title">Your next moves</h2>
         <Link href="/dashboard#training-plan" className="workspace-glance workspace-glance-training">
           <span className="workspace-glance-icon" aria-hidden="true">↗</span>
           <div><span className="workspace-eyebrow">Next workout</span><h2>{planWorkouts[0]?.title ?? "Find your next session"}</h2><p>{profile?.trainingDaysPerWeek ? `${profile.trainingDaysPerWeek} training days per week` : "Open your training plan"}</p></div>
@@ -158,14 +167,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       </aside>
       </div>
 
-      <div className="workspace-metrics" aria-label="Your progress overview">
-        {[
-          { label: "Workouts this week", value: completionsThisWeek, href: "/train" },
-          { label: latestPerformanceEntry?.statName ?? "Latest stat", value: latestPerformanceEntry ? `${latestPerformanceEntry.value}${latestPerformanceEntry.unit ? ` ${latestPerformanceEntry.unit}` : ""}` : "—", href: "/performance" },
-          { label: "Active goals", value: activeGoalsCount, href: "/dashboard#goals" },
-          { label: "Teams", value: teamMemberships.length, href: "/team" },
-        ].map((stat) => <Link key={stat.label} href={stat.href}><span>{typeof stat.value === "number" ? <CountUpValue value={stat.value} /> : stat.value}</span><small>{stat.label}</small></Link>)}
-      </div>
+
 
       {priorityGoals.length ? <section className="card p-5 mb-5"><TodaysPriorities goals={priorityGoals} /></section> : null}
 
