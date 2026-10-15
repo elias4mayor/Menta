@@ -42,7 +42,13 @@ async function main() {
 
   const coach = await prisma.user.create({
     data: {
-      name: "[MENTA DEMO] Coach Avery Reed",
+      // Name has the "MENTA DEMO" tag at the end, not the front — the
+      // dashboard's time-of-day greeting takes name.split(" ")[0] as a
+      // first name, and a leading "[MENTA" tag was showing up as the
+      // greeted name itself ("Good evening, [MENTA."). Reset safety is
+      // untouched: reset-demo-scenario.mjs matches on email domain and
+      // team-name prefix, never on user.name.
+      name: "Coach Avery Reed (MENTA DEMO)",
       email: `coach@${DEMO_DOMAIN}`,
       passwordHash,
       role: "COACH",
@@ -53,7 +59,7 @@ async function main() {
 
   const jordan = await prisma.user.create({
     data: {
-      name: "[MENTA DEMO] Jordan Carter",
+      name: "Jordan Carter (MENTA DEMO)",
       email: `jordan@${DEMO_DOMAIN}`,
       passwordHash,
       role: "ATHLETE",
@@ -73,7 +79,7 @@ async function main() {
 
   const sam = await prisma.user.create({
     data: {
-      name: "[MENTA DEMO] Sam Rivera",
+      name: "Sam Rivera (MENTA DEMO)",
       email: `sam@${DEMO_DOMAIN}`,
       passwordHash,
       role: "ATHLETE",
