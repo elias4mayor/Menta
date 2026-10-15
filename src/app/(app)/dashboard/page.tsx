@@ -133,6 +133,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
   return (
     <div className="workspace-home">
       {myDay.todaySession ? <TodaysSessionCard session={myDay.todaySession} /> : null}
+      <div className="workspace-cockpit">
       <section className="workspace-today">
         <div className="workspace-today-top"><span className="workspace-eyebrow">Your day at a glance</span><time dateTime={now.toISOString().slice(0, 10)}>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</time></div>
         <h2>{heroHeadline}</h2>
@@ -140,6 +141,22 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
         {moreToday.length ? <ul className="workspace-today-items">{moreToday.map((item) => <li key={item.id}>{item.label}</li>)}</ul> : null}
         <div className="workspace-today-actions"><Link href="/train" className="btn-primary">Start a workout <span aria-hidden="true">↗</span></Link><Link href="/film" className="workspace-text-link">Open film room →</Link></div>
       </section>
+
+      <aside className="workspace-cockpit-stack" aria-label="Your next moves">
+        <Link href="/dashboard#training-plan" className="workspace-glance workspace-glance-training">
+          <span className="workspace-glance-icon" aria-hidden="true">↗</span>
+          <div><span className="workspace-eyebrow">Next workout</span><h2>{planWorkouts[0]?.title ?? "Find your next session"}</h2><p>{profile?.trainingDaysPerWeek ? `${profile.trainingDaysPerWeek} training days per week` : "Open your training plan"}</p></div>
+        </Link>
+        <Link href="/dashboard#daily-brief" className="workspace-glance workspace-glance-ai">
+          <span className="workspace-glance-icon" aria-hidden="true">✦</span>
+          <div><span className="workspace-eyebrow">MENTA AI</span><h2>Your daily brief</h2><p>{aiHealth === "connected" ? "Bring your day into focus" : "Currently unavailable"}</p></div>
+        </Link>
+        <Link href="/calendar" className="workspace-glance workspace-glance-calendar">
+          <span className="workspace-calendar-tile" aria-hidden="true"><small>{(upcoming[0]?.at ?? now).toLocaleDateString(undefined, { month: "short" })}</small><strong>{(upcoming[0]?.at ?? now).getDate()}</strong></span>
+          <div><span className="workspace-eyebrow">On the horizon</span><h2>{upcoming[0]?.title ?? "Your calendar is clear"}</h2><p>{upcoming[0] ? upcoming[0].at.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "Make room for your next move"}</p></div>
+        </Link>
+      </aside>
+      </div>
 
       <div className="workspace-metrics" aria-label="Your progress overview">
         {[

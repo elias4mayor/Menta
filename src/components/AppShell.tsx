@@ -350,7 +350,10 @@ export function AppShell({ user, unreadCount, children }: {
       <a href="#workspace-content" className="workspace-skip">Skip to content</a>
       <aside className="workspace-sidebar" aria-label="Main sidebar">
         <Link href="/dashboard" className="workspace-brand"><Image src="/logo.png" alt="MENTA" width={863} height={194} priority /><span>Athlete operating system</span></Link>
-        <WorkspaceNavigation sections={navSections} pathname={pathname} />
+        <nav className="workspace-dock" aria-label="Dock navigation">
+          {mobileItems.map((item) => <Link key={item.href} href={item.href} title={item.label} aria-label={item.label} aria-current={pathname === item.href ? "page" : undefined}><NavIcon name={item.icon} /><span>{item.label}</span></Link>)}
+          <button type="button" title="All sections" aria-label="All sections" aria-haspopup="dialog" onClick={() => drawer.current?.showModal()}><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">{[3,10,17].flatMap((x) => [3,10,17].map((y) => <rect key={`${x}-${y}`} x={x} y={y} width="4" height="4" rx="1" />))}</svg><span>All apps</span></button>
+        </nav>
         <Link href="/ai-coach" className="workspace-ai-entry"><NavIcon name="spark" /><span>Ask MENTA<small>Find your next step</small></span><span aria-hidden="true">↗</span></Link>
         {account}
       </aside>

@@ -23,7 +23,8 @@ test.describe("Compact workspace", () => {
     const athlete = await createTestAthlete("compact-library", "Football", "Running Back");
     await context.addCookies([{ name: "menta_session", value: athlete.cookie.split("=")[1], url: "http://localhost:3000" }]);
     await page.goto("/train/exercises");
-    const nav = page.getByRole("complementary", { name: "Main sidebar" });
+    await page.getByRole("button", { name: "All sections", exact: true }).click();
+    const nav = page.getByRole("dialog", { name: "All workspace sections" });
     await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
     await expect(nav.locator('[aria-current="page"]')).toHaveAttribute("href", "/train/exercises");
     await expect(page.getByRole("region", { name: "My MENTA overview" })).toHaveCount(0);
@@ -55,7 +56,8 @@ test.describe("Compact workspace", () => {
     const parent = await createTestUser("compact-parent", "PARENT");
     await context.addCookies([{ name: "menta_session", value: parent.cookie.split("=")[1], url: "http://localhost:3000" }]);
     await page.goto("/care");
-    const nav = page.getByRole("complementary", { name: "Main sidebar" });
+    await page.getByRole("button", { name: "All sections", exact: true }).click();
+    const nav = page.getByRole("dialog", { name: "All workspace sections" });
     await expect(nav.getByRole("link", { name: "Care", exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Recruiting", exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Care status", exact: true })).toBeVisible();
