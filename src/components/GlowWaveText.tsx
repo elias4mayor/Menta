@@ -59,6 +59,13 @@ export function GlowWaveText({
   className?: string;
 }): ReactNode {
   const letters = Array.from(children);
+  // Group letters into words so the headline can wrap on narrow (phone) screens.
+  // Indexes stay global so the wave still sweeps across the whole phrase.
+  const words: { ch: string; i: number }[][] = [[]];
+  letters.forEach((ch, i) => {
+    if (ch === " ") words.push([]);
+    else words[words.length - 1].push({ ch, i });
+  });
   const vars = INTENSITY_VARS[intensity];
 
   return (
@@ -66,18 +73,26 @@ export function GlowWaveText({
       className={`glow-wave${hoverBoost ? " glow-wave-hover" : ""}${className ? ` ${className}` : ""}`}
       style={vars as React.CSSProperties}
     >
-      {letters.map((ch, i) => {
-        const order = direction === "ltr" ? i : letters.length - 1 - i;
-        return (
-          <span
-            key={i}
-            className="glow-wave-letter"
-            style={{ animationDuration: `${speedMs}ms`, animationDelay: `${order * staggerMs}ms` }}
-          >
-            {ch === " " ? " " : ch}
+      {words.map((word, w) => (
+        <span key={w}>
+          {w > 0 && " "}
+          {/* Letters stay together inside a word; lines can still wrap between words. */}
+          <span style={{ whiteSpace: "nowrap" }}>
+            {word.map(({ ch, i }) => {
+              const order = direction === "ltr" ? i : letters.length - 1 - i;
+              return (
+                <span
+                  key={i}
+                  className="glow-wave-letter"
+                  style={{ animationDuration: `${speedMs}ms`, animationDelay: `${order * staggerMs}ms` }}
+                >
+                  {ch}
+                </span>
+              );
+            })}
           </span>
-        );
-      })}
+        </span>
+      ))}
     </Tag>
   );
 }
