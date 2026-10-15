@@ -61,7 +61,7 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
   });
 
   test("6. checkout on a real paid plan returns an honest 'billing not configured' state", async ({ request }) => {
-    const user = await createTestUser("sub-mvp", "ATHLETE");
+    const user = await createTestUser("sub-mvp", "ATHLETE", { dateOfBirth: new Date("2000-01-01") });
     const res = await request.post("/api/subscriptions/checkout", {
       headers: { Cookie: user.cookie },
       data: { planKey: "MVP" },
@@ -69,6 +69,28 @@ test.describe("Subscriptions & partnerships (Phase 7)", () => {
     expect(res.status()).toBe(503);
     const body = await res.json();
     expect(body.error).toContain("Stripe");
+  });
+
+  test("6b. checkout refuses minors — athletes under 18 never purchase for themselves", async ({ request }) => {
+    const minorDob = new Date();
+    minorDob.setFullYear(minorDob.getFullYear() - 15);
+    const user = await createTestUser("sub-minor", "ATHLETE", { dateOfBirth: minorDob });
+    const res = await request.post("/api/subscriptions/checkout", {
+      headers: { Cookie: user.cookie },
+      data: { planKey: "MVP" },
+    });
+    expect(res.status()).toBe(403);
+    const body = await res.json();
+    expect(body.error).toContain("adults");
+  });
+
+  test("6c. checkout fails closed when no date of birth is on file", async ({ request }) => {
+    const user = await createTestUser("sub-nodob", "ATHLETE");
+    const res = await request.post("/api/subscriptions/checkout", {
+      headers: { Cookie: user.cookie },
+      data: { planKey: "MVP" },
+    });
+    expect(res.status()).toBe(403);
   });
 
   test("7. checkout rejects an unknown plan key", async ({ request }) => {

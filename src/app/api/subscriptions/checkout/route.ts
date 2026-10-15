@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import { checkoutInputSchema } from "@/lib/validation";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { isStripeConfigured, getStripeClient } from "@/lib/stripe";
+import { isMinor } from "@/lib/permissions";
 
 /**
  * Starts a Stripe Checkout session for the signed-in user's own individual
@@ -48,6 +49,20 @@ export async function POST(request: Request) {
     }, { status: 400 });
   }
 
+  // Minors never purchase for themselves (parent/guardian pays — see the
+  // Phase 2 decision brief and the Texas SCOPE Act note on minors making
+  // purchases). Fail closed: a missing date of birth is treated as a
+  // minor here, because isMinor() alone returns false for a null DOB.
+  const account = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { dateOfBirth: true },
+  });
+  if (!account?.dateOfBirth || isMinor(account.dateOfBirth)) {
+    return NextResponse.json({
+      error: "Paid plans can only be purchased by adults (18+). Your account doesn't show a date of birth of 18 or older — contact MENTA support to update it. Parent-paid plans for athletes aren't available yet.",
+    }, { status: 403 });
+  }
+
   if (!isStripeConfigured() || !plan.stripePriceId) {
     return NextResponse.json({
       error: "Billing isn't connected yet — an administrator needs to configure Stripe and this plan's price before checkout can run.",
@@ -67,6 +82,12 @@ export async function POST(request: Request) {
     customer_email: existing?.stripeCustomerId ? undefined : user.email,
     client_reference_id: user.id,
     metadata: { userId: user.id, planKey: plan.key },
+    // Copied onto the Subscription itself so the webhook can still attach
+    // it if customer.subscription.* arrives before checkout.session.completed.
+    subscription_data: {
+      metadata: { userId: user.id, planKey: plan.key },
+      billing_mode: { type: "flexible" },
+    },
     // Same `|| "http://localhost:3000"` fallback already used by
     // src/lib/oauth.ts and the Google Classroom integration routes —
     // without it, a missing APP_URL silently produced a URL beginning

@@ -63,10 +63,10 @@ export async function createTestAthlete(tag: string, sport: string, position: st
  * without an AthleteProfile/AthleteSportContext, for tests that need a
  * coach, a second athlete, or any other role as a plain team member.
  */
-export async function createTestUser(tag: string, role: string) {
+export async function createTestUser(tag: string, role: string, options: { dateOfBirth?: Date } = {}) {
   const email = `e2e-api-${E2E_RUN_ID}-${tag}-${Math.random().toString(36).slice(2, 8)}@example.test`;
   const user = await testPrisma.user.create({
-    data: { name: `E2E API ${role}`, email, passwordHash: "x", role, emailVerified: new Date() },
+    data: { name: `E2E API ${role}`, email, passwordHash: "x", role, emailVerified: new Date(), dateOfBirth: options.dateOfBirth },
   });
 
   const token = crypto.randomBytes(32).toString("hex");

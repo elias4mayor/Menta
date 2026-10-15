@@ -32,6 +32,7 @@ jobs:
       # Throwaway credentials for an ephemeral, network-isolated CI service
       # container — never a real deployment's database.
       DATABASE_URL: "postgresql://menta:menta@localhost:5432/menta_e2e"
+      DATABASE_URL_POOLED: "postgresql://menta:menta@localhost:5432/menta_e2e"
       # Any 32+ byte value works here; this is a throwaway secret for an
       # ephemeral CI database, not a real deployment.
       SESSION_SECRET: "ci-e2e-session-secret-not-for-production-use-only"
