@@ -24,7 +24,7 @@ export async function GET(
   store.set(`oauth_state_${p}`, state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: p === "apple" ? "none" : "lax",
     path: "/",
     maxAge: 600,
   });

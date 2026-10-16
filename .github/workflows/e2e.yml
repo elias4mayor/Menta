@@ -59,6 +59,9 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Test mobile sign-in tamper protection
+        run: npm run test:mobile-auth
+
       - name: Generate Prisma client
         run: npx prisma generate
 

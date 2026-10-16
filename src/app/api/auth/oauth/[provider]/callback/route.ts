@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroyAllSessions } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import crypto from "node:crypto";
+import { MOBILE_CALLBACK, MOBILE_FLOW_COOKIE, readMobileFlow, sha256 } from "@/lib/mobile-auth-flow";
 import {
   OAUTH_PROVIDERS,
   isOAuthConfigured,
@@ -10,9 +12,10 @@ import {
   type OAuthProviderId,
 } from "@/lib/oauth";
 
-const ID_FIELD: Record<OAuthProviderId, "googleId" | "facebookId"> = {
+const ID_FIELD: Record<OAuthProviderId, "googleId" | "facebookId" | "appleId"> = {
   google: "googleId",
   facebook: "facebookId",
+  apple: "appleId",
 };
 
 export async function GET(
@@ -32,8 +35,9 @@ export async function GET(
   }
 
   const url = new URL(request.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
+  const form = request.method === "POST" ? await request.formData().catch(() => null) : null;
+  const code = form ? String(form.get("code") ?? "") : url.searchParams.get("code");
+  const state = form ? String(form.get("state") ?? "") : url.searchParams.get("state");
 
   const store = await cookies();
   const stateCookieName = `oauth_state_${p}`;
@@ -46,7 +50,7 @@ export async function GET(
 
   let profile;
   try {
-    profile = await exchangeCodeForProfile(p, code);
+    profile = await exchangeCodeForProfile(p, code, expectedState);
   } catch {
     return NextResponse.redirect(`${origin}/login?oauthError=exchange_failed&provider=${p}`);
   }
@@ -113,5 +117,20 @@ export async function GET(
   await createSession(user.id, request.headers.get("user-agent"));
   await logAudit({ actorId: user.id, action: `auth.oauth_login_${p}` });
 
+  const mobileFlow = process.env.SESSION_SECRET ? readMobileFlow(store.get(MOBILE_FLOW_COOKIE)?.value, process.env.SESSION_SECRET) : null;
+  store.delete(MOBILE_FLOW_COOKIE);
+  if (mobileFlow) {
+    const handoffCode = crypto.randomBytes(32).toString("base64url");
+    await prisma.mobileAuthCode.create({ data: {
+      codeHash: sha256(handoffCode), userId: user.id, challenge: mobileFlow.challenge, expiresAt: new Date(Date.now() + 60000),
+    } });
+    const callback = new URL(MOBILE_CALLBACK);
+    callback.searchParams.set("code", handoffCode);
+    callback.searchParams.set("state", mobileFlow.state);
+    return NextResponse.redirect(callback, 303);
+  }
+
   return NextResponse.redirect(`${origin}${isNewUser ? "/onboarding" : "/dashboard"}`);
 }
+
+export const POST = GET;
