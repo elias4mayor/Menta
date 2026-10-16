@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Select } from "@/components/Select";
+import { LiveWorkout } from "@/components/LiveWorkout";
 
 export type PlanWorkoutItem = {
   id: string;
@@ -38,6 +39,7 @@ export function PlanCard({
   const [items, setItems] = useState(workouts);
   const [selectedId, setSelectedId] = useState(workouts[0]?.id ?? "");
   const [completing, setCompleting] = useState(false);
+  const [live, setLive] = useState(false);
 
   const selected = useMemo(() => items.find((w) => w.id === selectedId) ?? items[0], [items, selectedId]);
   const startedCount = items.filter((w) => w.yourCompletions > 0).length;
@@ -139,7 +141,17 @@ export function PlanCard({
             </ul>
           )}
           <div className="flex items-center gap-3">
-            <button type="button" disabled={completing} onClick={() => markComplete(selected.id)} className="btn-primary">
+            {selected.exercises.length > 0 && (
+              <button type="button" onClick={() => setLive(true)} className="btn-primary">
+                Start workout
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={completing}
+              onClick={() => markComplete(selected.id)}
+              className={selected.exercises.length > 0 ? "text-xs text-text-2 hover:text-text-1" : "btn-primary"}
+            >
               {completing ? "Saving…" : "Mark workout complete"}
             </button>
             <Link href="/train" className="text-xs text-text-2 hover:text-text-1">
@@ -147,6 +159,14 @@ export function PlanCard({
             </Link>
           </div>
         </div>
+      )}
+      {live && selected && (
+        <LiveWorkout
+          workoutName={selected.title}
+          exercises={selected.exercises}
+          onFinish={() => markComplete(selected.id)}
+          onClose={() => setLive(false)}
+        />
       )}
     </div>
   );
