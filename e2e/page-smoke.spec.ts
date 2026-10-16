@@ -29,6 +29,9 @@ test.describe("Page smoke regression — athlete", () => {
     await page.locator("#onb-school").fill("MENTA Smoke Test High School");
     await page.getByRole("button", { name: "Continue" }).click();
     await waitForOnboardingStep(page);
+    await expect(page.locator("#onb-height")).toBeVisible();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await waitForOnboardingStep(page);
     await page.getByRole("button", { name: "Continue" }).click();
     await waitForOnboardingStep(page);
     await page.getByRole("button", { name: "Build my MENTA" }).click();
