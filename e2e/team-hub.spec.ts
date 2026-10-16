@@ -13,6 +13,8 @@ const headers = (user: { cookie: string }) => ({ Cookie: user.cookie });
 test.afterAll(async () => {
   const users = await testPrisma.user.findMany({ where: { email: { contains: E2E_RUN_ID } }, select: { id: true } });
   const ids = users.map((u) => u.id);
+  await testPrisma.block.deleteMany({ where: { OR: [{ blockerId: { in: ids } }, { blockedId: { in: ids } }] } });
+  await testPrisma.conversation.deleteMany({ where: { participants: { some: { userId: { in: ids } } } } });
   await testPrisma.guardianLink.deleteMany({ where: { OR: [{ athleteId: { in: ids } }, { guardianId: { in: ids } }] } });
   await testPrisma.team.deleteMany({ where: { createdById: { in: ids } } });
   await cleanupE2eUsers(); await testPrisma.$disconnect();
@@ -112,6 +114,29 @@ test("coach completion status comes from the coach profile", async ({ request })
   expect((await (await request.get("/api/auth/me", { headers: headers(coach) })).json()).onboardingCompleted).toBe(false);
   await testPrisma.coachProfile.create({ data: { userId: coach.userId, onboardingCompletedAt: new Date() } });
   expect((await (await request.get("/api/auth/me", { headers: headers(coach) })).json()).onboardingCompleted).toBe(true);
+});
+
+test("blocking a teammate stops sends in an already-created direct conversation", async ({ request }) => {
+  const { coach, athlete } = await setup();
+  const started = await request.post("/api/messages", { headers: headers(coach), data: { userId: athlete.userId } });
+  expect(started.status()).toBe(200);
+  const { conversation } = await started.json();
+  expect((await request.post(`/api/messages/${conversation.id}`, { headers: headers(coach), data: { body: "First message" } })).status()).toBe(200);
+  expect((await request.post("/api/messages/block", { headers: headers(athlete), data: { userId: coach.userId } })).status()).toBe(200);
+  expect((await request.post(`/api/messages/${conversation.id}`, { headers: headers(coach), data: { body: "Blocked message" } })).status()).toBe(403);
+});
+
+test("guardian direct messages require approval and stop after the link is revoked", async ({ request }) => {
+  const guardian = await createTestUser("guardian-message", "PARENT");
+  const athlete = await createTestUser("guardian-athlete", "ATHLETE");
+  const link = await testPrisma.guardianLink.create({ data: { guardianId: guardian.userId, athleteId: athlete.userId, status: "PENDING" } });
+  expect((await request.post("/api/messages", { headers: headers(guardian), data: { userId: athlete.userId } })).status()).toBe(403);
+  await testPrisma.guardianLink.update({ where: { id: link.id }, data: { status: "APPROVED" } });
+  const started = await request.post("/api/messages", { headers: headers(guardian), data: { userId: athlete.userId } });
+  expect(started.status()).toBe(200);
+  const { conversation } = await started.json();
+  await testPrisma.guardianLink.update({ where: { id: link.id }, data: { status: "REVOKED" } });
+  expect((await request.post(`/api/messages/${conversation.id}`, { headers: headers(guardian), data: { body: "No connection" } })).status()).toBe(403);
 });
 
 test("academic support is opt-in, deduplicated, private, and stops after consent or team revocation", async ({ request }) => {
