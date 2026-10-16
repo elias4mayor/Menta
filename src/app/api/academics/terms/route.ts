@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { createAcademicTermSchema } from "@/lib/validation";
 import { logAudit } from "@/lib/audit";
+import { recordAcademicGrade } from "@/lib/academic-support";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
   const term = await prisma.academicTerm.create({
     data: { userId: user.id, ...parsed.data },
   });
+  if (term.gpa !== null && term.gpaScale !== null) await recordAcademicGrade(user.id, `term:${term.id}`, term.gpa, term.gpaScale);
 
   await logAudit({ actorId: user.id, action: "academics.term_created", targetType: "AcademicTerm", targetId: term.id });
 

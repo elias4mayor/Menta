@@ -27,11 +27,14 @@ export const ROLES = [
   "DOCTOR",
   "ATHLETE",
   "PARENT",
+  "TEACHER",
+  "STUDENT",
+  "STAFF",
 ] as const;
 
 export type Role = (typeof ROLES)[number];
 
-export const TEAM_ROLES = ["COACH", "ATHLETE", "TRAINER", "DOCTOR", "PARENT", "ADMIN"] as const;
+export const TEAM_ROLES = ["COACH", "ATHLETE", "TRAINER", "DOCTOR", "PARENT", "ADMIN", "TEACHER", "STAFF"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 /** Team roles MENTA Care can route an athlete's request to. */
@@ -102,6 +105,17 @@ export async function getTeamRole(userId: string, teamId: string): Promise<TeamR
 export async function isTeamCoachOrAdmin(userId: string, teamId: string): Promise<boolean> {
   const role = await getTeamRole(userId, teamId);
   return role === "COACH" || role === "ADMIN";
+}
+
+/** Staff appointments require a current team admin or the team's creator
+ * who still holds a coaching membership. Account role and granular film
+ * grants alone never authorize appointing staff. */
+export async function canApproveTeamStaff(userId: string, teamId: string): Promise<boolean> {
+  const role = await getTeamRole(userId, teamId);
+  if (role === "ADMIN") return true;
+  if (role !== "COACH") return false;
+  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { createdById: true } });
+  return team?.createdById === userId;
 }
 
 /**

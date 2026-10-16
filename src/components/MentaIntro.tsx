@@ -5,6 +5,10 @@ import { useEffect, useRef, useState } from "react";
 type Phase = "empty" | "mark" | "hello" | "welcome" | "role" | "categories" | "build" | "reveal";
 
 const ROLE_COPY: Record<string, { message: string; categories: string }> = {
+  TEACHER: { message: "YOUR SCHOOL CONNECTION STARTS HERE.", categories: "CLASSROOM. SUPPORT. COMMUNICATION." },
+  STUDENT: { message: "YOUR SCHOOL DAY STARTS HERE.", categories: "CLASSES. ASSIGNMENTS. TEAM. CONNECTION." },
+  STAFF: { message: "YOUR TEAM SUPPORT STARTS HERE.", categories: "OPERATIONS. SCHEDULES. COMMUNICATION." },
+  DOCTOR: { message: "YOUR CARE WORKSPACE STARTS HERE.", categories: "CARE. APPOINTMENTS. RECOVERY." },
   ATHLETE: {
     message: "YOUR JOURNEY STARTS HERE.",
     categories: "PERFORMANCE. MINDSET. RECOVERY. DEVELOPMENT.",

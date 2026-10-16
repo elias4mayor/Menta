@@ -32,7 +32,7 @@ export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(10, "Use at least 10 characters"),
-  role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER", "DOCTOR"]).default("ATHLETE"),
+  role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER", "DOCTOR", "TEACHER", "STUDENT", "STAFF"]).default("ATHLETE"),
   dateOfBirth: z.string().optional(),
 });
 
@@ -373,14 +373,15 @@ export const sendMessageSchema = z.object({
 });
 
 export const createEventSchema = z.object({
+  kind: z.enum(["GENERAL", "PRACTICE", "WEIGHT_ROOM", "GAME", "BUS", "CLASS", "APPOINTMENT"]).default("GENERAL"),
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2000).optional(),
-  startsAt: z.string().min(1),
-  endsAt: z.string().optional(),
+  startsAt: z.string().datetime({ offset: true }),
+  endsAt: z.string().datetime({ offset: true }).optional(),
   location: z.string().trim().max(200).optional(),
   teamId: z.string().optional(),
   visibility: z.enum(["PRIVATE", "TEAM", "PUBLIC"]).default("PRIVATE"),
-});
+}).refine((event) => !event.endsAt || new Date(event.endsAt) > new Date(event.startsAt), { message: "The end must be after the start.", path: ["endsAt"] });
 
 export const aiChatSchema = z.object({
   conversationId: z.string().optional(),

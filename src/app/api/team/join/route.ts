@@ -31,16 +31,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You're already on this team." }, { status: 409 });
   }
 
-  const teamRole =
-    user.role === "COACH"
-      ? "COACH"
-      : user.role === "TRAINER"
-        ? "TRAINER"
-        : user.role === "DOCTOR"
-          ? "DOCTOR"
-          : user.role === "PARENT"
-            ? "PARENT"
-            : "ATHLETE";
+  // A shared roster code is never evidence of staff authority. In
+  // particular, signup's self-selected account role must not grant access
+  // to another team's coaching tools or athlete information.
+  if (!["ATHLETE", "PARENT", "STUDENT"].includes(user.role)) {
+    return NextResponse.json({
+      error: "Staff membership requires approval from the team owner or an administrator. Ask them to add you to the team.",
+    }, { status: 403 });
+  }
+  const teamRole = user.role === "PARENT" ? "PARENT" : "ATHLETE";
 
   if (teamRole === "ATHLETE") {
     const rosterLimit = await getTeamRosterLimit(team.id);

@@ -58,6 +58,13 @@ model User {
   trainerProfile              TrainerProfile?
   parentProfile               ParentProfile?
   doctorProfile               DoctorProfile?
+  schoolProfile               SchoolProfile?
+  academicSupportSettings     AcademicSupportSettings?
+  academicSupportGrants       AcademicSupportGrant[] @relation("AcademicSupportOwner")
+  academicSupportRecipients   AcademicSupportGrant[] @relation("AcademicSupportRecipient")
+  academicGradeStates         AcademicGradeState[]
+  academicAlertSignals        AcademicAlertSignal[]
+  teamAnnouncements           TeamAnnouncement[]
   sessions                    Session[]
   resetTokens                 PasswordResetToken[]
   emailVerificationCodes      EmailVerificationCode[]
@@ -441,6 +448,8 @@ model Team {
   exercises               Exercise[]
   trainingPrograms        TrainingProgram[]
   trainingSessions        TrainingSession[]
+  announcements           TeamAnnouncement[]
+  chatGroups              Conversation[] @relation("ChatGroupTeam")
 
   @@index([organizationId])
 }
@@ -643,9 +652,14 @@ model Conversation {
   isGroup   Boolean  @default(false)
   teamId    String?  @unique
   title     String?
+  scopeTeamId String?
+  groupOwnerId String?
+  joinCode String? @unique
+  staffOnly Boolean @default(false)
   createdAt DateTime @default(now())
 
   team         Team?                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  groupTeam    Team?                     @relation("ChatGroupTeam", fields: [scopeTeamId], references: [id], onDelete: Cascade)
   participants ConversationParticipant[]
   messages     Message[]
 }
@@ -689,6 +703,7 @@ model CalendarEvent {
   teamId      String?
   createdById String
   visibility  String    @default("PRIVATE")
+  kind        String    @default("GENERAL")
   createdAt   DateTime  @default(now())
   /// Set only for events created by an integration sync (e.g. "GOOGLE_CLASSROOM"); null for events an athlete/coach created directly in MENTA.
   source      String?
@@ -2619,4 +2634,56 @@ model MobileAuthCode {
   consumedAt DateTime?
 
   @@index([expiresAt])
+}
+
+/// School-facing setup does not verify employment or grant access to student data.
+/// Roles TEACHER, STUDENT, STAFF have distinct setup copy and remain unprivileged.
+model SchoolProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  schoolName            String
+  focus                 String?
+  onboardingCompletedAt DateTime?
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Team-member feed. Only the team's coach/admin can publish official announcements.
+model TeamAnnouncement {
+  id        String   @id @default(cuid())
+  teamId    String
+  authorId  String
+  title     String
+  body      String
+  important Boolean  @default(false)
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  @@index([teamId, createdAt])
+}
+
+model AcademicSupportSettings {
+  userId String @id
+  enabled Boolean @default(false)
+  threshold Float @default(70)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model AcademicSupportGrant {
+  id String @id @default(cuid())
+  ownerId String
+  supporterId String
+  createdAt DateTime @default(now())
+  owner User @relation("AcademicSupportOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  supporter User @relation("AcademicSupportRecipient", fields: [supporterId], references: [id], onDelete: Cascade)
+  @@unique([ownerId, supporterId])
+}
+model AcademicGradeState {
+  id String @id
+  userId String
+  percent Float
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model AcademicAlertSignal {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

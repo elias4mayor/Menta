@@ -4,12 +4,10 @@ import { getSessionUser } from "@/lib/session";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { canReadConversation } from "@/lib/conversation-access";
 
 async function assertParticipant(userId: string, conversationId: string) {
-  const participant = await prisma.conversationParticipant.findUnique({
-    where: { conversationId_userId: { conversationId, userId } },
-  });
-  return Boolean(participant);
+  return canReadConversation(userId, conversationId);
 }
 
 export async function GET(

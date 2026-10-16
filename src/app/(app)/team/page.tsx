@@ -7,6 +7,8 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 import { EmptyState } from "@/components/EmptyState";
 import { VerifyProviderButton } from "@/components/VerifyProviderButton";
 import { NavTile } from "@/components/NavTile";
+import { TeamStaffAppointment } from "@/components/TeamStaffAppointment";
+import { canApproveTeamStaff } from "@/lib/permissions";
 import { PROVIDER_TEAM_ROLES, hasTeamPermission, isTeamFilmStaff } from "@/lib/permissions";
 
 export default async function TeamPage() {
@@ -42,6 +44,7 @@ export default async function TeamPage() {
     )
   );
 
+  const canAppointByTeam = new Map(await Promise.all(memberships.map(async (m) => [m.teamId, await canApproveTeamStaff(user.id, m.teamId)] as const)));
   return (
     <div className="max-w-3xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Team</div>
@@ -65,6 +68,7 @@ export default async function TeamPage() {
                     <span className="badge">{m.teamRole}</span>
                   </div>
                   {m.team.sport && <p className="text-text-2 text-sm mb-4">{m.team.sport}</p>}
+                  {canAppointByTeam.get(m.teamId) && <TeamStaffAppointment teamId={m.teamId} />}
                   {isCoachOrAdmin && (
                     <p className="mono text-text-3 mb-4">
                       Invite code: <span className="text-text-1">{m.team.inviteCode}</span>

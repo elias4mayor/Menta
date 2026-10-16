@@ -12,6 +12,9 @@ const ROLES = [
   { value: "PARENT", label: "Parent / Guardian" },
   { value: "TRAINER", label: "Trainer" },
   { value: "DOCTOR", label: "Doctor / Medical Provider" },
+  { value: "TEACHER", label: "Teacher" },
+  { value: "STUDENT", label: "Student" },
+  { value: "STAFF", label: "Team / school staff" },
 ];
 
 export default function SignupPage() {

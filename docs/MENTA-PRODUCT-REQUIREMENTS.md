@@ -55,3 +55,20 @@ Native: iPhone and iPad builds/tests, workout draft/save/run, pause/resume/expir
 Server: schema/type/lint checks; authorization, isolation, validation, onboarding retry behavior, correct PR comparison, academic sharing/revocation, notification deduplication, coach/group permissions, and end-to-end browser/API/database checks.
 
 Passing compilation does not establish live provider setup, district integration, payment correctness, or complete competitor parity. Record unverified areas honestly.
+
+## Expanded product direction
+
+The user confirmed a connected platform spanning academics, athletics, health, communication, and recruiting. Keep the approved clean athletic/Apple Health visual feel. This list is a delivery backlog, not a claim of live capability.
+
+- Real-time direct/group messaging, voice commands, team/community updates and celebrations.
+- Team schedules, calendar syncing, travel itineraries/logistics, offline travel access.
+- Important-only push notifications, secure file sharing, custom organization branding.
+- Coach analytics, interactive film/video feedback, goals, earned progress badges and achievements.
+- Personalized AI training and academic suggestions; adaptive coaching with explicit review/constraints.
+- School-system integrations, academic support and tutoring, wearable/health integration.
+
+Current implementation focus: team hub, official announcements, categorized schedule creation, roster/subgroup code joining, role-aware setup, permission-safe messaging, and opt-in academic support signals. In-app notification records are not device push delivery. Google Classroom is an existing explicit connection, not general SIS/district interoperability. Existing provider-backed AI is not adaptive real-time coaching. Wearables, voice, offline sync/conflict handling, background push delivery, tutoring services, multi-leg logistics, organization theming, community moderation, and earned-achievement rules need distinct implementation and verification.
+
+Teamworks public baseline reviewed: https://teamworks.com/hub and https://help.teamworks.com/support/s/athlete-resources . Documented areas include news, messaging, calendars, tasks, files/forms, travel and roster management. Public documentation does not establish all private product behavior or imply interoperability.
+
+The adaptive-coach direction is explicit: use consented wearable data, the athlete's training plan, schoolwork, and real schedule to suggest training, rest, and study actions. Recommendations must identify their data source and freshness, retain athlete/coach control over plan changes, and support reminders without fabricating health measurements or silently changing prescriptions. This is a future feature specification; no wearable feed or dynamic coaching engine is connected by the team-hub update.

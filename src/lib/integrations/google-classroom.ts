@@ -1,4 +1,5 @@
 import "server-only";
+import { recordAcademicGrade } from "@/lib/academic-support";
 import { prisma } from "@/lib/prisma";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 
@@ -360,6 +361,9 @@ export async function syncClassroomForUser(userId: string): Promise<ClassroomSyn
           },
         });
         submissionsSynced++;
+        if (sub.assignedGrade !== undefined && cw.maxPoints && sub.state === "RETURNED") {
+          await recordAcademicGrade(userId, `classroom:${assignment.id}:${sub.id}`, sub.assignedGrade, cw.maxPoints);
+        }
       }
 
       // Mirror into the existing calendar — one stable event per

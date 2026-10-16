@@ -5,6 +5,7 @@ import { TrainerOnboarding } from "@/components/TrainerOnboarding";
 import { ParentOnboarding } from "@/components/ParentOnboarding";
 import { DoctorOnboarding } from "@/components/DoctorOnboarding";
 import { OnboardingGate } from "@/components/OnboardingGate";
+import { SchoolOnboarding } from "@/components/SchoolOnboarding";
 
 export default async function OnboardingPage() {
   const user = await requireUser("/onboarding");
@@ -14,6 +15,7 @@ export default async function OnboardingPage() {
   else if (user.role === "TRAINER") content = <TrainerOnboarding name={user.name} />;
   else if (user.role === "PARENT") content = <ParentOnboarding name={user.name} />;
   else if (user.role === "DOCTOR") content = <DoctorOnboarding name={user.name} />;
+  else if (user.role === "TEACHER" || user.role === "STUDENT" || user.role === "STAFF") content = <SchoolOnboarding role={user.role} />;
   else content = <OnboardingExperience name={user.name} />;
 
   return (

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
 import { isGoogleClassroomConfigured } from "@/lib/integrations/google-classroom";
 import { AcademicGoals } from "@/components/AcademicGoals";
+import { AcademicSupportSettings } from "@/components/AcademicSupportSettings";
 import { AssignmentTracker } from "@/components/AssignmentTracker";
 import { AcademicTerms } from "@/components/AcademicTerms";
 import { EligibilityChecklist } from "@/components/EligibilityChecklist";
@@ -175,6 +176,7 @@ export default async function SchoolPage() {
         <EligibilityChecklist initial={eligibilityItems} />
       </section>
 
+      <AcademicSupportSettings />
       {/* MENTA STUDY HELP */}
       <section>
         <div className="flex items-center gap-2 mb-4">

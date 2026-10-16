@@ -81,6 +81,7 @@ export async function proxy(request: NextRequest) {
                 trainerProfile: { select: { onboardingCompletedAt: true } },
                 parentProfile: { select: { onboardingCompletedAt: true } },
                 doctorProfile: { select: { onboardingCompletedAt: true } },
+                schoolProfile: { select: { onboardingCompletedAt: true } },
               },
             },
           },
@@ -103,6 +104,8 @@ export async function proxy(request: NextRequest) {
               ? user.parentProfile?.onboardingCompletedAt
               : user.role === "DOCTOR"
                 ? user.doctorProfile?.onboardingCompletedAt
+                : ["TEACHER", "STUDENT", "STAFF"].includes(user.role)
+                  ? user.schoolProfile?.onboardingCompletedAt
                 : user.role === "ATHLETE"
                   ? user.athleteProfile?.onboardingCompletedAt
                   : // Internal/staff roles (SUPER_ADMIN, DEVELOPER, MENTA_STAFF,

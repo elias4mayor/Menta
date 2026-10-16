@@ -111,6 +111,37 @@ but not a distinct summary view), and no team-wide analytics view.
 
 ## Security notes
 
+### Team roster codes and staff appointments
+
+Shared team invite codes admit `ATHLETE`, `STUDENT`, and `PARENT` accounts, using
+those non-staff team roles. A self-selected account role never grants staff
+membership through a roster code. Other accounts receive `403` and no membership
+or team-chat access is created.
+
+Staff appointments currently use the authenticated API:
+`POST /api/teams/{teamId}/staff` with `{ "userId": "recipient-user-id", "teamRole": "COACH" }`.
+Allowed roles are `COACH`, `TRAINER`, `DOCTOR`, `TEACHER`, and `STAFF`. The team owner can appoint a known verified account by its email through the team roster page. Only a current team `ADMIN`,
+or the team's creator who still holds a `COACH` membership, may appoint staff.
+Both accounts must have verified email addresses, and the recipient's account
+role must match the appointed role. Self-appointment and existing-role replacement
+are rejected. Repeating the same appointment preserves the existing membership.
+Appointments are audited and add the recipient to an existing team conversation.
+
+This endpoint does not grant `ADMIN`, and an appointed provider still needs the
+existing separate provider-verification step before athletes may book care. An
+appointed coach gets the existing team-wide coaching permissions but cannot
+appoint further staff unless they are the team's creator or an admin. There is
+an owner-only staff-appointment form on the team roster page.
+
+Before rollout, team owners must review existing staff memberships and grants:
+this change prevents new roster-code escalations but cannot establish whether
+historical memberships were legitimately authorized. Run
+`npx playwright test e2e/team-invite-security.spec.ts` against an isolated test
+database and server before release. Minor/consent, general email-verification,
+billing, and live-training audit findings remain separate work.
+
+### Other protections
+
 - Passwords hashed with bcrypt (cost 12)
 - Sessions are opaque server-side tokens (HMAC'd, DB-backed, revocable) in
   `httpOnly`, `secure` (production), `sameSite=lax` cookies — not a bare JWT
@@ -243,3 +274,13 @@ src/components/             Shared UI
 Phase 2 per the build plan: Training, Performance, Film (with a real
 video-analysis integration), Highlight builder, Academics, and Recruiting —
 in that order, each one fully working before the next starts.
+
+## Team hub and academic support continuation
+
+The mobile team-home API returns only teams the caller belongs to, team announcements, and categorized events for the upcoming fortnight. Roster codes are restricted to non-staff enrollment. Coaches and team admins publish official announcements; every group participant can post discussion messages. Custom chat groups have team-scoped join codes and optional approved-staff restrictions, and group reads/writes recheck current membership. The team roster offers explicit owner/admin staff appointments by verified account email.
+
+Teacher, student, and support-staff accounts have distinct school setup flows. These preferences do not verify employment, grant administrative access, or expose student grades. Native sign-in uses each role's real completion status.
+
+Academic support notifications are opt-in. The account chooses a scale-percentage threshold and optional approved guardians or current team coaches/admins/teachers. Returned, synced Classroom grades and self-reported GPA changes can generate in-app support reminders. Repeat syncs of the same result are deduplicated. Supporters receive a general check-in request, not grades, class names, coursework or notes. Current relationships and active consent are checked for future sends. This does not provide district/SIS integration, background syncing, device push delivery, or an academic eligibility determination.
+
+This update adds a database migration. Apply the existing mobile-auth migration and the team-hub migration in an isolated staging database before using the new client. No migration has been applied to a deployed database by this work.

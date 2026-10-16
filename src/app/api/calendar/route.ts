@@ -49,6 +49,7 @@ export async function POST(request: Request) {
   const event = await prisma.calendarEvent.create({
     data: {
       title: parsed.data.title,
+      kind: parsed.data.kind,
       description: parsed.data.description,
       startsAt: new Date(parsed.data.startsAt),
       endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : undefined,
