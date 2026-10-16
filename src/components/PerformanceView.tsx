@@ -13,6 +13,17 @@ type Entry = {
   note: string | null;
 };
 
+/** Common athletic-testing stats — a quick-fill shortcut, not a restriction; the field stays free text for anything else. */
+const STAT_PRESETS: { label: string; unit: string }[] = [
+  { label: "40-Yard Dash", unit: "sec" },
+  { label: "Vertical Jump", unit: "in" },
+  { label: "Broad Jump", unit: "in" },
+  { label: "Bench Press", unit: "lbs" },
+  { label: "Back Squat", unit: "lbs" },
+  { label: "Height", unit: "in" },
+  { label: "Weight", unit: "lbs" },
+];
+
 export function PerformanceView({ initialEntries }: { initialEntries: Entry[] }) {
   const router = useRouter();
   const [entries, setEntries] = useState(initialEntries);
@@ -71,6 +82,22 @@ export function PerformanceView({ initialEntries }: { initialEntries: Entry[] })
 
       {showForm && (
         <form onSubmit={submit} className="card p-5 space-y-3 mb-6">
+          <div className="flex gap-2 flex-wrap">
+            {STAT_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                className="badge"
+                style={{ cursor: "pointer", opacity: statName === p.label ? 1 : 0.6 }}
+                onClick={() => {
+                  setStatName(p.label);
+                  setUnit(p.unit);
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
           <input className="field-input" placeholder="Stat name (e.g. 40-yard dash, Points, ERA)" value={statName} onChange={(e) => setStatName(e.target.value)} required />
           <div className="grid grid-cols-2 gap-3">
             <input type="number" step="any" className="field-input" placeholder="Value" value={value} onChange={(e) => setValue(e.target.value)} required />
