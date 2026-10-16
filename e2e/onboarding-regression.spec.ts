@@ -57,6 +57,9 @@ test.describe("Onboarding handoff regression — all roles", () => {
     await page.locator("#onb-school").fill("MENTA E2E Regression High School");
     await page.getByRole("button", { name: "Continue" }).click();
     await page.waitForTimeout(320);
+    await expect(page.locator("#onb-height")).toBeVisible();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText("Select everything you want MENTA to help you improve.")).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await page.waitForTimeout(320);
     await page.getByRole("button", { name: "Build my MENTA" }).click();
