@@ -450,8 +450,51 @@ model Team {
   trainingSessions        TrainingSession[]
   announcements           TeamAnnouncement[]
   chatGroups              Conversation[] @relation("ChatGroupTeam")
+  games                   GameDay[]
 
   @@index([organizationId])
+}
+
+/// Public game information is explicitly published by team leadership.
+/// scorerId alone grants no access: current membership is checked on every write.
+model GameDay {
+  id           String @id @default(cuid())
+  teamId       String
+  opponentName String
+  homeName     String
+  homeLogo     String?
+  awayLogo     String?
+  startsAt     DateTime
+  venue        String
+  visitorInfo  String @default("")
+  watchUrl     String?
+  ticketUrl    String?
+  published    Boolean @default(false)
+  scorerId     String?
+  homeScore    Int @default(0)
+  awayScore    Int @default(0)
+  period       String @default("Pregame")
+  status       String @default("SCHEDULED")
+  version      Int @default(0)
+  updatedAt    DateTime @updatedAt
+  team         Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  updates      GameScoreUpdate[]
+  @@index([teamId, startsAt])
+}
+
+model GameScoreUpdate {
+  id        String @id @default(cuid())
+  gameId    String
+  actorId   String
+  version   Int
+  homeScore Int
+  awayScore Int
+  period    String
+  status    String
+  note      String
+  createdAt DateTime @default(now())
+  game      GameDay @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  @@unique([gameId, version])
 }
 
 /// TeamRole: COACH, ATHLETE, TRAINER, DOCTOR, PARENT, ADMIN

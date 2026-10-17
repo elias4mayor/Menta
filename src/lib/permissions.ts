@@ -128,6 +128,12 @@ export async function canManageTeam(user: SessionUser, teamId: string): Promise<
   return isTeamCoachOrAdmin(user.id, teamId);
 }
 
+export async function gameDayAccess(userId: string, game: { teamId: string; scorerId: string | null }) {
+  const role = await getTeamRole(userId, game.teamId);
+  const manage = role === "COACH" || role === "ADMIN";
+  return { member: role !== null, manage, score: manage || (role !== null && game.scorerId === userId) };
+}
+
 /** Edit/delete/reassign a workout: the person who created it, or (for a team workout) a coach/admin of that team. */
 export async function canManageWorkout(
   user: SessionUser,

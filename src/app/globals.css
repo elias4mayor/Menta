@@ -119,29 +119,31 @@ h4 {
   font-size: 11px;
 }
 
-/* ---------- logged-in app theme: white/off-white, not matte black ----------
+/* ---------- logged-in app theme: approved native matte black ----------
    Scoped to .app-shell only -- the marketing site and auth pages are
    untouched. Every component already reads color through the tokens
    above, so overriding them here re-themes the whole authenticated app
    from one place instead of touching each page. */
-.app-shell {
-  --bg: #ffffff;
-  --surface: #f5f5f7;
-  --surface-2: #eeeef0;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-soft: rgba(0, 0, 0, 0.05);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --text-1: #1d1d1f;
-  --text-2: #45454a;
-  --text-3: #6b6b70;
-  --grad-signal: linear-gradient(90deg, #3a3a3d, #000000);
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.14),
-    0 6px 16px -10px rgba(0, 0, 0, 0.07);
-  --topbar-bg: rgba(255, 255, 255, 0.75);
-  --bottomnav-bg: rgba(255, 255, 255, 0.9);
-  --nav-hover-bg: rgba(0, 0, 0, 0.08);
-  --sidebar-tint: rgba(0, 0, 0, 0.012);
-  --on-signal: #ffffff;
+.app-shell,
+.game-day-shell {
+  --bg: #080808;
+  --surface: #202020;
+  --surface-2: #292929;
+  --border: #363636;
+  --border-soft: #292929;
+  --border-strong: #707070;
+  --text-1: #f7f7f7;
+  --text-2: #b5b5b5;
+  --text-3: #ababab;
+  --grad-signal: #ffffff;
+  --shadow-card: none;
+  --topbar-bg: #080808;
+  --bottomnav-bg: #202020;
+  --nav-hover-bg: #292929;
+  --sidebar-tint: #080808;
+  --on-signal: #080808;
+  color-scheme: dark;
+  background: var(--bg);
   /* Explicit, not just the custom-property overrides above: <body> sets
      `color: var(--text-1)` and resolves it using the ROOT (dark-theme)
      --text-1, since body is an ancestor of .app-shell, not a descendant —
@@ -157,6 +159,15 @@ h4 {
   font-weight: 500;
   letter-spacing: -0.011em;
 }
+
+.app-shell :is(.field-input, .field-select, .field-textarea):focus,
+.game-day-shell :is(.field-input, .field-select, .field-textarea):focus {
+  outline: 2px solid #f7f7f7;
+  outline-offset: 2px;
+}
+
+.app-shell ::placeholder,
+.game-day-shell ::placeholder { color: #ababab; opacity: 1; }
 
 /* Card section labels ("TODAY", "PRIORITIES", "MENTA AI"...): a clean
    bold sans instead of the monospace/technical look used elsewhere on

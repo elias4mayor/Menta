@@ -35,6 +35,7 @@ function hashToken(token: string): string {
  */
 const PROTECTED_PREFIXES = [
   "/dashboard",
+  "/gameday",
   "/onboarding",
   "/profile",
   "/team",

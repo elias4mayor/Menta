@@ -68,6 +68,7 @@ export default async function TeamPage() {
                     <span className="badge">{m.teamRole}</span>
                   </div>
                   {m.team.sport && <p className="text-text-2 text-sm mb-4">{m.team.sport}</p>}
+                  <Link href="/gameday" className="btn-secondary inline-flex mb-4">Game day · Scores, watch & tickets</Link>
                   {canAppointByTeam.get(m.teamId) && <TeamStaffAppointment teamId={m.teamId} />}
                   {isCoachOrAdmin && (
                     <p className="mono text-text-3 mb-4">
