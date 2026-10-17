@@ -67,6 +67,9 @@ test("game publication, scoring authority, concurrent edits and revocation stay 
   const created = await request.post("/api/gameday", { headers: auth(coach.cookie), data: details });
   expect(created.status()).toBe(201);
   const { game } = await created.json();
+  const calendarGame = await testPrisma.calendarEvent.findFirstOrThrow({ where: { teamId: team.id, source: "MENTA_GAME_DAY", externalId: game.id } });
+  expect(calendarGame.kind).toBe("GAME");
+  expect(calendarGame.visibility).toBe("TEAM");
   const url = `/api/gameday/${game.id}`;
   expect((await request.get(url)).status()).toBe(404);
   expect((await request.get(url, { headers: auth(teammate.cookie) })).status()).toBe(200);

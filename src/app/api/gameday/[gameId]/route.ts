@@ -31,8 +31,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ga
   if (settings.scorerId && !(await prisma.teamMembership.findUnique({ where: { userId_teamId: { userId: settings.scorerId, teamId: game.teamId } } }))) {
     return NextResponse.json({ error: "Choose a current team member as scorekeeper." }, { status: 400 });
   }
-  const result = await prisma.gameDay.updateMany({ where: { id: gameId, version }, data: { ...settings, startsAt: new Date(settings.startsAt), version: { increment: 1 } } });
-  if (!result.count) return NextResponse.json({ error: "The game changed. Refresh before saving." }, { status: 409 });
+  const changed = await prisma.$transaction(async (tx) => {
+    const result = await tx.gameDay.updateMany({ where: { id: gameId, version }, data: { ...settings, startsAt: new Date(settings.startsAt), version: { increment: 1 } } });
+    if (!result.count) return false;
+    await tx.calendarEvent.updateMany({ where: { teamId: game.teamId, source: "MENTA_GAME_DAY", externalId: gameId }, data: {
+      title: `${game.status === "CANCELLED" ? "Cancelled: " : ""}${settings.homeName} vs ${settings.opponentName}`,
+      startsAt: new Date(settings.startsAt), location: settings.venue,
+    } });
+    return true;
+  });
+  if (!changed) return NextResponse.json({ error: "The game changed. Refresh before saving." }, { status: 409 });
   return NextResponse.json({ ok: true });
 }
 
@@ -63,6 +71,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ gam
     const changed = await tx.gameDay.updateMany({ where: { id: gameId, version }, data: { ...score, version: { increment: 1 } } });
     if (changed.count !== 1) return { status: 409, error: "The score changed. Refresh before posting again." };
     await tx.gameScoreUpdate.create({ data: { ...score, version: version + 1, note, gameId, actorId: user.id } });
+    await tx.calendarEvent.updateMany({ where: { teamId: game.teamId, source: "MENTA_GAME_DAY", externalId: gameId },
+      data: { title: `${score.status === "CANCELLED" ? "Cancelled: " : ""}${game.homeName} vs ${game.opponentName}` } });
     return { status: 200 };
   });
   return NextResponse.json("error" in result ? { error: result.error } : { ok: true }, { status: result.status });

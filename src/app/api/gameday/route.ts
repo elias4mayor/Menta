@@ -23,6 +23,12 @@ export async function POST(request: Request) {
   if (parsed.data.scorerId && !(await prisma.teamMembership.findUnique({ where: { userId_teamId: { userId: parsed.data.scorerId, teamId: parsed.data.teamId } } }))) {
     return NextResponse.json({ error: "Choose a current team member as scorekeeper." }, { status: 400 });
   }
-  const game = await prisma.gameDay.create({ data: { ...parsed.data, startsAt: new Date(parsed.data.startsAt) } });
+  const game = await prisma.$transaction(async (tx) => {
+    const game = await tx.gameDay.create({ data: { ...parsed.data, startsAt: new Date(parsed.data.startsAt) } });
+    await tx.calendarEvent.create({ data: { teamId: game.teamId, createdById: user.id,
+      title: `${game.homeName} vs ${game.opponentName}`, startsAt: game.startsAt, location: game.venue,
+      visibility: "TEAM", kind: "GAME", source: "MENTA_GAME_DAY", externalId: game.id } });
+    return game;
+  });
   return NextResponse.json({ game: publicGame(game) }, { status: 201 });
 }
