@@ -12,9 +12,9 @@ Codex owns native iOS. Claude owns website/shared backend and onboarding APIs. T
 
 ### Location, language and time
 
-- Choose country/region, preferred language and venue time zone explicitly.
-- Store event instants with the venue IANA time zone; display local and travel times clearly.
-- Support date/time formats, translations, long names and right-to-left interfaces without changing identity.
+- Confirm your country/region, preferred language and the venue time zone.
+- Check the venue’s local time and any time difference when traveling.
+- Confirm your preferred language, date/time display and any communication-access needs.
 
 ### Sport and competition identity
 
@@ -24,15 +24,15 @@ Codex owns native iOS. Claude owns website/shared backend and onboarding APIs. T
 
 ### Units and categories
 
-- Choose metric/imperial display and retain the original unit for measurements/results.
-- Record event-authorized categories only when applicable; never infer eligibility, disability classification or participation from a profile.
-- Support times, distances, sets, judged scores, attempts, brackets and rankings; not every sport is a two-team points game.
+- Confirm the units used in your event’s results and your preferred measurement display.
+- Confirm your competition category through the actual organizer where applicable; a profile is not an eligibility or classification decision.
+- Confirm how the event is scored: times, distances, sets, judged routines, attempts, brackets or rankings.
 
 ### People and authority
 
-- Verify the account, team membership and separately approved staff/guardian relationships.
-- Allow multiple approved team responsibilities and name backups; self-selected interests grant no privileges.
-- Keep public fans, visiting teams, volunteers and student media outside private roster, academic and care access.
+- Confirm your account, team membership and approved staff/guardian relationships.
+- Confirm your approved responsibilities for each team and who covers you if needed.
+- Share information only with its intended audience; private roster, academic and care details do not belong on public event pages.
 
 ### Access and safeguarding
 
@@ -43,8 +43,8 @@ Codex owns native iOS. Claude owns website/shared backend and onboarding APIs. T
 ### Travel and connectivity
 
 - Confirm domestic/international travel documents and consent through authorized organizers when applicable.
-- Show dated offline itinerary snapshots, pending changes and reliable sign-out/account separation.
-- Resolve schedule changes, daylight-saving differences and overlapping events before notifying affected people.
+- Bring the latest organizer-approved itinerary and note when it was last updated.
+- Confirm schedule changes, daylight-saving differences and overlapping events with affected people.
 
 ## Universal athlete preparation
 
