@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { usersShareTeam } from "@/lib/permissions";
 import { z } from "zod";
+import { conversationReadWhere } from "@/lib/conversation-access";
 
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   const conversations = await prisma.conversation.findMany({
-    where: { participants: { some: { userId: user.id } } },
+    where: conversationReadWhere(user.id),
     include: {
       team: true,
       participants: { include: { user: true } },
@@ -22,7 +23,7 @@ export async function GET() {
     const otherParticipant = c.participants.find((p) => p.userId !== user.id)?.user;
     return {
       id: c.id,
-      title: c.team?.name ?? otherParticipant?.name ?? "Conversation",
+      title: c.team?.name ?? (c.isGroup ? c.title : otherParticipant?.name) ?? "Conversation",
       isGroup: c.isGroup,
       lastMessage: c.messages[0]
         ? { body: c.messages[0].body, createdAt: c.messages[0].createdAt }
@@ -61,9 +62,10 @@ export async function POST(request: Request) {
   }
 
   const shareTeam = await usersShareTeam(user.id, otherUserId);
-  if (!shareTeam) {
+  const approvedGuardian = await prisma.guardianLink.findFirst({ where: { status: "APPROVED", OR: [{ guardianId: user.id, athleteId: otherUserId }, { guardianId: otherUserId, athleteId: user.id }] }, select: { id: true } });
+  if (!shareTeam && !approvedGuardian) {
     return NextResponse.json(
-      { error: "You can only message people who share a team with you." },
+      { error: "You can message current teammates or an approved guardian connection." },
       { status: 403 }
     );
   }

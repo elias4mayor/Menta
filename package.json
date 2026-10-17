@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:e2e": "playwright test",
+    "test:mobile-auth": "tsx --test tests/mobile-auth-flow.test.ts",
     "recruiting:check": "npx tsx scripts/recruiting-check.ts"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "@google/genai": "^2.19.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
+    "jose": "^6.2.12",
     "magisterial": "^0.4.0",
     "next": "16.3.1",
     "openai": "^7.9.0",
@@ -38,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

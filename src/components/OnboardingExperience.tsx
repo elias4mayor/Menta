@@ -14,10 +14,11 @@ import { OnboardingBuildingStep } from "@/components/OnboardingBuildingStep";
 import { SPORTS, rolesForSport, roleLabel, demandsFor } from "@/lib/sports";
 import { GOAL_OPTIONS, GOAL_QUESTION, GOALS_MAX } from "@/lib/goals";
 import { SCHOOL_TYPES } from "@/lib/schools";
+import { AthleteBaselineFields, type AthleteBaseline } from "@/components/AthleteBaselineFields";
 
-type Step = "sport" | "school" | "goals" | "review" | "building" | "reveal";
+type Step = "sport" | "school" | "baseline" | "goals" | "review" | "building" | "reveal";
 
-const QUESTION_STEPS: Step[] = ["sport", "school", "goals", "review"];
+const QUESTION_STEPS: Step[] = ["sport", "school", "baseline", "goals", "review"];
 
 const TRANSITION_MS = 260;
 // Must match OnboardingBuildingStep's own internal pacing (5 status lines
@@ -62,6 +63,7 @@ export function OnboardingExperience({ name }: { name: string }) {
   const [country, setCountry] = useState("United States");
   const [goals, setGoals] = useState<string[]>([]);
   const [trainingDaysPerWeek, setTrainingDaysPerWeek] = useState("");
+  const [baseline, setBaseline] = useState<AthleteBaseline>({ heightCm: "", weightKg: "", records: {} });
   const [error, setError] = useState<string | null>(null);
   const [entering, setEntering] = useState(false);
 
@@ -144,6 +146,9 @@ export function OnboardingExperience({ name }: { name: string }) {
             country: country || undefined,
             trainingDaysPerWeek: trainingDaysPerWeek ? Number(trainingDaysPerWeek) : undefined,
             goals,
+            heightCm: baseline.heightCm ? Number(baseline.heightCm) : undefined,
+            weightKg: baseline.weightKg ? Number(baseline.weightKg) : undefined,
+            baselineRecords: Object.entries(baseline.records).filter(([, value]) => value !== "").map(([metricId, value]) => ({ metricId, value: Number(value) })),
           }),
         });
         const data = await res.json();
@@ -366,11 +371,17 @@ export function OnboardingExperience({ name }: { name: string }) {
               </div>
               <StepNav
                 onBack={() => goTo("sport")}
-                onNext={() => goTo("goals")}
+                onNext={() => goTo("baseline")}
                 nextDisabled={!schoolName.trim() || !schoolType}
               />
             </>
           )}
+
+          {step === "baseline" && <>
+            <h1 className="onb-title"><GlowWaveText intensity="strong">Your starting point.</GlowWaveText></h1>
+            <AthleteBaselineFields value={baseline} onChange={setBaseline} />
+            <StepNav onBack={() => goTo("school")} onNext={() => goTo("goals")} />
+          </>}
 
           {step === "goals" && (
             <>
@@ -402,7 +413,7 @@ export function OnboardingExperience({ name }: { name: string }) {
                   />
                 </div>
               </div>
-              <StepNav onBack={() => goTo("school")} onNext={() => goTo("review")} />
+              <StepNav onBack={() => goTo("baseline")} onNext={() => goTo("review")} />
             </>
           )}
 
@@ -427,6 +438,9 @@ export function OnboardingExperience({ name }: { name: string }) {
                 <ReviewRow label="Location" value={[city, state].filter(Boolean).join(", ") || "—"} />
                 <ReviewRow label="Goals" value={goals.length ? goals.join(", ") : "—"} />
                 <ReviewRow label="Training days" value={trainingDaysPerWeek ? `${trainingDaysPerWeek}/week` : "—"} />
+                <ReviewRow label="Height" value={baseline.heightCm ? `${baseline.heightCm} cm` : "Skipped"} />
+                <ReviewRow label="Weight" value={baseline.weightKg ? `${baseline.weightKg} kg` : "Skipped"} />
+                <ReviewRow label="Baseline tests" value={String(Object.values(baseline.records).filter((value) => value !== "").length)} />
               </div>
               {error && <p className="text-sm mt-4" style={{ color: "var(--danger)" }}>{error}</p>}
               <StepNav onBack={() => goTo("goals")} onNext={() => goTo("building")} nextLabel="Build my MENTA" />

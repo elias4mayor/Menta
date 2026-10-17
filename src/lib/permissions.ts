@@ -27,11 +27,14 @@ export const ROLES = [
   "DOCTOR",
   "ATHLETE",
   "PARENT",
+  "TEACHER",
+  "STUDENT",
+  "STAFF",
 ] as const;
 
 export type Role = (typeof ROLES)[number];
 
-export const TEAM_ROLES = ["COACH", "ATHLETE", "TRAINER", "DOCTOR", "PARENT", "ADMIN"] as const;
+export const TEAM_ROLES = ["COACH", "ATHLETE", "TRAINER", "DOCTOR", "PARENT", "ADMIN", "TEACHER", "STAFF"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 /** Team roles MENTA Care can route an athlete's request to. */
@@ -104,6 +107,17 @@ export async function isTeamCoachOrAdmin(userId: string, teamId: string): Promis
   return role === "COACH" || role === "ADMIN";
 }
 
+/** Staff appointments require a current team admin or the team's creator
+ * who still holds a coaching membership. Account role and granular film
+ * grants alone never authorize appointing staff. */
+export async function canApproveTeamStaff(userId: string, teamId: string): Promise<boolean> {
+  const role = await getTeamRole(userId, teamId);
+  if (role === "ADMIN") return true;
+  if (role !== "COACH") return false;
+  const team = await prisma.team.findUnique({ where: { id: teamId }, select: { createdById: true } });
+  return team?.createdById === userId;
+}
+
 /**
  * Coach access ≠ Athletic Director access — a coach is scoped to the teams
  * they belong to, never the whole organization, even if they also happen to
@@ -112,6 +126,12 @@ export async function isTeamCoachOrAdmin(userId: string, teamId: string): Promis
 export async function canManageTeam(user: SessionUser, teamId: string): Promise<boolean> {
   if (user.role === "SUPER_ADMIN") return true;
   return isTeamCoachOrAdmin(user.id, teamId);
+}
+
+export async function gameDayAccess(userId: string, game: { teamId: string; scorerId: string | null }) {
+  const role = await getTeamRole(userId, game.teamId);
+  const manage = role === "COACH" || role === "ADMIN";
+  return { member: role !== null, manage, score: manage || (role !== null && game.scorerId === userId) };
 }
 
 /** Edit/delete/reassign a workout: the person who created it, or (for a team workout) a coach/admin of that team. */

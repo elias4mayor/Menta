@@ -62,6 +62,9 @@ test.describe("Athlete onboarding — multi-sport", () => {
     await page.locator("#onb-school").fill("MENTA E2E Test High School");
     await page.getByRole("button", { name: "Continue" }).click();
     await waitForOnboardingStep(page);
+    await expect(page.locator("#onb-height")).toBeVisible();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText("Select everything you want MENTA to help you improve.")).toBeVisible();
 
     // Goals step — nothing required, just continue.
     await expect(page.getByText("Select everything you want MENTA to help you improve.")).toBeVisible();
@@ -172,6 +175,9 @@ test.describe("Athlete onboarding — multi-sport", () => {
     await page.locator("#onb-school").fill("MENTA E2E Single Sport High School");
     await page.getByRole("button", { name: "Continue" }).click();
     await waitForOnboardingStep(page);
+    await expect(page.locator("#onb-height")).toBeVisible();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText("Select everything you want MENTA to help you improve.")).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await waitForOnboardingStep(page);
 

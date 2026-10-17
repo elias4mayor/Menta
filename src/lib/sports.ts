@@ -49,11 +49,11 @@ export type SportConfig = {
   id: string;
   name: string;
   /** What the second identity field is called for this sport. */
-  roleLabel: "Position" | "Event" | "Weight class" | "Role";
+  roleLabel: "Position" | "Event" | "Weight class" | "Stance" | "Role";
   /** Options for that field. Empty means free text (e.g. "Other"). */
   roles: string[];
   /** What a head-to-head/competitive outing is called. */
-  competitionLabel: "Game" | "Match" | "Meet" | "Round" | "Race" | "Competition";
+  competitionLabel: "Game" | "Match" | "Meet" | "Round" | "Race" | "Bout" | "Competition";
   /** Sport-level athletic demands — the fallback for any role without its own entry below. */
   demands: AthleticDemands;
   /** Optional per-role override, for sports/positions with meaningfully different demands. */
@@ -350,6 +350,28 @@ export const SPORTS: SportConfig[] = [
     },
     metrics: ["Routine difficulty score", "Strength benchmark (e.g. pull-ups)", "Flexibility benchmark"],
   },
+  {
+    id: "Boxing", name: "Boxing", roleLabel: "Stance", roles: ["Orthodox", "Southpaw", "Switch"], competitionLabel: "Bout",
+    demands: {
+      demands: ["Footwork", "Technical skill", "Conditioning"],
+      developmentAreas: ["Coordination", "Conditioning", "Mobility"],
+      priorityCategories: ["SKILL", "CONDITIONING", "MOBILITY"],
+      trainingNote: "Build general conditioning and footwork alongside a qualified boxing coach's technical program.",
+    },
+    metrics: ["Jump-rope duration", "Training rounds completed"],
+  },
+  ...[
+    "Archery", "Badminton", "Beach Volleyball", "Boccia", "Bowling", "Canoeing", "Cheerleading", "Climbing", "Cricket", "Cross Country", "Curling", "Cycling", "Dance", "Diving", "Equestrian", "Esports", "Fencing", "Field Hockey", "Flag Football", "Futsal", "Handball", "Judo", "Karate", "Kayaking", "Kickboxing", "Mixed Martial Arts", "Netball", "Para Athletics", "Pickleball", "Powerlifting", "Racquetball", "Rowing", "Rugby", "Sailing", "Skateboarding", "Skiing", "Snowboarding", "Squash", "Surfing", "Table Tennis", "Taekwondo", "Triathlon", "Ultimate", "Water Polo", "Weightlifting", "Wheelchair Basketball", "Wheelchair Rugby",
+  ].map((name): SportConfig => ({
+    id: name, name, roleLabel: "Role", roles: [], competitionLabel: "Competition",
+    demands: {
+      demands: ["Sport-specific technique", "General athletic preparation"],
+      developmentAreas: ["Technique", "Mobility", "Recovery"],
+      priorityCategories: ["SKILL", "MOBILITY", "RECOVERY"],
+      trainingNote: "Use a qualified coach's sport-specific plan. This starter provides general preparation and does not replace it.",
+    },
+    metrics: ["Personal best"],
+  })),
   {
     id: "Other",
     name: "Other",

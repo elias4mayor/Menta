@@ -1,4 +1,5 @@
 import "server-only";
+import { createRemoteJWKSet, importPKCS8, jwtVerify, SignJWT } from "jose";
 
 /**
  * Real Google/Facebook OAuth — architecturally complete, gated behind
@@ -7,9 +8,10 @@ import "server-only";
  * buttons redirect back with an honest "not configured" message instead of
  * pretending to sign the user in. See .env.example.
  */
-export type OAuthProviderId = "google" | "facebook";
+export type OAuthProviderId = "google" | "facebook" | "apple";
 
-export const OAUTH_PROVIDERS: OAuthProviderId[] = ["google", "facebook"];
+export const OAUTH_PROVIDERS: OAuthProviderId[] = ["google", "facebook", "apple"];
+const appleKeys = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
 type ProviderConfig = {
   authorizeUrl: string;
@@ -25,6 +27,10 @@ function appUrl(): string {
 }
 
 function config(provider: OAuthProviderId): ProviderConfig {
+  if (provider === "apple") return {
+    authorizeUrl: "https://appleid.apple.com/auth/authorize", tokenUrl: "https://appleid.apple.com/auth/token",
+    profileUrl: "", scope: "name email", clientId: process.env.APPLE_CLIENT_ID,
+  };
   if (provider === "google") {
     return {
       authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -46,6 +52,7 @@ function config(provider: OAuthProviderId): ProviderConfig {
 }
 
 export function isOAuthConfigured(provider: OAuthProviderId): boolean {
+  if (provider === "apple") return Boolean(process.env.APPLE_CLIENT_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_KEY_ID && process.env.APPLE_PRIVATE_KEY);
   const c = config(provider);
   return Boolean(c.clientId && c.clientSecret);
 }
@@ -63,6 +70,7 @@ export function buildAuthorizeUrl(provider: OAuthProviderId, state: string): str
     scope: c.scope,
     state,
   });
+  if (provider === "apple") { params.set("response_mode", "form_post"); params.set("nonce", state); }
   return `${c.authorizeUrl}?${params.toString()}`;
 }
 
@@ -70,12 +78,20 @@ export type OAuthProfile = { providerId: string; email: string | null; name: str
 
 export async function exchangeCodeForProfile(
   provider: OAuthProviderId,
-  code: string
+  code: string,
+  expectedNonce?: string
 ): Promise<OAuthProfile> {
   const c = config(provider);
+  let clientSecret = c.clientSecret ?? "";
+  if (provider === "apple") {
+    const key = await importPKCS8((process.env.APPLE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"), "ES256");
+    clientSecret = await new SignJWT({}).setProtectedHeader({ alg: "ES256", kid: process.env.APPLE_KEY_ID })
+      .setIssuer(process.env.APPLE_TEAM_ID!).setAudience("https://appleid.apple.com").setSubject(c.clientId!)
+      .setIssuedAt().setExpirationTime("5m").sign(key);
+  }
   const tokenParams = new URLSearchParams({
     client_id: c.clientId ?? "",
-    client_secret: c.clientSecret ?? "",
+    client_secret: clientSecret,
     redirect_uri: redirectUri(provider),
     code,
     grant_type: "authorization_code",
@@ -86,7 +102,15 @@ export async function exchangeCodeForProfile(
     body: tokenParams.toString(),
   });
   if (!tokenRes.ok) throw new Error("oauth_token_exchange_failed");
-  const tokenBody: { access_token?: string } = await tokenRes.json();
+  const tokenBody: { access_token?: string; id_token?: string } = await tokenRes.json();
+  if (provider === "apple") {
+    if (!tokenBody.id_token || !expectedNonce) throw new Error("apple_identity_missing");
+    const { payload } = await jwtVerify(tokenBody.id_token, appleKeys, {
+      algorithms: ["RS256"], issuer: "https://appleid.apple.com", audience: c.clientId,
+    });
+    if (!payload.sub || payload.nonce !== expectedNonce || !(payload.email_verified === true || payload.email_verified === "true")) throw new Error("apple_identity_invalid");
+    return { providerId: payload.sub, email: typeof payload.email === "string" ? payload.email : null, name: null };
+  }
   if (!tokenBody.access_token) throw new Error("oauth_token_exchange_failed");
 
   const profileRes = await fetch(c.profileUrl, {
@@ -96,6 +120,7 @@ export async function exchangeCodeForProfile(
   const profile: Record<string, unknown> = await profileRes.json();
 
   if (provider === "google") {
+    if (!profile.sub || profile.email_verified !== true) throw new Error("google_email_not_verified");
     return {
       providerId: String(profile.sub ?? ""),
       email: typeof profile.email === "string" ? profile.email : null,

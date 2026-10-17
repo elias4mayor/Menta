@@ -1,19 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
-
+import { hasCompletedOnboarding } from "@/lib/onboarding-status";
 export async function GET() {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    return NextResponse.json({ user: null }, { status: 200 });
-  }
-
-  const profile = await prisma.athleteProfile.findUnique({
-    where: { userId: sessionUser.id },
-  });
-
-  return NextResponse.json({
-    user: sessionUser,
-    onboardingCompleted: Boolean(profile?.onboardingCompletedAt),
-  });
+  const user = await getSessionUser();
+  return NextResponse.json({ user, onboardingCompleted: user ? await hasCompletedOnboarding(user.id, user.role) : false });
 }

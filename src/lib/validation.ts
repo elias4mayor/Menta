@@ -2,6 +2,7 @@ import { z } from "zod";
 import { countryCodeForName, statesForCountry } from "@/lib/geo";
 import { SCHOOL_TYPES } from "@/lib/schools";
 import { CARE_REASONS, PROVIDER_TITLES } from "@/lib/care";
+import { PERFORMANCE_METRIC_IDS, performanceMetric } from "@/lib/performance-metrics";
 
 /**
  * Cross-field check reused by every onboarding schema that collects
@@ -31,7 +32,7 @@ export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(10, "Use at least 10 characters"),
-  role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER", "DOCTOR"]).default("ATHLETE"),
+  role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER", "DOCTOR", "TEACHER", "STUDENT", "STAFF"]).default("ATHLETE"),
   dateOfBirth: z.string().optional(),
 });
 
@@ -82,6 +83,14 @@ export const onboardingSchema = z
     state: z.string().trim().max(60).optional().or(z.literal("")),
     country: z.string().trim().max(60).optional().or(z.literal("")),
     trainingDaysPerWeek: z.coerce.number().int().min(1).max(7).optional(),
+    heightCm: z.number().int().min(100).max(250).optional(),
+    weightKg: z.number().int().min(20).max(300).optional(),
+    baselineRecords: z.array(z.object({ metricId: z.enum(PERFORMANCE_METRIC_IDS), value: z.number().finite() }).superRefine((record, ctx) => {
+      const metric = performanceMetric(record.metricId)!;
+      if (record.value < metric.min || record.value > metric.max || (metric.unit === "reps" && !Number.isInteger(record.value))) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: `Enter a valid ${metric.name} result in ${metric.unit}.` });
+      }
+    })).max(10).refine((records) => new Set(records.map((record) => record.metricId)).size === records.length, "Each baseline test can appear only once.").optional(),
     goals: z.array(z.string().trim().min(1).max(200)).max(10).optional(),
   })
   .superRefine(refineStateMatchesCountry);
@@ -364,14 +373,15 @@ export const sendMessageSchema = z.object({
 });
 
 export const createEventSchema = z.object({
+  kind: z.enum(["GENERAL", "PRACTICE", "WEIGHT_ROOM", "GAME", "BUS", "CLASS", "APPOINTMENT"]).default("GENERAL"),
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(2000).optional(),
-  startsAt: z.string().min(1),
-  endsAt: z.string().optional(),
+  startsAt: z.string().datetime({ offset: true }),
+  endsAt: z.string().datetime({ offset: true }).optional(),
   location: z.string().trim().max(200).optional(),
   teamId: z.string().optional(),
   visibility: z.enum(["PRIVATE", "TEAM", "PUBLIC"]).default("PRIVATE"),
-});
+}).refine((event) => !event.endsAt || new Date(event.endsAt) > new Date(event.startsAt), { message: "The end must be after the start.", path: ["endsAt"] });
 
 export const aiChatSchema = z.object({
   conversationId: z.string().optional(),

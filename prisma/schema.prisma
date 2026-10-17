@@ -42,6 +42,7 @@ model User {
   // so at most one account can be linked to a given provider identity.
   googleId      String?   @unique
   facebookId    String?   @unique
+  appleId       String?   @unique
   /// Set together — a real uploaded profile photo via the local/object
   /// storage abstraction (src/lib/storage.ts). Null means "no photo",
   /// not "unknown" — the UI falls back to a computed initials avatar,
@@ -57,6 +58,13 @@ model User {
   trainerProfile              TrainerProfile?
   parentProfile               ParentProfile?
   doctorProfile               DoctorProfile?
+  schoolProfile               SchoolProfile?
+  academicSupportSettings     AcademicSupportSettings?
+  academicSupportGrants       AcademicSupportGrant[] @relation("AcademicSupportOwner")
+  academicSupportRecipients   AcademicSupportGrant[] @relation("AcademicSupportRecipient")
+  academicGradeStates         AcademicGradeState[]
+  academicAlertSignals        AcademicAlertSignal[]
+  teamAnnouncements           TeamAnnouncement[]
   sessions                    Session[]
   resetTokens                 PasswordResetToken[]
   emailVerificationCodes      EmailVerificationCode[]
@@ -440,8 +448,53 @@ model Team {
   exercises               Exercise[]
   trainingPrograms        TrainingProgram[]
   trainingSessions        TrainingSession[]
+  announcements           TeamAnnouncement[]
+  chatGroups              Conversation[] @relation("ChatGroupTeam")
+  games                   GameDay[]
 
   @@index([organizationId])
+}
+
+/// Public game information is explicitly published by team leadership.
+/// scorerId alone grants no access: current membership is checked on every write.
+model GameDay {
+  id           String @id @default(cuid())
+  teamId       String
+  opponentName String
+  homeName     String
+  homeLogo     String?
+  awayLogo     String?
+  startsAt     DateTime
+  venue        String
+  visitorInfo  String @default("")
+  watchUrl     String?
+  ticketUrl    String?
+  published    Boolean @default(false)
+  scorerId     String?
+  homeScore    Int @default(0)
+  awayScore    Int @default(0)
+  period       String @default("Pregame")
+  status       String @default("SCHEDULED")
+  version      Int @default(0)
+  updatedAt    DateTime @updatedAt
+  team         Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  updates      GameScoreUpdate[]
+  @@index([teamId, startsAt])
+}
+
+model GameScoreUpdate {
+  id        String @id @default(cuid())
+  gameId    String
+  actorId   String
+  version   Int
+  homeScore Int
+  awayScore Int
+  period    String
+  status    String
+  note      String
+  createdAt DateTime @default(now())
+  game      GameDay @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  @@unique([gameId, version])
 }
 
 /// TeamRole: COACH, ATHLETE, TRAINER, DOCTOR, PARENT, ADMIN
@@ -642,9 +695,14 @@ model Conversation {
   isGroup   Boolean  @default(false)
   teamId    String?  @unique
   title     String?
+  scopeTeamId String?
+  groupOwnerId String?
+  joinCode String? @unique
+  staffOnly Boolean @default(false)
   createdAt DateTime @default(now())
 
   team         Team?                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  groupTeam    Team?                     @relation("ChatGroupTeam", fields: [scopeTeamId], references: [id], onDelete: Cascade)
   participants ConversationParticipant[]
   messages     Message[]
 }
@@ -688,6 +746,7 @@ model CalendarEvent {
   teamId      String?
   createdById String
   visibility  String    @default("PRIVATE")
+  kind        String    @default("GENERAL")
   createdAt   DateTime  @default(now())
   /// Set only for events created by an integration sync (e.g. "GOOGLE_CLASSROOM"); null for events an athlete/coach created directly in MENTA.
   source      String?
@@ -2607,4 +2666,67 @@ model UsageCounter {
   count       Int      @default(0)
 
   @@unique([ownerType, ownerId, key, periodStart])
+}
+
+/// Short-lived, one-use, PKCE-bound browser-to-app sign-in tickets. No raw session token is placed in a URL.
+model MobileAuthCode {
+  codeHash String @id
+  userId String
+  challenge String
+  expiresAt DateTime
+  consumedAt DateTime?
+
+  @@index([expiresAt])
+}
+
+/// School-facing setup does not verify employment or grant access to student data.
+/// Roles TEACHER, STUDENT, STAFF have distinct setup copy and remain unprivileged.
+model SchoolProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  schoolName            String
+  focus                 String?
+  onboardingCompletedAt DateTime?
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Team-member feed. Only the team's coach/admin can publish official announcements.
+model TeamAnnouncement {
+  id        String   @id @default(cuid())
+  teamId    String
+  authorId  String
+  title     String
+  body      String
+  important Boolean  @default(false)
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  @@index([teamId, createdAt])
+}
+
+model AcademicSupportSettings {
+  userId String @id
+  enabled Boolean @default(false)
+  threshold Float @default(70)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model AcademicSupportGrant {
+  id String @id @default(cuid())
+  ownerId String
+  supporterId String
+  createdAt DateTime @default(now())
+  owner User @relation("AcademicSupportOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  supporter User @relation("AcademicSupportRecipient", fields: [supporterId], references: [id], onDelete: Cascade)
+  @@unique([ownerId, supporterId])
+}
+model AcademicGradeState {
+  id String @id
+  userId String
+  percent Float
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model AcademicAlertSignal {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

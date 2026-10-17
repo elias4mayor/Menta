@@ -9,6 +9,7 @@ import { YourSportsManager } from "@/components/YourSportsManager";
 import { isMinor } from "@/lib/permissions";
 import { getSelfAthleteProfile } from "@/lib/athlete-profile";
 import { AthleteProfileView } from "@/components/AthleteProfileView";
+import { SchoolOnboarding } from "@/components/SchoolOnboarding";
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -56,6 +57,10 @@ export default async function ProfilePage() {
 }
 
 async function ProfileFormForRole({ role, userId }: { role: string; userId: string }) {
+  if (role === "TEACHER" || role === "STUDENT" || role === "STAFF") {
+    const profile = await prisma.schoolProfile.findUnique({ where: { userId } });
+    return <SchoolOnboarding role={role} initial={profile ?? undefined} />;
+  }
   if (role === "COACH") {
     const profile = await prisma.coachProfile.findUnique({ where: { userId } });
     return (

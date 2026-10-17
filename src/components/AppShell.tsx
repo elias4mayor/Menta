@@ -301,7 +301,7 @@ export function AppShell({
             width={863}
             height={194}
             className="h-6 w-auto"
-            style={{ filter: "invert(1)" }}
+            style={{ filter: "invert(0)" }}
             priority
           />
         </Link>
@@ -402,7 +402,7 @@ export function AppShell({
               width={863}
               height={194}
               className="h-5 md:h-6 w-auto"
-              style={{ filter: "invert(1)" }}
+              style={{ filter: "invert(0)" }}
               priority
             />
           </Link>

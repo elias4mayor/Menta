@@ -184,7 +184,7 @@ test.describe("Entitlement enforcement (Phase 7)", () => {
     });
   });
 
-  test("10. a coach/trainer/parent joining is never blocked by the athlete roster cap", async ({ request }) => {
+  test("10. approved staff and parents are not blocked by the athlete roster cap", async ({ request }) => {
     const coach = await createTestUser("ent-roster-coach-owner", "COACH");
     const athlete1 = await createTestUser("ent-roster-coach-existing", "ATHLETE");
     const secondCoach = await createTestUser("ent-roster-coach-joiner", "COACH");
@@ -201,16 +201,26 @@ test.describe("Entitlement enforcement (Phase 7)", () => {
       update: { limitValue: 1 },
     });
 
-    const res = await request.post("/api/team/join", {
-      headers: { Cookie: secondCoach.cookie },
-      data: { inviteCode: team.inviteCode },
-    });
-    expect(res.status()).toBe(200);
-
-    await testPrisma.planEntitlement.update({
-      where: { planId_key: { planId: plan.id, key: "TEAM_MAX_ATHLETES" } },
-      data: { limitValue: null },
-    });
+    try {
+      const rosterJoin = await request.post("/api/team/join", {
+        headers: { Cookie: secondCoach.cookie }, data: { inviteCode: team.inviteCode },
+      });
+      expect(rosterJoin.status()).toBe(403);
+      const appointment = await request.post(`/api/teams/${team.id}/staff`, {
+        headers: { Cookie: coach.cookie }, data: { userId: secondCoach.userId, teamRole: "COACH" },
+      });
+      expect(appointment.status()).toBe(200);
+      const parent = await createTestUser("ent-roster-parent", "PARENT");
+      const parentJoin = await request.post("/api/team/join", {
+        headers: { Cookie: parent.cookie }, data: { inviteCode: team.inviteCode },
+      });
+      expect(parentJoin.status()).toBe(200);
+    } finally {
+      await testPrisma.planEntitlement.update({
+        where: { planId_key: { planId: plan.id, key: "TEAM_MAX_ATHLETES" } },
+        data: { limitValue: null },
+      });
+    }
   });
 
   test("11. a film upload that would exceed a ROOKIE user's storage cap is rejected before saving", async ({ request }) => {

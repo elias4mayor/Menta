@@ -7,6 +7,8 @@ import { buildStarterWorkouts, ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { countryCodeForName, stateCodeForName } from "@/lib/geo";
 import { isCityCountryMismatch } from "@/lib/geo-server";
 import { isSchoolStateMismatch } from "@/lib/schools-server";
+import { performanceMetric } from "@/lib/performance-metrics";
+import { createHash } from "node:crypto";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { sport, position, additionalSports, graduationYear, schoolName, schoolType, city, state, country, trainingDaysPerWeek, goals } = parsed.data;
+  const { sport, position, additionalSports, graduationYear, schoolName, schoolType, city, state, country, trainingDaysPerWeek, goals, heightCm, weightKg, baselineRecords } = parsed.data;
 
   const countryCode = country ? countryCodeForName(country) : undefined;
 
@@ -76,6 +78,8 @@ export async function POST(request: Request) {
         state: state || undefined,
         country: country || undefined,
         trainingDaysPerWeek,
+        heightCm,
+        weightKg,
         onboardingCompletedAt: new Date(),
       },
       update: {
@@ -88,6 +92,8 @@ export async function POST(request: Request) {
         state: state || undefined,
         country: country || undefined,
         trainingDaysPerWeek,
+        heightCm,
+        weightKg,
         onboardingCompletedAt: new Date(),
       },
     });
@@ -114,6 +120,15 @@ export async function POST(request: Request) {
           isPrimary: entry.isPrimary,
           isActive: true,
         },
+      });
+    }
+    for (const record of baselineRecords ?? []) {
+      const metric = performanceMetric(record.metricId)!;
+      // Stable server-derived IDs make retries and concurrent submissions idempotent.
+      const id = `baseline_${createHash("sha256").update(`${user.id}:${record.metricId}`).digest("hex")}`;
+      await tx.performanceEntry.upsert({
+        where: { id }, update: {},
+        create: { id, userId: user.id, statName: metric.name, unit: metric.unit, value: record.value, note: "Onboarding baseline" },
       });
     }
   });

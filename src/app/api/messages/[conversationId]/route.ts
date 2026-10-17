@@ -4,12 +4,11 @@ import { getSessionUser } from "@/lib/session";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { canReadConversation } from "@/lib/conversation-access";
+import { usersShareTeam } from "@/lib/permissions";
 
 async function assertParticipant(userId: string, conversationId: string) {
-  const participant = await prisma.conversationParticipant.findUnique({
-    where: { conversationId_userId: { conversationId, userId } },
-  });
-  return Boolean(participant);
+  return canReadConversation(userId, conversationId);
 }
 
 export async function GET(
@@ -66,6 +65,20 @@ export async function POST(
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Message can't be empty." }, { status: 400 });
+
+  const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { isGroup: true, participants: { where: { userId: { not: user.id } }, select: { userId: true } } } });
+  if (conversation && !conversation.isGroup) {
+    const otherIds = conversation.participants.map((participant) => participant.userId);
+    for (const otherId of otherIds) {
+      const guardian = await prisma.guardianLink.findFirst({ where: { status: "APPROVED", OR: [{ guardianId: user.id, athleteId: otherId }, { athleteId: user.id, guardianId: otherId }] }, select: { id: true } });
+      if (!guardian && !(await usersShareTeam(user.id, otherId))) return NextResponse.json({ error: "This connection is no longer active." }, { status: 403 });
+    }
+    const blocked = await prisma.block.findFirst({ where: { OR: [
+      { blockerId: user.id, blockedId: { in: otherIds } },
+      { blockedId: user.id, blockerId: { in: otherIds } },
+    ] }, select: { id: true } });
+    if (blocked) return NextResponse.json({ error: "You can't message this person." }, { status: 403 });
+  }
 
   const message = await prisma.message.create({
     data: { conversationId, senderId: user.id, body: parsed.data.body },
