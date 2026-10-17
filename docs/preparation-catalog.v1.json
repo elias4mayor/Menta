@@ -650,7 +650,11 @@
   "sports": [
     {
       "id": "Football",
-      "name": "Football",
+      "name": "American football",
+      "aliases": [
+        "American football",
+        "Gridiron"
+      ],
       "family": "Team field/court sport",
       "format": "Head-to-head points",
       "athlete": [
@@ -671,6 +675,7 @@
     {
       "id": "Basketball",
       "name": "Basketball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Head-to-head points",
       "athlete": [
@@ -691,6 +696,7 @@
     {
       "id": "Baseball",
       "name": "Baseball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Innings and runs",
       "athlete": [
@@ -710,7 +716,13 @@
     },
     {
       "id": "Soccer",
-      "name": "Soccer",
+      "name": "Soccer / association football",
+      "aliases": [
+        "Football",
+        "Association football",
+        "Fútbol",
+        "Futebol"
+      ],
       "family": "Team field/court sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -731,6 +743,10 @@
     {
       "id": "Track & Field",
       "name": "Track & Field",
+      "aliases": [
+        "Athletics",
+        "Track and field"
+      ],
       "family": "Race and timed event",
       "format": "Heats, times, distances and attempts",
       "athlete": [
@@ -751,6 +767,7 @@
     {
       "id": "Volleyball",
       "name": "Volleyball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Sets and points",
       "athlete": [
@@ -771,6 +788,7 @@
     {
       "id": "Swimming",
       "name": "Swimming",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Heats, lanes and times",
       "athlete": [
@@ -791,6 +809,11 @@
     {
       "id": "Wrestling",
       "name": "Wrestling",
+      "aliases": [
+        "Freestyle wrestling",
+        "Greco-Roman wrestling",
+        "Folkstyle wrestling"
+      ],
       "family": "Combat sport",
       "format": "Bouts, periods and bracket",
       "athlete": [
@@ -811,6 +834,7 @@
     {
       "id": "Tennis",
       "name": "Tennis",
+      "aliases": [],
       "family": "Racket and paddle sport",
       "format": "Sets, games and points",
       "athlete": [
@@ -831,6 +855,7 @@
     {
       "id": "Golf",
       "name": "Golf",
+      "aliases": [],
       "family": "Precision sport",
       "format": "Strokes or match play",
       "athlete": [
@@ -851,6 +876,7 @@
     {
       "id": "Lacrosse",
       "name": "Lacrosse",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -870,7 +896,11 @@
     },
     {
       "id": "Hockey",
-      "name": "Hockey",
+      "name": "Hockey (confirm discipline)",
+      "aliases": [
+        "Ice hockey",
+        "Inline hockey"
+      ],
       "family": "Team field/court sport",
       "format": "Goals and periods",
       "athlete": [
@@ -891,6 +921,7 @@
     {
       "id": "Softball",
       "name": "Softball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Innings and runs",
       "athlete": [
@@ -911,6 +942,11 @@
     {
       "id": "Gymnastics",
       "name": "Gymnastics",
+      "aliases": [
+        "Artistic gymnastics",
+        "Rhythmic gymnastics",
+        "Trampoline"
+      ],
       "family": "Judged or routine event",
       "format": "Apparatus routines and judged scores",
       "athlete": [
@@ -931,6 +967,7 @@
     {
       "id": "Boxing",
       "name": "Boxing",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Bouts, rounds and decisions",
       "athlete": [
@@ -951,6 +988,7 @@
     {
       "id": "Archery",
       "name": "Archery",
+      "aliases": [],
       "family": "Precision sport",
       "format": "Ends, scores and elimination rounds",
       "athlete": [
@@ -971,6 +1009,7 @@
     {
       "id": "Badminton",
       "name": "Badminton",
+      "aliases": [],
       "family": "Racket and paddle sport",
       "format": "Games and points",
       "athlete": [
@@ -991,6 +1030,7 @@
     {
       "id": "Beach Volleyball",
       "name": "Beach Volleyball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Sets and points",
       "athlete": [
@@ -1011,6 +1051,7 @@
     {
       "id": "Boccia",
       "name": "Boccia",
+      "aliases": [],
       "family": "Adaptive sport",
       "format": "Ends and points",
       "athlete": [
@@ -1031,6 +1072,7 @@
     {
       "id": "Bowling",
       "name": "Bowling",
+      "aliases": [],
       "family": "Precision sport",
       "format": "Frames, games and totals",
       "athlete": [
@@ -1051,6 +1093,7 @@
     {
       "id": "Canoeing",
       "name": "Canoeing",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Race times or discipline-specific scores",
       "athlete": [
@@ -1071,6 +1114,7 @@
     {
       "id": "Cheerleading",
       "name": "Cheerleading",
+      "aliases": [],
       "family": "Judged or routine event",
       "format": "Routines and judged scores",
       "athlete": [
@@ -1091,6 +1135,12 @@
     {
       "id": "Climbing",
       "name": "Climbing",
+      "aliases": [
+        "Sport climbing",
+        "Bouldering",
+        "Lead climbing",
+        "Speed climbing"
+      ],
       "family": "Judged or routine event",
       "format": "Routes, attempts, times or rankings",
       "athlete": [
@@ -1111,6 +1161,7 @@
     {
       "id": "Cricket",
       "name": "Cricket",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Runs, wickets and overs",
       "athlete": [
@@ -1131,6 +1182,7 @@
     {
       "id": "Cross Country",
       "name": "Cross Country",
+      "aliases": [],
       "family": "Race and timed event",
       "format": "Race times, places and team scores",
       "athlete": [
@@ -1151,6 +1203,7 @@
     {
       "id": "Curling",
       "name": "Curling",
+      "aliases": [],
       "family": "Winter sport",
       "format": "Ends and points",
       "athlete": [
@@ -1171,6 +1224,7 @@
     {
       "id": "Cycling",
       "name": "Cycling",
+      "aliases": [],
       "family": "Race and timed event",
       "format": "Times, places or event-specific points",
       "athlete": [
@@ -1191,6 +1245,11 @@
     {
       "id": "Dance",
       "name": "Dance",
+      "aliases": [
+        "Breaking",
+        "Dance sport",
+        "Dancesport"
+      ],
       "family": "Judged or routine event",
       "format": "Routines, battles or judged scores",
       "athlete": [
@@ -1211,6 +1270,7 @@
     {
       "id": "Diving",
       "name": "Diving",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Rounds and judged scores",
       "athlete": [
@@ -1231,6 +1291,7 @@
     {
       "id": "Equestrian",
       "name": "Equestrian",
+      "aliases": [],
       "family": "Precision sport",
       "format": "Discipline-specific scores, penalties or times",
       "athlete": [
@@ -1251,6 +1312,7 @@
     {
       "id": "Esports",
       "name": "Esports",
+      "aliases": [],
       "family": "Digital competition",
       "format": "Maps, rounds, games or points",
       "athlete": [
@@ -1271,6 +1333,7 @@
     {
       "id": "Fencing",
       "name": "Fencing",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Touches, periods and bracket",
       "athlete": [
@@ -1291,6 +1354,9 @@
     {
       "id": "Field Hockey",
       "name": "Field Hockey",
+      "aliases": [
+        "Field hockey"
+      ],
       "family": "Team field/court sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -1311,6 +1377,7 @@
     {
       "id": "Flag Football",
       "name": "Flag Football",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Head-to-head points",
       "athlete": [
@@ -1331,6 +1398,7 @@
     {
       "id": "Futsal",
       "name": "Futsal",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -1351,6 +1419,7 @@
     {
       "id": "Handball",
       "name": "Handball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -1371,6 +1440,7 @@
     {
       "id": "Judo",
       "name": "Judo",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Bouts, time and bracket",
       "athlete": [
@@ -1391,6 +1461,7 @@
     {
       "id": "Karate",
       "name": "Karate",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Kata scores or kumite bouts",
       "athlete": [
@@ -1411,6 +1482,7 @@
     {
       "id": "Kayaking",
       "name": "Kayaking",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Times, places or discipline-specific scores",
       "athlete": [
@@ -1431,6 +1503,7 @@
     {
       "id": "Kickboxing",
       "name": "Kickboxing",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Bouts, rounds or points",
       "athlete": [
@@ -1451,6 +1524,7 @@
     {
       "id": "Mixed Martial Arts",
       "name": "Mixed Martial Arts",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Bouts, rounds and decisions",
       "athlete": [
@@ -1471,6 +1545,7 @@
     {
       "id": "Netball",
       "name": "Netball",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -1491,6 +1566,10 @@
     {
       "id": "Para Athletics",
       "name": "Para Athletics",
+      "aliases": [
+        "Para-athletics",
+        "Para track and field"
+      ],
       "family": "Adaptive sport",
       "format": "Heats, times, distances and attempts",
       "athlete": [
@@ -1511,6 +1590,7 @@
     {
       "id": "Pickleball",
       "name": "Pickleball",
+      "aliases": [],
       "family": "Racket and paddle sport",
       "format": "Games and points",
       "athlete": [
@@ -1531,6 +1611,7 @@
     {
       "id": "Powerlifting",
       "name": "Powerlifting",
+      "aliases": [],
       "family": "Strength competition",
       "format": "Attempts and total weight",
       "athlete": [
@@ -1551,6 +1632,7 @@
     {
       "id": "Racquetball",
       "name": "Racquetball",
+      "aliases": [],
       "family": "Racket and paddle sport",
       "format": "Games and points",
       "athlete": [
@@ -1571,6 +1653,7 @@
     {
       "id": "Rowing",
       "name": "Rowing",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Heats, lanes and race times",
       "athlete": [
@@ -1591,6 +1674,7 @@
     {
       "id": "Rugby",
       "name": "Rugby",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Points and match periods",
       "athlete": [
@@ -1611,6 +1695,7 @@
     {
       "id": "Sailing",
       "name": "Sailing",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Races, penalties and series points",
       "athlete": [
@@ -1631,6 +1716,7 @@
     {
       "id": "Skateboarding",
       "name": "Skateboarding",
+      "aliases": [],
       "family": "Judged or routine event",
       "format": "Runs, tricks and judged scores",
       "athlete": [
@@ -1651,6 +1737,13 @@
     {
       "id": "Skiing",
       "name": "Skiing",
+      "aliases": [
+        "Alpine skiing",
+        "Cross-country skiing",
+        "Freestyle skiing",
+        "Ski jumping",
+        "Nordic combined"
+      ],
       "family": "Winter sport",
       "format": "Times, points or judged scores by discipline",
       "athlete": [
@@ -1671,6 +1764,7 @@
     {
       "id": "Snowboarding",
       "name": "Snowboarding",
+      "aliases": [],
       "family": "Winter sport",
       "format": "Times, points or judged scores by discipline",
       "athlete": [
@@ -1691,6 +1785,7 @@
     {
       "id": "Squash",
       "name": "Squash",
+      "aliases": [],
       "family": "Racket and paddle sport",
       "format": "Games and points",
       "athlete": [
@@ -1711,6 +1806,7 @@
     {
       "id": "Surfing",
       "name": "Surfing",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Heats and judged wave scores",
       "athlete": [
@@ -1731,6 +1827,7 @@
     {
       "id": "Table Tennis",
       "name": "Table Tennis",
+      "aliases": [],
       "family": "Racket and paddle sport",
       "format": "Games and points",
       "athlete": [
@@ -1751,6 +1848,7 @@
     {
       "id": "Taekwondo",
       "name": "Taekwondo",
+      "aliases": [],
       "family": "Combat sport",
       "format": "Poomsae scores or sparring bouts",
       "athlete": [
@@ -1771,6 +1869,7 @@
     {
       "id": "Triathlon",
       "name": "Triathlon",
+      "aliases": [],
       "family": "Race and timed event",
       "format": "Multi-stage elapsed time and places",
       "athlete": [
@@ -1791,6 +1890,7 @@
     {
       "id": "Ultimate",
       "name": "Ultimate",
+      "aliases": [],
       "family": "Team field/court sport",
       "format": "Goals and match format",
       "athlete": [
@@ -1811,6 +1911,7 @@
     {
       "id": "Water Polo",
       "name": "Water Polo",
+      "aliases": [],
       "family": "Water-based sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -1831,6 +1932,7 @@
     {
       "id": "Weightlifting",
       "name": "Weightlifting",
+      "aliases": [],
       "family": "Strength competition",
       "format": "Attempts and total weight",
       "athlete": [
@@ -1851,6 +1953,7 @@
     {
       "id": "Wheelchair Basketball",
       "name": "Wheelchair Basketball",
+      "aliases": [],
       "family": "Adaptive sport",
       "format": "Head-to-head points",
       "athlete": [
@@ -1871,6 +1974,7 @@
     {
       "id": "Wheelchair Rugby",
       "name": "Wheelchair Rugby",
+      "aliases": [],
       "family": "Adaptive sport",
       "format": "Goals and match periods",
       "athlete": [
@@ -1891,6 +1995,7 @@
     {
       "id": "Other",
       "name": "Other",
+      "aliases": [],
       "family": "Custom sport or discipline",
       "format": "Organizer-defined format",
       "athlete": [

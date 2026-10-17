@@ -566,7 +566,7 @@ Adaptive participation is supported across levels; it is not treated as a separa
 
 Each sport uses the universal athlete preparation above plus its complete athlete/staff list below. These are original planning prompts for local review, not a claim that every federation mandates every item. Rule editions and event-specific requirements must come from the actual organizer.
 
-### Football
+### American football
 
 Family: Team field/court sport. Result model to support: Head-to-head points.
 
@@ -626,7 +626,7 @@ Staff preparation:
 - Prepare field, dugouts, game balls and protective equipment.
 - Assign scorebook, pitching-log and weather-decision responsibilities.
 
-### Soccer
+### Soccer / association football
 
 Family: Team field/court sport. Result model to support: Goals and match periods.
 
@@ -786,7 +786,7 @@ Staff preparation:
 - Prepare balls, roster, timing and equipment-check arrangements.
 - Confirm substitution areas and sideline staffing.
 
-### Hockey
+### Hockey (confirm discipline)
 
 Family: Team field/court sport. Result model to support: Goals and periods.
 
