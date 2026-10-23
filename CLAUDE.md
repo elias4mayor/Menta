@@ -22,34 +22,41 @@ npm run dev                      # Turbopack dev server, http://localhost:3000
 npm run build                    # production build
 npm run lint                     # eslint
 npx tsc --noEmit                 # typecheck (no separate npm script)
-npx prisma migrate dev           # apply/create migrations against prisma/dev.db
-npx prisma studio                # inspect local SQLite data
+npx prisma migrate deploy        # apply migrations against DATABASE_URL (see README "Database")
+npx prisma studio                # inspect the database at DATABASE_URL
 
 npm run test:e2e                 # full Playwright suite (spins up npm run dev itself)
 npx playwright test e2e/auth.spec.ts          # single file
 npx playwright test -g "some test name"       # single test by name
 ```
 
-E2E tests hit a **real** dev server and a **real** SQLite DB — nothing is mocked.
-`e2e/fixtures.ts` drives actual signup → email-verify → onboarding through the UI,
-reading the real 6-digit code from the server log (`playwright.config.ts` redirects
-`npm run dev`'s stdout to `/tmp/menta-e2e-server.log`, since `RESEND_API_KEY` is
-unset in dev and codes just print to console). `e2e/db-helpers.ts` mints real,
-DB-backed sessions directly for API-level tests and cleans up only rows tagged with
-its own `E2E_RUN_ID` (the dev DB has years of unrelated leftover test rows — never
-sweep by email domain alone). First cold request per route is slow under Turbopack
-dev mode (that's why the Playwright timeout is 90s, not the default) — expect that
-when running/debugging tests locally, it's not a hang.
+E2E tests hit a **real** dev server and a **real** PostgreSQL DB (whatever
+`DATABASE_URL` points at — a local/disposable instance for most sessions) —
+nothing is mocked. `e2e/fixtures.ts` drives actual signup → email-verify →
+onboarding through the UI, reading the real 6-digit code from the server log
+(`playwright.config.ts` redirects `npm run dev`'s stdout to
+`/tmp/menta-e2e-server.log`, since `RESEND_API_KEY` is unset in dev and codes
+just print to console). `e2e/db-helpers.ts` mints real, DB-backed sessions
+directly for API-level tests and cleans up only rows tagged with its own
+`E2E_RUN_ID` (a long-lived dev database can accumulate years of unrelated
+leftover test rows — never sweep by email domain alone). First cold request
+per route is slow under Turbopack dev mode (that's why the Playwright
+timeout is 90s, not the default) — expect that when running/debugging tests
+locally, it's not a hang.
 
 ## Architecture
 
-**Data model is one Prisma schema, one SQLite file in dev** (`prisma/dev.db`,
-gitignored). Swapping `provider`/`url` in `prisma/schema.prisma` to Postgres is the
-entire production migration — the schema deliberately avoids native enum types
-(role/status/category/visibility fields are plain `String`, with allowed values
-documented in a `///` comment above each model and enforced in
-`src/lib/permissions.ts` / `src/lib/validation.ts`, never by the DB) so it works
-unmodified against either connector.
+**Data model is one Prisma schema, PostgreSQL in every environment**
+including local development (see README's "Database" section for running a
+disposable local instance — no SQLite fallback exists; `prisma/migrations/`
+contains one PostgreSQL-native baseline migration, with the prior SQLite-era
+history preserved for reference only in `prisma/migrations-sqlite-archive/`,
+never applied). The schema still deliberately avoids native enum types
+(role/status/category/visibility fields are plain `String`, with allowed
+values documented in a `///` comment above each model and enforced in
+`src/lib/permissions.ts` / `src/lib/validation.ts`, never by the DB) — this
+predates the single-provider decision and remains cheap, harmless insurance,
+not a sign that a second connector is actually supported today.
 
 **Authorization is centralized, not per-route ad hoc.** `src/lib/permissions.ts` is
 the single load-bearing authorization module — role checks, minor-status checks,

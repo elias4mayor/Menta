@@ -15,8 +15,8 @@ source of truth for build order, permissions, and legal/safety rules).
 - **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript**
 - **Tailwind CSS v4**, design tokens matching the MENTA marketing site (matte
   black, Space Grotesk / Inter / IBM Plex Mono)
-- **Prisma** + **SQLite** in dev (swap to Postgres for production — one
-  `DATABASE_URL` change, see below)
+- **Prisma** + **PostgreSQL**, in every environment including local dev
+  (see "Database" below for running a disposable local instance)
 - Hand-rolled session auth (bcrypt + server-validated, revocable, DB-backed
   sessions) — no third-party auth SaaS
 - **Anthropic API** for MENTA AI (server-side only, off by default until
@@ -26,10 +26,13 @@ source of truth for build order, permissions, and legal/safety rules).
 
 ```bash
 npm install
-cp .env.example .env   # then edit SESSION_SECRET at minimum
-npx prisma migrate dev # creates prisma/dev.db and applies migrations
+cp .env.example .env   # then edit SESSION_SECRET and DATABASE_URL at minimum
+npx prisma migrate deploy # applies migrations against DATABASE_URL
 npm run dev
 ```
+
+You need a PostgreSQL database reachable at `DATABASE_URL` before the
+first run — see "Database" below for a local/disposable option.
 
 Visit `http://localhost:3000`.
 
@@ -39,7 +42,7 @@ See `.env.example` for the full list with descriptions. Summary:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | Yes | SQLite file in dev; Postgres connection string in production |
+| `DATABASE_URL` | Yes | PostgreSQL connection string — local/disposable in dev, hosted in production (see "Database") |
 | `SESSION_SECRET` | Yes | Signs session + password-reset tokens. Generate with `openssl rand -base64 32` |
 | `APP_URL` | Yes | Used to build links in emails |
 | `ANTHROPIC_API_KEY` | No | Turns on MENTA AI. Without it, the AI chat clearly shows "not connected" instead of faking a response |
@@ -153,13 +156,14 @@ than the rest of the app:
   create/update/delete/list actions — never the actual field values. Check
   server logs after testing this feature if you touch these routes; nothing
   in `src/app/api/wellness/*` should ever `console.log` a request body.
-- **Encryption at rest: NOT provided by this repo's dev setup.** Local
-  SQLite (`prisma/dev.db`) has no encryption at rest — it's a plain file.
-  This is fine for local development but **this feature must not go live
-  with real users until deployed on a datastore that provides encryption at
-  rest** (e.g. a managed Postgres instance with encryption enabled, which is
-  standard on providers like RDS, Supabase, or Neon). Nothing in this
-  codebase claims otherwise, and nothing should until that swap happens.
+- **Encryption at rest: NOT provided by a local/disposable dev Postgres
+  instance.** A locally-installed or Dockerized Postgres used for
+  development has no encryption at rest configured by default. This is
+  fine for local development but **this feature must not go live with real
+  users until deployed on a datastore that provides encryption at rest**
+  (standard on managed providers like RDS, Supabase, or Neon). Nothing in
+  this codebase claims otherwise, and nothing should until that's
+  confirmed for the actual deployment target.
 - Standard app-wide protections also apply here: bcrypt-hashed auth,
   DB-backed revocable sessions, and the same ownership-scoped
   `{id, userId}` query pattern used by every other per-user model in this
@@ -174,7 +178,7 @@ above — same private-by-default scope, same "never sent to an AI provider"
 rule (the Mindset page's "AI mental-performance insights" section is
 hardcoded to "not connected" for the same reason Recovery's is), same
 values-never-logged rule in `src/app/api/mind/*`, and the same encryption-
-at-rest caveat for local SQLite. This is a performance-journaling tool, not
+at-rest caveat for a local/disposable dev Postgres instance. This is a performance-journaling tool, not
 a mental-health diagnostic instrument or treatment — every surface that
 shows this data says so, and there is deliberately no synthesized "mental
 performance score." Trends show the athlete's own raw 1–5 values over time;
@@ -207,11 +211,40 @@ as done by an AI writing code:
 
 ## Database
 
-Dev uses local SQLite (`prisma/dev.db`, gitignored) for zero-config setup.
-For production, point `DATABASE_URL` at Postgres — the schema
-(`prisma/schema.prisma`) intentionally avoids native enum types so it works
-unmodified against either connector. Run `npx prisma migrate deploy` in
-production instead of `migrate dev`.
+PostgreSQL everywhere, including local development — `prisma/schema.prisma`
+intentionally avoids native enum types (role/status/category fields are
+plain strings, enforced in `src/lib/permissions.ts`/`src/lib/validation.ts`),
+not because it needs to support multiple connectors today, but because
+that's cheap insurance and was already in place before this decision.
+
+For local development without a hosted database, run a disposable local
+Postgres instance and point `DATABASE_URL` at it, e.g.:
+
+```bash
+# Option A: a local PostgreSQL install
+sudo -u postgres psql -c "CREATE DATABASE menta;" \
+                      -c "CREATE ROLE menta WITH LOGIN PASSWORD 'menta';" \
+                      -c "GRANT ALL ON DATABASE menta TO menta;"
+# PostgreSQL 15+ no longer grants CREATE on the public schema to non-owner
+# roles by default — without this, `prisma migrate deploy` fails with
+# "permission denied for schema public". Confirmed by actually running
+# this exact sequence against a fresh PostgreSQL 16 instance.
+sudo -u postgres psql -d menta -c "GRANT CREATE ON SCHEMA public TO menta;"
+# DATABASE_URL="postgresql://menta:menta@localhost:5432/menta"
+
+# Option B: Docker
+docker run -d --name menta-postgres -p 5432:5432 \
+  -e POSTGRES_USER=menta -e POSTGRES_PASSWORD=menta -e POSTGRES_DB=menta \
+  postgres:16
+```
+
+Then `npx prisma migrate deploy` applies `prisma/migrations/` (one
+PostgreSQL-native baseline migration — see
+`prisma/migrations-sqlite-archive/README.md` for why this isn't 29
+historical migrations anymore) against it. The same command, pointed at a
+real hosted Postgres connection string (Neon, Supabase, RDS, etc.), is the
+entire path to a real deployment — no schema or migration changes needed
+beyond that `DATABASE_URL`.
 
 ## Project structure
 

@@ -9,10 +9,25 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    services:
+      # A fresh, ephemeral Postgres container for this job only — torn down
+      # when the job ends, never a real/shared database. Matches the schema's
+      # provider (see prisma/schema.prisma); SQLite is no longer supported.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: menta
+          POSTGRES_PASSWORD: ci-e2e-throwaway-password
+          POSTGRES_DB: menta
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      # Fresh SQLite file per run — prisma/dev.db is gitignored, so CI always
-      # starts from an empty database and applies migrations below.
-      DATABASE_URL: "file:./dev.db"
+      DATABASE_URL: "postgresql://menta:ci-e2e-throwaway-password@localhost:5432/menta"
       # Any 32+ byte value works here; this is a throwaway secret for an
       # ephemeral CI database, not a real deployment.
       SESSION_SECRET: "ci-e2e-session-secret-not-for-production-use-only"

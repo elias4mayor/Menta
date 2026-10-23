@@ -1342,7 +1342,6 @@ h4 {
 .logo-intro-mark.gl {
   background: #ffffff;
   backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .logo-intro-mark.fade {
@@ -2338,13 +2337,150 @@ h4 {
 .topbar-material {
   background: var(--topbar-bg);
   backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
 .bottomnav-material {
   background: var(--bottomnav-bg);
   backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* ---------- Glass surface system (dashboard + nav) ----------
+   A small, deliberately restrained set of translucent "glass" surfaces,
+   additive to — never replacing — the existing opaque .card used across
+   the rest of the product. Three tiers, from most to least prominent, so
+   not every panel competes for attention:
+     .glass-surface        secondary dashboard panels
+     .glass-surface-strong the one primary surface per screen (Next Move /
+                            Needs your attention) — slightly more blur,
+                            a visible border, a soft lift shadow
+     .glass-chip           small status pills / inline indicators
+   All three fall back to a solid, fully opaque surface under
+   `prefers-reduced-transparency` (added to the existing block below) and
+   under `@supports not (backdrop-filter: ...)` for older browsers — glass
+   is a visual treatment, never the only thing carrying the content. */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 16px 32px -24px rgba(0, 0, 0, 0.12);
+  border-radius: var(--r-lg);
+}
+
+.glass-surface-strong {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 24px 48px -24px rgba(0, 0, 0, 0.16),
+    0 8px 20px -12px rgba(0, 0, 0, 0.1);
+  border-radius: var(--r-lg);
+}
+
+.glass-chip {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+}
+
+/* The sidebar/nav container itself — the lightest touch of the three,
+   since it's the largest glass area on screen and sits directly under
+   body text (section labels, link labels): too much blur or opacity here
+   would be exactly the "glass that reduces text contrast" the design
+   brief warns against. */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* The "signal" treatment: a gradient border (var(--grad-signal)) around a
+   translucent fill, via the two-layer background-image/background-clip
+   trick already established for MENTA's single most important card per
+   screen (Next Move, Needs your attention). Glass version of the same
+   idea — one class so all three current usages (and any future one)
+   share a single, consistent, reduced-transparency-aware definition
+   instead of each repeating the same inline style. */
+.glass-signal-card {
+  border: 1px solid transparent;
+  /* Explicit background-color: transparent — this class is combined with
+     .card in markup (for its border-radius/shadow), and .card's own
+     `background: var(--surface)` shorthand otherwise leaves an opaque
+     background-color sitting under this gradient, since setting only
+     background-image here doesn't touch background-color. Without this,
+     the translucent gradient paints over solid gray instead of true
+     glass, and backdrop-filter has nothing to actually blur through. */
+  background-color: transparent;
+  /* 92%, not the 55-65% used by the other glass-* surfaces: this inner
+     layer is clipped to padding-box while var(--grad-signal) underneath
+     is clipped to the full border-box, specifically so the dark gradient
+     peeks through only at the 1px border ring. Dropping this much below
+     ~90% lets that same dark gradient visibly bleed through the whole
+     card face instead of just the border — confirmed by screenshot, not
+     just reasoned about. A light backdrop-blur still applies underneath
+     for genuine depth (visible once real content scrolls behind it), but
+     this card's primary identity stays the high-contrast signal border,
+     not a dramatic glass effect — consistent with keeping glass
+     restrained to where it actually reads, not applying it uniformly. */
+  background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), var(--grad-signal);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-signal-card {
+    background-image: linear-gradient(var(--surface), var(--surface)), var(--grad-signal);
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-signal-card {
+    background-image: linear-gradient(var(--surface), var(--surface)), var(--grad-signal);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-surface,
+  .glass-surface-strong,
+  .glass-chip,
+  .glass-nav {
+    background: var(--surface);
+  }
+}
+
+/* Accordion nav section bodies — CSS-grid-rows trick (0fr -> 1fr) gives a
+   real height transition without JS measuring the content's height, and
+   without a hard-coded max-height that would either clip a long section
+   or leave a janky pause on a short one. */
+.nav-accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-normal) var(--ease);
+}
+
+.nav-accordion-body[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.nav-accordion-body > div {
+  overflow: hidden;
+}
+
+.nav-accordion-chevron {
+  transition: transform var(--duration-normal) var(--ease);
+}
+
+.nav-accordion-chevron[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-accordion-body {
+    transition: none;
+  }
+  .nav-accordion-chevron {
+    transition: none;
+  }
 }
 
 /* Scroll-edge softening (skill §12: "scroll edge effects, not hard
@@ -2365,7 +2501,6 @@ h4 {
    the reduced-transparency query below can reach it. */
 .marketing-nav-material {
   backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 
 /* 3. Accessibility signals the skill calls out that MENTA didn't have at
@@ -2376,13 +2511,20 @@ h4 {
   .bottomnav-material,
   .marketing-nav-material {
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     background: var(--bg);
   }
 
   .logo-intro-mark {
     backdrop-filter: none;
     background: var(--bg);
+  }
+
+  .glass-surface,
+  .glass-surface-strong,
+  .glass-chip,
+  .glass-nav {
+    backdrop-filter: none;
+    background: var(--surface);
   }
 }
 
@@ -2479,7 +2621,6 @@ h4 {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.06);
   font-size: 14px;
@@ -2506,7 +2647,6 @@ h4 {
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid var(--border-soft);
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.28);
   padding: 16px;
@@ -2544,7 +2684,6 @@ h4 {
   .ask-menta-btn,
   .ask-menta-panel {
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     background: var(--bg);
   }
 }
@@ -2594,7 +2733,6 @@ h4 {
   border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid var(--border-soft);
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.28);
   padding: 8px;
@@ -2643,7 +2781,6 @@ h4 {
 @media (prefers-reduced-transparency: reduce) {
   .sport-switcher-panel {
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     background: var(--bg);
   }
 }

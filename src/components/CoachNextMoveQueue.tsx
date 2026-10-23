@@ -86,15 +86,7 @@ export function CoachNextMoveQueue({
 
   return (
     <div className="mb-8">
-      <div
-        className="card p-6 sm:p-8 mb-4"
-        style={{
-          border: "1px solid transparent",
-          backgroundImage: "linear-gradient(var(--surface), var(--surface)), var(--grad-signal)",
-          backgroundOrigin: "border-box",
-          backgroundClip: "padding-box, border-box",
-        }}
-      >
+      <div className="card glass-signal-card p-6 sm:p-8 mb-4">
         <div className="mono text-text-3 mb-3">Needs your attention</div>
         {!top ? (
           <>

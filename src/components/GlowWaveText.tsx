@@ -61,20 +61,55 @@ export function GlowWaveText({
   const letters = Array.from(children);
   const vars = INTENSITY_VARS[intensity];
 
+  // Group letters into words, each wrapped in its own non-breaking span,
+  // with the space BETWEEN words rendered as a genuine breakable text
+  // node — not wrapped in a <span>, and not replaced with a non-breaking
+  // space the way the previous version did for every space. That
+  // substitution meant a heading using this component had zero real
+  // wrap opportunities at all: confirmed as the cause of a real overflow
+  // bug where a sufficiently long heading rendered as one unbroken line
+  // and spilled past its container on narrow viewports instead of
+  // wrapping. Per-letter animation timing is unaffected: `order` still
+  // increments across the whole string, not reset per word, so the wave
+  // still flows continuously across word boundaries.
+  const words: { letters: string[]; startIndex: number }[] = [];
+  let word: string[] = [];
+  let wordStart = 0;
+  letters.forEach((ch, i) => {
+    if (ch === " ") {
+      if (word.length) words.push({ letters: word, startIndex: wordStart });
+      words.push({ letters: [" "], startIndex: i });
+      word = [];
+      wordStart = i + 1;
+    } else {
+      if (word.length === 0) wordStart = i;
+      word.push(ch);
+    }
+  });
+  if (word.length) words.push({ letters: word, startIndex: wordStart });
+
   return (
     <Tag
       className={`glow-wave${hoverBoost ? " glow-wave-hover" : ""}${className ? ` ${className}` : ""}`}
       style={vars as React.CSSProperties}
     >
-      {letters.map((ch, i) => {
-        const order = direction === "ltr" ? i : letters.length - 1 - i;
+      {words.map((w, wi) => {
+        if (w.letters[0] === " ") return " ";
         return (
-          <span
-            key={i}
-            className="glow-wave-letter"
-            style={{ animationDuration: `${speedMs}ms`, animationDelay: `${order * staggerMs}ms` }}
-          >
-            {ch === " " ? " " : ch}
+          <span key={wi} style={{ whiteSpace: "nowrap" }}>
+            {w.letters.map((ch, li) => {
+              const globalIndex = w.startIndex + li;
+              const order = direction === "ltr" ? globalIndex : letters.length - 1 - globalIndex;
+              return (
+                <span
+                  key={li}
+                  className="glow-wave-letter"
+                  style={{ animationDuration: `${speedMs}ms`, animationDelay: `${order * staggerMs}ms` }}
+                >
+                  {ch}
+                </span>
+              );
+            })}
           </span>
         );
       })}

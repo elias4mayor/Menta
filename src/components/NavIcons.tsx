@@ -69,6 +69,7 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.5-2-3.4-2.3.8a7.6 7.6 0 0 0-2.6-1.5L14 2h-4l-.5 2.4a7.6 7.6 0 0 0-2.6 1.5l-2.3-.8-2 3.4 2 1.5a7.7 7.7 0 0 0 0 3l-2 1.5 2 3.4 2.3-.8c.75.65 1.63 1.16 2.6 1.5L10 22h4l.5-2.4a7.6 7.6 0 0 0 2.6-1.5l2.3.8 2-3.4-2-1.5Z" />
     </>
   ),
+  chevron: <path d="m9 6 6 6-6 6" />,
 };
 
 export function NavIcon({ name, className }: { name: string; className?: string }) {

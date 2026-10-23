@@ -101,12 +101,8 @@ export function NextMoveCard({
   return (
     <div className="mb-8">
       <div
-        className="card p-6 sm:p-8 mb-3"
+        className="card glass-signal-card p-6 sm:p-8 mb-3"
         style={{
-          border: "1px solid transparent",
-          backgroundImage: "linear-gradient(var(--surface), var(--surface)), var(--grad-signal)",
-          backgroundOrigin: "border-box",
-          backgroundClip: "padding-box, border-box",
           opacity: justCleared ? 0.4 : 1,
           transition: "opacity 300ms ease",
         }}

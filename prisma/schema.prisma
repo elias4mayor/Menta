@@ -1,15 +1,17 @@
 // MENTA — Phase 1 data model.
-// Dev uses SQLite (zero-config). Swap `provider`/`url` to Postgres for production —
-// see .env.example. Role/status fields are plain strings (not native enums) so the
-// schema works unmodified against either connector; allowed values are enforced in
-// src/lib/permissions.ts and src/lib/validation.ts, not by the database.
+// PostgreSQL, including local development — see .env.example and README's
+// "Database" section for how to point DATABASE_URL at a local or disposable
+// instance. Role/status fields are plain strings (not native enums) so the
+// schema was designed to work against either SQLite or Postgres without
+// changing models; allowed values are enforced in src/lib/permissions.ts
+// and src/lib/validation.ts, not by the database.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

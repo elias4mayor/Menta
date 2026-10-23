@@ -40,16 +40,7 @@ export function FilmAssignmentBanner({ initialTargets }: { initialTargets: FilmA
       {active.map((t) => {
         const overdue = t.dueAt && new Date(t.dueAt).getTime() < now;
         return (
-          <div
-            key={t.assignmentId}
-            className="card p-4"
-            style={{
-              border: "1px solid transparent",
-              backgroundImage: "linear-gradient(var(--surface), var(--surface)), var(--grad-signal)",
-              backgroundOrigin: "border-box",
-              backgroundClip: "padding-box, border-box",
-            }}
-          >
+          <div key={t.assignmentId} className="card glass-signal-card p-4">
             <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
               <div className="font-medium text-sm">Your coach assigned this film: {t.title}</div>
               <span className="badge" style={{ color: overdue ? "var(--danger)" : undefined }}>
