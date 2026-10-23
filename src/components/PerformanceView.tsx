@@ -13,6 +13,38 @@ type Entry = {
   note: string | null;
 };
 
+/** Common athletic-testing stats — a quick-fill shortcut, not a restriction; the field stays free text for anything else. */
+const STAT_PRESETS: { label: string; unit: string }[] = [
+  { label: "40-Yard Dash", unit: "sec" },
+  { label: "10-Yard Sprint", unit: "sec" },
+  { label: "20-Yard Sprint", unit: "sec" },
+  { label: "5-10-5 Shuttle", unit: "sec" },
+  { label: "Vertical Jump", unit: "in" },
+  { label: "Broad Jump", unit: "in" },
+  { label: "Bench Press", unit: "lbs" },
+  { label: "Back Squat", unit: "lbs" },
+  { label: "Height", unit: "in" },
+  { label: "Weight", unit: "lbs" },
+];
+
+/**
+ * Which direction counts as a personal record, for the known athletic-
+ * testing presets only — never guessed for a free-typed stat name (an
+ * arbitrary "Points" or "ERA" entry has no safely assumable direction).
+ * Height/Weight are deliberately absent: they're measurements, not
+ * performance to set a record against.
+ */
+const PR_DIRECTION: Record<string, "lower" | "higher"> = {
+  "40-Yard Dash": "lower",
+  "10-Yard Sprint": "lower",
+  "20-Yard Sprint": "lower",
+  "5-10-5 Shuttle": "lower",
+  "Vertical Jump": "higher",
+  "Broad Jump": "higher",
+  "Bench Press": "higher",
+  "Back Squat": "higher",
+};
+
 export function PerformanceView({ initialEntries }: { initialEntries: Entry[] }) {
   const router = useRouter();
   const [entries, setEntries] = useState(initialEntries);
@@ -71,6 +103,22 @@ export function PerformanceView({ initialEntries }: { initialEntries: Entry[] })
 
       {showForm && (
         <form onSubmit={submit} className="card p-5 space-y-3 mb-6">
+          <div className="flex gap-2 flex-wrap">
+            {STAT_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                className="badge"
+                style={{ cursor: "pointer", opacity: statName === p.label ? 1 : 0.6 }}
+                onClick={() => {
+                  setStatName(p.label);
+                  setUnit(p.unit);
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
           <input className="field-input" placeholder="Stat name (e.g. 40-yard dash, Points, ERA)" value={statName} onChange={(e) => setStatName(e.target.value)} required />
           <div className="grid grid-cols-2 gap-3">
             <input type="number" step="any" className="field-input" placeholder="Value" value={value} onChange={(e) => setValue(e.target.value)} required />
@@ -95,10 +143,25 @@ export function PerformanceView({ initialEntries }: { initialEntries: Entry[] })
             const min = Math.min(...values);
             const max = Math.max(...values);
             const recent = g.list.slice(-10);
+            const direction = PR_DIRECTION[g.name];
+            // Only a record if there's a real prior entry to beat — the
+            // first-ever entry for a stat is a baseline, not an improvement.
+            const isNewPr =
+              g.list.length > 1 &&
+              direction !== undefined &&
+              ((direction === "lower" && latest.value <= min) ||
+                (direction === "higher" && latest.value >= max));
             return (
               <div key={g.name} className="card p-5">
                 <div className="flex items-baseline justify-between mb-3">
-                  <div className="font-medium">{g.name}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium">{g.name}</div>
+                    {isNewPr && (
+                      <span className="badge badge-live" title="Your best recorded value for this stat">
+                        New PR
+                      </span>
+                    )}
+                  </div>
                   <div className="text-2xl font-semibold font-heading">
                     {latest.value}
                     {latest.unit && <span className="text-sm text-text-2 ml-1">{latest.unit}</span>}

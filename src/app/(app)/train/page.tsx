@@ -1,13 +1,31 @@
 import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { TrainingView } from "@/components/TrainingView";
-import { GlowWaveText } from "@/components/GlowWaveText";
+import { TrainingHub, type TeamSessionInfo } from "@/components/TrainingHub";
+
+function startOfDay(d: Date) {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function endOfDay(d: Date) {
+  const copy = new Date(d);
+  copy.setHours(23, 59, 59, 999);
+  return copy;
+}
 
 export default async function TrainPage() {
   const user = await requireUser();
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [workouts, manageableTeams, profile] = await Promise.all([
-    prisma.workout.findMany({
+  const [memberships, workoutCount, completionsThisWeek, latestStat] = await Promise.all([
+    prisma.teamMembership.findMany({
+      where: { userId: user.id },
+      include: { team: true },
+      orderBy: { joinedAt: "asc" },
+    }),
+    prisma.workout.count({
       where: {
         OR: [
           { createdById: user.id },
@@ -15,60 +33,53 @@ export default async function TrainPage() {
           { AND: [{ team: { memberships: { some: { userId: user.id } } } }, { isTemplate: false }] },
         ],
       },
-      include: {
-        team: true,
-        assignedTo: { select: { id: true, name: true } },
-        completions: { where: { userId: user.id }, orderBy: { completedAt: "desc" } },
-      },
-      orderBy: { createdAt: "desc" },
     }),
-    prisma.teamMembership.findMany({
-      where: { userId: user.id, teamRole: { in: ["COACH", "ADMIN"] } },
-      include: { team: true },
-    }),
-    prisma.athleteProfile.findUnique({ where: { userId: user.id } }),
+    prisma.workoutCompletion.count({ where: { userId: user.id, completedAt: { gte: weekAgo } } }),
+    prisma.performanceEntry.findFirst({ where: { userId: user.id }, orderBy: { recordedAt: "desc" } }),
   ]);
 
-  const manageableTeamIds = manageableTeams.map((m) => m.team.id);
-  const rosters =
-    manageableTeamIds.length > 0
-      ? await prisma.teamMembership.findMany({
-          where: { teamId: { in: manageableTeamIds }, teamRole: "ATHLETE" },
-          include: { user: { select: { id: true, name: true } } },
-        })
-      : [];
-  const rosterByTeam: Record<string, { id: string; name: string }[]> = {};
-  for (const r of rosters) {
-    (rosterByTeam[r.teamId] ??= []).push({ id: r.user.id, name: r.user.name });
+  const teamIds = memberships.map((m) => m.teamId);
+  const isCoach = memberships.some((m) => m.teamRole === "COACH" || m.teamRole === "ADMIN");
+  const primaryManagedTeam = memberships.find((m) => m.teamRole === "COACH" || m.teamRole === "ADMIN");
+
+  let teamSession: TeamSessionInfo | null = null;
+  if (teamIds.length > 0) {
+    const sessions = await prisma.trainingSession.findMany({
+      where: {
+        teamId: { in: teamIds },
+        OR: [
+          { status: { in: ["LIVE", "PAUSED"] } },
+          { status: "SCHEDULED", scheduledAt: { gte: startOfDay(now), lte: endOfDay(now) } },
+        ],
+      },
+      include: { team: { select: { id: true, name: true } } },
+      orderBy: [{ status: "asc" }, { scheduledAt: "asc" }],
+      take: 1,
+    });
+    const s = sessions[0];
+    if (s) {
+      teamSession = {
+        teamId: s.teamId,
+        teamName: s.team.name,
+        sessionId: s.id,
+        title: s.title,
+        status: s.status === "LIVE" || s.status === "PAUSED" ? "LIVE" : "TODAY",
+      };
+    }
   }
 
   return (
-    <div className="max-w-3xl mx-auto dash-in dash-in-1">
-      <div className="mono text-text-3 mb-2">Training</div>
-      <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Workout library</GlowWaveText></h1>
-      <TrainingView
-        initialWorkouts={workouts.map((w) => ({
-          id: w.id,
-          title: w.title,
-          category: w.category,
-          description: w.description,
-          exercises: w.exercises ? JSON.parse(w.exercises) : [],
-          teamId: w.teamId,
-          teamName: w.team?.name ?? null,
-          assignedToId: w.assignedToId,
-          assignedToName: w.assignedTo?.name ?? null,
-          isTemplate: w.isTemplate,
-          canManage: w.createdById === user.id,
-          isPlanWorkout: w.planTag != null,
-          yourCompletions: w.completions.length,
-          lastCompletedAt: w.completions[0]?.completedAt.toISOString() ?? null,
-        }))}
-        manageableTeams={manageableTeams.map((m) => ({ id: m.team.id, name: m.team.name }))}
-        rosterByTeam={rosterByTeam}
-        defaultSport={profile?.sport ?? null}
-        defaultPosition={profile?.position ?? null}
-        defaultTrainingDaysPerWeek={profile?.trainingDaysPerWeek ?? null}
-      />
-    </div>
+    <TrainingHub
+      isCoach={isCoach}
+      workoutsThisWeek={completionsThisWeek}
+      totalWorkouts={workoutCount}
+      latestStat={
+        latestStat
+          ? { statName: latestStat.statName, value: latestStat.value, unit: latestStat.unit }
+          : null
+      }
+      teamSession={teamSession}
+      primaryTeamId={primaryManagedTeam?.teamId ?? null}
+    />
   );
 }

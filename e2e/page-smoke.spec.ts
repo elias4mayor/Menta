@@ -45,7 +45,9 @@ test.describe("Page smoke regression — athlete", () => {
       // expectation, not an app bug.
       { path: "/dashboard", heading: "Today" },
       { path: "/profile", heading: params.name },
-      { path: "/train", heading: "Workout library" },
+      // Was "Workout library" — the Training screen redesign moved that
+      // view to /train/library and made /train the new 3-entry-point hub.
+      { path: "/train", heading: "What do you want to do?" },
       { path: "/performance", heading: "Stats & trends" },
       { path: "/recruit", heading: "Your recruiting dashboard" },
       { path: "/film", heading: "Film library" },
