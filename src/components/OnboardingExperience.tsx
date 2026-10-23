@@ -20,11 +20,16 @@ type Step = "sport" | "school" | "goals" | "review" | "building" | "reveal";
 const QUESTION_STEPS: Step[] = ["sport", "school", "goals", "review"];
 
 const TRANSITION_MS = 260;
-// Must match OnboardingBuildingStep's own internal pacing (5 status lines
-// at 1300ms + a closing "ready" hold) closely enough that its final beat
-// lands right before this timer fires and hands off to "reveal" — see
-// durationMs on that component.
-const BUILD_MIN_MS = 7000;
+// This was 7000ms — a floor enforced even when the real /api/onboarding
+// save (which is what this step is actually waiting on) finishes in well
+// under a second, so every athlete sat through several forced extra
+// seconds of pure animation for no functional reason. Cut to the shortest
+// duration that still reads as "something happened" rather than an
+// instant flash cut; OnboardingBuildingStep's own status-line cycle is
+// simply cut short at whichever line it's on when `ready` fires, which
+// is fine — the lines were always decorative pacing, never a real
+// progress feed tied to the actual save.
+const BUILD_MIN_MS = 2200;
 
 /**
  * The full first-launch onboarding experience: one dark, continuous
