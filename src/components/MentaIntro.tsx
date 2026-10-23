@@ -102,24 +102,36 @@ export function MentaIntro({
   const glowOn = phase !== "empty" && phase !== "reveal";
 
   return (
-    <div className={`mi-root${revealing ? " mi-revealing" : ""}`} aria-hidden="true">
-      <div className={`mi-glow${glowOn ? " mi-glow-on" : ""}`} />
+    <div className={`mi-root${revealing ? " mi-revealing" : ""}`}>
+      <div aria-hidden="true">
+        <div className={`mi-glow${glowOn ? " mi-glow-on" : ""}`} />
 
-      {/* eslint-disable-next-line @next/next/no-img-element -- static local asset; filter/position are animated inline via CSS transitions, not Next/Image's layout system */}
-      <img
-        src="/logo.png"
-        alt=""
-        className={`mi-logo${logoOn ? " mi-logo-on" : ""}${logoSmall ? " mi-logo-small" : ""}`}
-      />
+        {/* eslint-disable-next-line @next/next/no-img-element -- static local asset; filter/position are animated inline via CSS transitions, not Next/Image's layout system */}
+        <img
+          src="/logo.png"
+          alt=""
+          className={`mi-logo${logoOn ? " mi-logo-on" : ""}${logoSmall ? " mi-logo-small" : ""}`}
+        />
 
-      <div className="mi-stage">
-        <IntroContent phase={phase} firstName={firstName} copy={copy} />
+        <div className="mi-stage">
+          <IntroContent phase={phase} firstName={firstName} copy={copy} />
+        </div>
       </div>
 
-      {/* Screen-reader-only announcement — the overlay itself is aria-hidden
-          (purely decorative motion), so this is the one line that actually
-          orients a non-visual first-time user before the real form
-          appears. */}
+      {/* Real skip control — not just the prefers-reduced-motion bailout
+          above. Every signup previously had to sit through this full
+          ~13s sequence with no way to opt out; first-run personality is
+          fine, but it must never be the only path through. Not inside
+          the aria-hidden decorative wrapper, so it's actually reachable
+          by keyboard and announced by a screen reader. */}
+      <button type="button" className="mi-skip" onClick={() => doneRef.current()}>
+        Skip
+      </button>
+
+      {/* Screen-reader-only announcement — the rest of the overlay is
+          aria-hidden (purely decorative motion), so this is the one line
+          that actually orients a non-visual first-time user before the
+          real form appears. */}
       <span className="sr-only">{`Welcome to MENTA, ${firstName}.`}</span>
     </div>
   );
