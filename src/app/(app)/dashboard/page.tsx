@@ -6,11 +6,13 @@ import { getMyDay } from "@/lib/my-day";
 import { GoalsPanel } from "@/components/GoalsPanel";
 import { CountUpValue } from "@/components/CountUpValue";
 import { TodaysPriorities } from "@/components/TodaysPriorities";
+import { NextMoveCard } from "@/components/NextMoveCard";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { PlanCard } from "@/components/PlanCard";
 import { DailyBrief } from "@/components/DailyBrief";
 import { TodaysSessionCard } from "@/components/TodaysSessionCard";
 import { demandsFor } from "@/lib/sports";
+import { getNextMove } from "@/lib/next-move";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { TrainerDashboard } from "@/components/TrainerDashboard";
@@ -87,6 +89,8 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
       orderBy: { createdAt: "asc" },
     }),
   ]);
+
+  const nextMove = await getNextMove(user.id);
 
   const aiProvider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
   const aiEnvVar =
@@ -248,6 +252,28 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
           </div>
         </div>
       </div>
+
+      <NextMoveCard
+        initial={
+          nextMove.current
+            ? {
+                id: nextMove.current.id,
+                kind: nextMove.current.kind,
+                title: nextMove.current.title,
+                reasoning: nextMove.current.reasoning,
+                evidence: nextMove.current.evidence,
+                actionHref: nextMove.current.actionHref,
+              }
+            : null
+        }
+        initialCompetingCount={nextMove.competingCount}
+        initialHistory={nextMove.recentlyResolved.map((r) => ({
+          id: r.id,
+          kind: r.kind,
+          title: r.title,
+          outcome: r.outcome,
+        }))}
+      />
 
       <div className="cockpit-grid mt-8">
         <div className="space-y-8 dash-in dash-in-4">
