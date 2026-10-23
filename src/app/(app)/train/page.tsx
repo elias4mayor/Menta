@@ -47,6 +47,7 @@ export default async function TrainPage() {
       <div className="mono text-text-3 mb-2">Training</div>
       <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Workout library</GlowWaveText></h1>
       <TrainingView
+        userId={user.id}
         initialWorkouts={workouts.map((w) => ({
           id: w.id,
           title: w.title,
