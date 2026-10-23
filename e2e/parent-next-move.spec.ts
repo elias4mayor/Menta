@@ -290,6 +290,46 @@ test.describe("Parent Next Move", () => {
     expect((await athleteRevoke.json()).scopes).not.toContain("VIEW_ACADEMIC_STATUS");
   });
 
+  test("an unrelated third party — neither the guardian nor the athlete on this link — cannot grant or even read scopes", async ({ request }) => {
+    const parent = await createTestUser("pnm-scope-stranger", "PARENT");
+    const athlete = await createTestAthlete("pnm-scope-stranger-athlete", "Football", "WR");
+    const stranger = await createTestUser("pnm-scope-stranger-outsider", "PARENT");
+    const link = await approveGuardianLink(parent.userId, athlete.userId);
+
+    const strangerRead = await request.get(`http://localhost:3000/api/guardian/${link.id}/scopes`, {
+      headers: { Cookie: stranger.cookie },
+    });
+    expect(strangerRead.status()).toBe(403);
+
+    const strangerGrant = await request.patch(`http://localhost:3000/api/guardian/${link.id}/scopes`, {
+      headers: { Cookie: stranger.cookie, "Content-Type": "application/json" },
+      data: { scope: "VIEW_ACADEMIC_STATUS", grant: true },
+    });
+    expect(strangerGrant.status()).toBe(403);
+
+    const scopesAfter = await request.get(`http://localhost:3000/api/guardian/${link.id}/scopes`, {
+      headers: { Cookie: athlete.cookie },
+    });
+    expect((await scopesAfter.json()).scopes).toEqual([]);
+  });
+
+  test("a scope cannot be granted while the underlying guardian link is only PENDING, not yet APPROVED", async ({ request }) => {
+    const parent = await createTestUser("pnm-scope-pending-link", "PARENT");
+    const athlete = await createTestAthlete("pnm-scope-pending-link-athlete", "Football", "WR");
+    const link = await testPrisma.guardianLink.create({
+      data: { guardianId: parent.userId, athleteId: athlete.userId, status: "PENDING" },
+    });
+
+    const attempt = await request.patch(`http://localhost:3000/api/guardian/${link.id}/scopes`, {
+      headers: { Cookie: athlete.cookie, "Content-Type": "application/json" },
+      data: { scope: "VIEW_ACADEMIC_STATUS", grant: true },
+    });
+    expect(attempt.status()).toBe(409);
+
+    const grants = await testPrisma.guardianScopeGrant.count({ where: { guardianId: parent.userId, athleteId: athlete.userId } });
+    expect(grants).toBe(0);
+  });
+
   test("UI and API authorization agree: the academics page honestly says what hasn't been shared, and shows real data only once granted", async ({ page }) => {
     const parent = await createTestUser("pnm-ui-auth", "PARENT");
     const athlete = await createTestAthlete("pnm-ui-auth-athlete", "Football", "WR");
@@ -316,5 +356,66 @@ test.describe("Parent Next Move", () => {
     await loginWithCookie(page, parentA.cookie);
     const res = await page.goto(`http://localhost:3000/parent/athletes/${athleteB.userId}/academics`);
     expect(res?.status()).toBe(404);
+  });
+
+  test("revoking a scope takes effect immediately on the academics UI page, not just the API — no stale cache, no stale server render", async ({ page }) => {
+    const parent = await createTestUser("pnm-ui-revoke", "PARENT");
+    const athlete = await createTestAthlete("pnm-ui-revoke-athlete", "Football", "WR");
+    await approveGuardianLink(parent.userId, athlete.userId);
+    await grantScope(parent.userId, athlete.userId, "VIEW_ACADEMIC_STATUS");
+    await testPrisma.eligibilityChecklistItem.create({
+      data: { userId: athlete.userId, category: "NCAA", title: "Core course GPA", status: "NOT_STARTED" },
+    });
+
+    await loginWithCookie(page, parent.cookie);
+    await page.goto(`http://localhost:3000/parent/athletes/${athlete.userId}/academics`);
+    await expect(page.getByText("Core course GPA")).toBeVisible();
+
+    await testPrisma.guardianScopeGrant.deleteMany({
+      where: { guardianId: parent.userId, athleteId: athlete.userId, scope: "VIEW_ACADEMIC_STATUS" },
+    });
+
+    await page.goto(`http://localhost:3000/parent/athletes/${athlete.userId}/academics`);
+    await expect(page.getByText("Core course GPA")).toHaveCount(0);
+    await expect(page.getByText(/hasn.t shared eligibility status/i)).toBeVisible();
+  });
+
+  test("the calendar page is independently scope-gated — team events only appear once VIEW_TEAM_CALENDAR is granted, and visibility is never implied by the academics scopes", async ({ page }) => {
+    const parent = await createTestUser("pnm-ui-calendar", "PARENT");
+    const coach = await createTestUser("pnm-ui-calendar-coach", "COACH");
+    const athlete = await createTestAthlete("pnm-ui-calendar-athlete", "Football", "WR");
+    await approveGuardianLink(parent.userId, athlete.userId);
+    // Academic scopes granted, calendar scope deliberately withheld — one
+    // scope must never leak visibility into another.
+    await grantScope(parent.userId, athlete.userId, "VIEW_ACADEMIC_STATUS");
+    await grantScope(parent.userId, athlete.userId, "VIEW_ACADEMIC_ASSIGNMENTS");
+
+    const team = await testPrisma.team.create({
+      data: {
+        name: `E2E Team ${E2E_RUN_ID}`,
+        inviteCode: `E2E${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+        createdById: coach.userId,
+        memberships: { create: [{ userId: athlete.userId, teamRole: "ATHLETE" }] },
+      },
+    });
+    await testPrisma.calendarEvent.create({
+      data: {
+        title: "Varsity scrimmage",
+        teamId: team.id,
+        createdById: coach.userId,
+        visibility: "TEAM",
+        startsAt: new Date(Date.now() + 86400000),
+        location: "Away field",
+      },
+    });
+
+    await loginWithCookie(page, parent.cookie);
+    await page.goto(`http://localhost:3000/parent/athletes/${athlete.userId}/calendar`);
+    await expect(page.getByText(/hasn.t shared team calendar access/i)).toBeVisible();
+    await expect(page.getByText("Varsity scrimmage")).toHaveCount(0);
+
+    await grantScope(parent.userId, athlete.userId, "VIEW_TEAM_CALENDAR");
+    await page.goto(`http://localhost:3000/parent/athletes/${athlete.userId}/calendar`);
+    await expect(page.getByText("Varsity scrimmage")).toBeVisible();
   });
 });

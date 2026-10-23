@@ -797,6 +797,22 @@ model Block {
 }
 
 /// Status: PENDING, APPROVED, REVOKED — a parent/guardian requesting linked visibility into a minor athlete's account
+///
+/// LAUNCH-BLOCKING POLICY GAP, flagged deliberately rather than assumed
+/// away: APPROVED here means only "the account logged in as the athlete
+/// clicked approve." This code makes no attempt to verify that click
+/// reflects real legal guardianship, that the account belongs to the
+/// athlete it claims to (vs. a parent signed in as them), or that consent
+/// remains valid across an age-of-majority transition (isMinor() in
+/// src/lib/permissions.ts exists and is accurate, but nothing here
+/// currently re-prompts for consent or expires a grant when an athlete
+/// crosses that line). None of this is a FERPA question specifically —
+/// FERPA governs school education records, not every piece of data this
+/// app holds, and no blanket assumption about which law applies should be
+/// made for any given deployment. This needs real legal/product review
+/// before this feature is trusted with real families' data — do not
+/// treat the engineering-level authorization checks in this file (which
+/// are real and tested) as a substitute for that review.
 model GuardianLink {
   id         String   @id @default(cuid())
   guardianId String
