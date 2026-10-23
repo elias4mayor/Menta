@@ -102,4 +102,53 @@ test.describe("Training hub", () => {
     await expect(page.getByPlaceholder("Stat name (e.g. 40-yard dash, Points, ERA)")).toHaveValue("Vertical Jump");
     await expect(page.getByPlaceholder("Unit (optional, e.g. sec, lbs)")).toHaveValue("in");
   });
+
+  test("a faster 40-yard dash is flagged New PR; a slower one is not; the first-ever entry never is", async ({ page }) => {
+    const athlete = await createTestAthlete("hub-pr-lower", "Football", "RB");
+    await loginWithCookie(page, athlete.cookie);
+
+    // First-ever entry — a baseline, not a record.
+    await testPrisma.performanceEntry.create({
+      data: { userId: athlete.userId, statName: "40-Yard Dash", value: 4.8, unit: "sec", recordedAt: new Date(Date.now() - 2000) },
+    });
+    await page.goto("http://localhost:3000/performance");
+    await expect(page.getByText("40-Yard Dash")).toBeVisible();
+    await expect(page.getByText("New PR")).toHaveCount(0);
+
+    // A real improvement (lower = better for a timed sprint).
+    await testPrisma.performanceEntry.create({
+      data: { userId: athlete.userId, statName: "40-Yard Dash", value: 4.6, unit: "sec", recordedAt: new Date(Date.now() - 1000) },
+    });
+    await page.goto("http://localhost:3000/performance");
+    await expect(page.getByText("New PR")).toBeVisible();
+
+    // A slower run after the PR — must not relabel a worse result as a record.
+    await testPrisma.performanceEntry.create({
+      data: { userId: athlete.userId, statName: "40-Yard Dash", value: 4.9, unit: "sec", recordedAt: new Date() },
+    });
+    await page.goto("http://localhost:3000/performance");
+    await expect(page.getByText("New PR")).toHaveCount(0);
+  });
+
+  test("a heavier bench press is flagged New PR (higher = better for a lift), and an unknown stat name is never flagged", async ({ page }) => {
+    const athlete = await createTestAthlete("hub-pr-higher", "Football", "OL");
+    await loginWithCookie(page, athlete.cookie);
+
+    await testPrisma.performanceEntry.create({
+      data: { userId: athlete.userId, statName: "Bench Press", value: 225, unit: "lbs", recordedAt: new Date(Date.now() - 1000) },
+    });
+    await testPrisma.performanceEntry.create({
+      data: { userId: athlete.userId, statName: "Bench Press", value: 245, unit: "lbs", recordedAt: new Date() },
+    });
+    // A custom, non-preset stat with no known direction — never guess.
+    await testPrisma.performanceEntry.create({
+      data: { userId: athlete.userId, statName: "Points", value: 12, recordedAt: new Date() },
+    });
+
+    await page.goto("http://localhost:3000/performance");
+    const benchCard = page.locator(".card", { has: page.getByText("Bench Press", { exact: true }) });
+    await expect(benchCard.getByText("New PR")).toBeVisible();
+    const pointsCard = page.locator(".card", { has: page.getByText("Points", { exact: true }) });
+    await expect(pointsCard.getByText("New PR")).toHaveCount(0);
+  });
 });
