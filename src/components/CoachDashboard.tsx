@@ -3,7 +3,12 @@ import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/session";
 import { CARE_OPERATIONAL_STATUS_LABELS, type CareStatus } from "@/lib/care";
 import { getCoachQueue } from "@/lib/next-move";
-import { CoachNextMoveQueue } from "@/components/CoachNextMoveQueue";
+import { SubjectNextMoveQueue } from "@/components/SubjectNextMoveQueue";
+
+const COACH_KIND_LABELS: Record<string, string> = {
+  FILM_ASSIGNMENT_OVERDUE: "Film",
+  FILM_REVIEW_UNANSWERED: "Film question",
+};
 
 /**
  * Coach dashboard — Phase 1 scope: real data only (teams the coach
@@ -118,7 +123,11 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      <CoachNextMoveQueue
+      <SubjectNextMoveQueue
+        apiEndpoint="/api/coach-queue"
+        kindLabels={COACH_KIND_LABELS}
+        emptyHeadline="Your roster is caught up."
+        emptyBody="No overdue film assignments and no unanswered film questions across your teams right now."
         initialQueue={coachQueue.queue.map((item) => ({
           id: item.id,
           kind: item.kind,

@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { canViewAthleteProfile } from "@/lib/permissions";
+import { getParentQueue } from "@/lib/next-move";
+import { SubjectNextMoveQueue } from "@/components/SubjectNextMoveQueue";
 import type { SessionUser } from "@/lib/session";
+
+const PARENT_KIND_LABELS: Record<string, string> = {
+  PARENT_CARE_APPOINTMENT_UPCOMING: "Care",
+  PARENT_DOCUMENT_REQUEST_OUTSTANDING: "Document",
+  PARENT_ELIGIBILITY_INCOMPLETE: "Eligibility",
+  PARENT_ACADEMIC_ASSIGNMENT_OVERDUE: "Academics",
+  PARENT_CALENDAR_UPCOMING: "Calendar",
+  PARENT_MESSAGE_AWAITING_REPLY: "Message",
+};
 
 type AthleteSnapshot = {
   athleteId: string;
@@ -41,6 +52,8 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
     prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
 
+  const parentQueue = await getParentQueue(user.id);
+
   const snapshots: AthleteSnapshot[] = [];
   for (const link of approvedLinks) {
     const profile = await prisma.athleteProfile.findUnique({ where: { userId: link.athlete.id } });
@@ -67,6 +80,30 @@ export async function ParentDashboard({ user }: { user: SessionUser }) {
 
   return (
     <div className="max-w-6xl mx-auto">
+      <SubjectNextMoveQueue
+        apiEndpoint="/api/parent-queue"
+        kindLabels={PARENT_KIND_LABELS}
+        emptyHeadline="Your household is caught up."
+        emptyBody="Nothing needs your attention across your connected athletes right now."
+        initialQueue={parentQueue.queue.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          athleteId: item.athleteId,
+          athleteName: item.athleteName,
+          title: item.title,
+          reasoning: item.reasoning,
+          evidence: item.evidence,
+          actionHref: item.actionHref,
+        }))}
+        initialHistory={parentQueue.recentlyResolved.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          athleteName: item.athleteName,
+          title: item.title,
+          outcome: item.outcome,
+        }))}
+      />
+
       <div className="cockpit-grid mb-8">
         <div className="hero-panel dash-in-primary dash-in-3">
           <div className="mono text-text-3 mb-2">Now</div>

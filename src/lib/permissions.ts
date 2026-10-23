@@ -386,6 +386,58 @@ export async function canViewAthleteCareStatus(viewer: SessionUser, athleteId: s
 }
 
 // =====================================================================
+// Guardian scopes — an APPROVED GuardianLink establishes the relationship
+// (the athlete consented to being watched at all), not unrestricted access
+// to every record. Each of these is a separate, independently revocable
+// grant the athlete gives to one specific guardian, same "row existence is
+// the only state" shape as TeamPermissionGrant below. The default for any
+// scope here is NO ACCESS until the athlete explicitly grants it — never
+// inferred from APPROVED status alone, and never from account role.
+//
+// These are deliberately narrower than what an athlete sees of their own
+// data, same reasoning Coach Next Move's own signal set already documents:
+// a guardian's legitimate view is narrower than the athlete's own, and
+// widening it is a real, separate, privacy-sensitive design decision —
+// not something to default to permissively.
+// =====================================================================
+
+export const GUARDIAN_SCOPES = [
+  /** Eligibility checklist completion status for a linked athlete. */
+  "VIEW_ACADEMIC_STATUS",
+  /** Individual academic assignments (title, due date, status, grade) for a linked athlete. */
+  "VIEW_ACADEMIC_ASSIGNMENTS",
+  /** Team calendar events (practices, games) for a linked athlete's team. */
+  "VIEW_TEAM_CALENDAR",
+] as const;
+export type GuardianScope = (typeof GUARDIAN_SCOPES)[number];
+
+export function isGuardianScope(value: string): value is GuardianScope {
+  return (GUARDIAN_SCOPES as readonly string[]).includes(value);
+}
+
+/**
+ * Does `guardianId` currently hold `scope` for `athleteId`? Re-checked live
+ * on every call — never cached, never trusted from a previously-persisted
+ * record — so revoking a GuardianScopeGrant (or the underlying GuardianLink)
+ * takes effect on the very next read, not just the next recommendation
+ * reconciliation pass.
+ */
+export async function hasGuardianScope(
+  guardianId: string,
+  athleteId: string,
+  scope: GuardianScope
+): Promise<boolean> {
+  const link = await prisma.guardianLink.findFirst({
+    where: { guardianId, athleteId, status: "APPROVED" },
+  });
+  if (!link) return false;
+  const grant = await prisma.guardianScopeGrant.findUnique({
+    where: { guardianId_athleteId_scope: { guardianId, athleteId, scope } },
+  });
+  return Boolean(grant);
+}
+
+// =====================================================================
 // Granular team permissions — MENTA Film Center / Position Groups.
 //
 // TeamMembership.teamRole stays the coarse role and keeps working exactly

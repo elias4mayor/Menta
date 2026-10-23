@@ -167,5 +167,14 @@ export async function cleanupE2eUsers() {
   await testPrisma.workout.deleteMany({ where: { createdById: { in: ids } } });
   await testPrisma.film.deleteMany({ where: { uploadedById: { in: ids } } });
   await testPrisma.document.deleteMany({ where: { uploadedById: { in: ids } } });
+  // GuardianLink has no onDelete: Cascade on either side (a deliberate
+  // RESTRICT — a guardian/athlete relationship record shouldn't silently
+  // vanish just because one account is ever deleted in production, where
+  // there's no delete-account feature anyway). Same non-optional-cleanup
+  // reasoning as Film/Document above, just newly exercised: no prior spec
+  // persisted a real GuardianLink row through to cleanup.
+  await testPrisma.guardianLink.deleteMany({ where: { OR: [{ guardianId: { in: ids } }, { athleteId: { in: ids } }] } });
+  // Same reasoning, same gap: DocumentRequest.requestedBy/athlete don't cascade either.
+  await testPrisma.documentRequest.deleteMany({ where: { OR: [{ requestedById: { in: ids } }, { athleteId: { in: ids } }] } });
   await testPrisma.user.deleteMany({ where: { id: { in: ids } } });
 }

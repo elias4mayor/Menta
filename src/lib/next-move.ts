@@ -1,5 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { hasGuardianScope, type GuardianScope } from "@/lib/permissions";
+import { CARE_OPERATIONAL_STATUS_LABELS } from "@/lib/care";
 
 /**
  * MENTA's signature cross-domain recommendation engine.
@@ -28,6 +30,17 @@ export const RECOMMENDATION_KINDS = [
   /// Coach-only — see COACH_ONLY_KINDS and computeCoachCandidates below.
   /// Never appears in computeCandidates()'s athlete-facing output.
   "FILM_REVIEW_UNANSWERED",
+  /// Parent-only — see PARENT_ONLY_KINDS and computeParentCandidates below.
+  /// Deliberately PARENT_-prefixed even where a parallel athlete-facing
+  /// kind exists (e.g. ELIGIBILITY_INCOMPLETE above) — same underlying
+  /// condition, different viewer and wording, kept as a visually distinct
+  /// kind rather than overloading one string for two audiences.
+  "PARENT_CARE_APPOINTMENT_UPCOMING",
+  "PARENT_DOCUMENT_REQUEST_OUTSTANDING",
+  "PARENT_MESSAGE_AWAITING_REPLY",
+  "PARENT_ELIGIBILITY_INCOMPLETE",
+  "PARENT_ACADEMIC_ASSIGNMENT_OVERDUE",
+  "PARENT_CALENDAR_UPCOMING",
 ] as const;
 export type RecommendationKind = (typeof RECOMMENDATION_KINDS)[number];
 
@@ -39,6 +52,16 @@ export type RecommendationKind = (typeof RECOMMENDATION_KINDS)[number];
  * Performance are excluded, not just forgotten).
  */
 export const COACH_ONLY_KINDS: RecommendationKind[] = ["FILM_REVIEW_UNANSWERED"];
+
+/** Kinds that are ONLY ever shown to a parent/guardian — see computeParentCandidates below. */
+export const PARENT_ONLY_KINDS: RecommendationKind[] = [
+  "PARENT_CARE_APPOINTMENT_UPCOMING",
+  "PARENT_DOCUMENT_REQUEST_OUTSTANDING",
+  "PARENT_MESSAGE_AWAITING_REPLY",
+  "PARENT_ELIGIBILITY_INCOMPLETE",
+  "PARENT_ACADEMIC_ASSIGNMENT_OVERDUE",
+  "PARENT_CALENDAR_UPCOMING",
+];
 
 export type EvidenceItem = { label: string; value: string };
 
@@ -530,7 +553,14 @@ export async function acceptNextMove(userId: string, recommendationId: string): 
 // provider can per canManageCareRequest).
 // =====================================================================
 
-export type CoachCandidate = Candidate & { athleteId: string; athleteName: string };
+/**
+ * Shared shape for any non-athlete viewer's queue — a candidate tagged
+ * with which athlete it's about. Coach Next Move and Parent Next Move
+ * both produce this; a future Trainer/Educator/Administrator/Organization
+ * queue would too, rather than inventing its own candidate shape.
+ */
+export type SubjectCandidate = Candidate & { athleteId: string; athleteName: string };
+export type CoachCandidate = SubjectCandidate;
 
 /**
  * Every legitimate "this athlete needs your attention" candidate across
@@ -615,38 +645,70 @@ export async function computeCoachCandidates(coachUserId: string): Promise<Coach
   return candidates.sort((a, b) => b.score - a.score);
 }
 
-export type CoachQueueItem = StoredRecommendation & { athleteId: string; athleteName: string };
+export type SubjectQueueItem = StoredRecommendation & { athleteId: string; athleteName: string };
+export type CoachQueueItem = SubjectQueueItem;
 
-export type CoachQueueResult = {
-  /** Every currently-active item, ranked — the first is "which athlete needs my attention most right now." */
-  queue: CoachQueueItem[];
-  recentlyResolved: CoachQueueItem[];
+export type SubjectQueueResult = {
+  /** Every currently-active item, ranked — the first is "which athlete needs attention most right now." */
+  queue: SubjectQueueItem[];
+  recentlyResolved: SubjectQueueItem[];
 };
+export type CoachQueueResult = SubjectQueueResult;
+
+function matchesSubjectStored(candidate: SubjectCandidate, stored: { kind: string; evidence: string }): boolean {
+  return candidate.kind === stored.kind && parseEvidence(stored.evidence, "resolutionKey") === candidate.resolutionKey;
+}
+
+type SubjectStoredRow = StoredRow & { subjectAthleteId: string | null };
+
+function toSubjectStored(row: SubjectStoredRow, nameByAthleteId: Map<string, string>): SubjectQueueItem {
+  const stored = toStored(row);
+  return {
+    ...stored,
+    athleteId: row.subjectAthleteId ?? "",
+    athleteName: (row.subjectAthleteId && nameByAthleteId.get(row.subjectAthleteId)) || "Athlete",
+  };
+}
+
+async function toSubjectStoredWithOutcome(
+  row: SubjectStoredRow & { resolvedAt: Date | null; userId: string },
+  nameByAthleteId: Map<string, string>
+): Promise<SubjectQueueItem> {
+  const base = toSubjectStored(row, nameByAthleteId);
+  const outcome = await getOutcomeEvidence(row);
+  return outcome ? { ...base, outcome } : base;
+}
 
 /**
- * Coach-side counterpart to getNextMove() — same reconciliation idea
- * (auto-resolve what cleared, persist what's new), generalized to a
- * ranked list instead of one slot, since "which of my athletes needs
- * attention" is naturally a queue, not a single card. Never touches or
- * depends on getNextMove()'s athlete-side rows — they're the same table,
- * disjoint by subjectAthleteId being set.
+ * Shared reconciliation core for every non-athlete "queue" viewer (Coach,
+ * Parent, and any future role that follows the same pattern): auto-resolve
+ * whatever cleared since the last read, persist whatever's newly true,
+ * return the current ranked queue plus a short resolved-history feed.
+ * Extracted from what was originally Coach-only logic — behavior,
+ * ordering, scoring, and persistence semantics are unchanged from before
+ * this was shared; only the viewerId and candidate list are now
+ * parameters instead of being coach-specific.
+ *
+ * Never touches or depends on getNextMove()'s single-slot athlete-side
+ * rows — same table, disjoint by subjectAthleteId being set at all.
  */
-export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResult> {
-  const candidates = await computeCoachCandidates(coachUserId);
+export async function reconcileSubjectQueue(
+  viewerId: string,
+  candidates: SubjectCandidate[]
+): Promise<SubjectQueueResult> {
   const nameByAthleteId = new Map(candidates.map((c) => [c.athleteId, c.athleteName]));
 
   const activeRows = await prisma.nextMoveRecommendation.findMany({
-    where: { userId: coachUserId, status: "ACTIVE", subjectAthleteId: { not: null } },
+    where: { userId: viewerId, status: "ACTIVE", subjectAthleteId: { not: null } },
   });
 
   const stillMatched = new Set<string>();
   for (const row of activeRows) {
-    const match = candidates.find((c) => matchesCoachStored(c, row));
+    const match = candidates.find((c) => matchesSubjectStored(c, row));
     if (match) {
       stillMatched.add(row.id);
     } else {
-      // The underlying condition cleared (film watched, question answered)
-      // — the Development Loop closing on the coach's side.
+      // The underlying condition cleared — the Development Loop closing.
       await prisma.nextMoveRecommendation.update({
         where: { id: row.id },
         data: { status: "RESOLVED", resolvedAt: new Date() },
@@ -662,7 +724,7 @@ export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResu
     if (alreadyPersisted.has(key)) continue;
     await prisma.nextMoveRecommendation.create({
       data: {
-        userId: coachUserId,
+        userId: viewerId,
         subjectAthleteId: candidate.athleteId,
         kind: candidate.kind,
         title: candidate.title,
@@ -676,11 +738,11 @@ export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResu
 
   const [queueRows, recentlyResolvedRows] = await Promise.all([
     prisma.nextMoveRecommendation.findMany({
-      where: { userId: coachUserId, status: "ACTIVE", subjectAthleteId: { not: null } },
+      where: { userId: viewerId, status: "ACTIVE", subjectAthleteId: { not: null } },
       orderBy: { score: "desc" },
     }),
     prisma.nextMoveRecommendation.findMany({
-      where: { userId: coachUserId, status: { in: ["RESOLVED", "DISMISSED"] }, subjectAthleteId: { not: null } },
+      where: { userId: viewerId, status: { in: ["RESOLVED", "DISMISSED"] }, subjectAthleteId: { not: null } },
       orderBy: { resolvedAt: "desc" },
       take: 5,
     }),
@@ -698,31 +760,306 @@ export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResu
   }
 
   return {
-    queue: queueRows.map((r) => toCoachStored(r, nameByAthleteId)),
-    recentlyResolved: await Promise.all(recentlyResolvedRows.map((r) => toCoachStoredWithOutcome(r, nameByAthleteId))),
+    queue: queueRows.map((r) => toSubjectStored(r, nameByAthleteId)),
+    recentlyResolved: await Promise.all(recentlyResolvedRows.map((r) => toSubjectStoredWithOutcome(r, nameByAthleteId))),
   };
 }
 
-function matchesCoachStored(candidate: CoachCandidate, stored: { kind: string; evidence: string }): boolean {
-  return candidate.kind === stored.kind && parseEvidence(stored.evidence, "resolutionKey") === candidate.resolutionKey;
+/**
+ * Coach-side counterpart to getNextMove() — thin wrapper around the shared
+ * reconciliation core with Coach's own candidate source.
+ */
+export async function getCoachQueue(coachUserId: string): Promise<CoachQueueResult> {
+  const candidates = await computeCoachCandidates(coachUserId);
+  return reconcileSubjectQueue(coachUserId, candidates);
 }
 
-type CoachStoredRow = StoredRow & { subjectAthleteId: string | null };
+// =====================================================================
+// Parent Next Move — the third instance of the SubjectCandidate /
+// reconcileSubjectQueue pattern established above for Coach. An APPROVED
+// GuardianLink is a relationship, not blanket access (see GUARDIAN_SCOPES
+// in src/lib/permissions.ts for the full reasoning) — three signal kinds
+// below need nothing beyond APPROVED (the parent already legitimately
+// owns or can already see this data through an existing, narrower check);
+// three more require the athlete to have explicitly granted the matching
+// GuardianScope, re-checked live both here AND again in getParentQueue
+// after reconciliation, so a scope revoked since a row was created stops
+// being visible on the very next read — not on the next recompute.
+//
+// IMPORTANT for any future per-subject candidate kind (this file or a
+// later Trainer/Educator/Administrator/Organization queue): resolutionKey
+// must be either a genuinely global-unique id (a real row's cuid) or
+// explicitly athlete-scoped (prefixed with the athlete's id). Reconciliation
+// matches candidates to stored rows purely on kind+resolutionKey across
+// ALL subject athletes under one viewer at once, not per-athlete — two
+// different athletes producing the same bare resolutionKey for a
+// count-based (non-single-record) kind would collide and silently drop
+// one athlete's real recommendation. PARENT_ELIGIBILITY_INCOMPLETE below
+// is the one count-based kind here, and is scoped accordingly.
+//
+// Transportation/carpool signals are explicitly NOT part of this engine —
+// no transportation concept exists in the data model yet; deferred to its
+// own dedicated module, not bolted on here.
+//
+// Never Wellness/Mind/EmergencyContact/PersonalSafetyProfile (same hard
+// boundary as every other Next Move surface), never
+// CareRequest.reason/reasonNote/providerNote — status + scheduledStart
+// only, the same scope canViewAthleteCareStatus already documents.
+// =====================================================================
 
-function toCoachStored(row: CoachStoredRow, nameByAthleteId: Map<string, string>): CoachQueueItem {
-  const stored = toStored(row);
+export type ParentCandidate = SubjectCandidate;
+
+/** How many days out an upcoming calendar event still counts as worth a nudge, not noise. */
+const CALENDAR_LOOKAHEAD_DAYS = 3;
+
+/**
+ * Every legitimate "needs your attention" candidate across every athlete
+ * this parent is an APPROVED guardian of. Multi-athlete households fall
+ * out naturally — this loops every linked athlete and returns one ranked
+ * list, same shape computeCoachCandidates already produces for a coach's
+ * team. Returns an empty array for a parent with no approved links.
+ */
+export async function computeParentCandidates(parentUserId: string): Promise<ParentCandidate[]> {
+  const now = new Date();
+  const links = await prisma.guardianLink.findMany({
+    where: { guardianId: parentUserId, status: "APPROVED" },
+    include: { athlete: { select: { id: true, name: true } } },
+  });
+
+  const candidates: ParentCandidate[] = [];
+  for (const link of links) {
+    const athlete = link.athlete;
+
+    const [
+      upcomingCare,
+      outstandingRequests,
+      canViewAcademicStatus,
+      canViewAcademicAssignments,
+      canViewCalendar,
+    ] = await Promise.all([
+      // Status + scheduledStart only — never reason/reasonNote/providerNote.
+      prisma.careRequest.findMany({
+        where: { athleteId: athlete.id, status: "SCHEDULED", scheduledStart: { gt: now } },
+        select: { id: true, status: true, scheduledStart: true },
+        orderBy: { scheduledStart: "asc" },
+      }),
+      // The parent's own request, about their own linked athlete — no
+      // additional scope needed, they already own this record.
+      prisma.documentRequest.findMany({
+        where: { requestedById: parentUserId, athleteId: athlete.id, status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+      }),
+      hasGuardianScope(parentUserId, athlete.id, "VIEW_ACADEMIC_STATUS"),
+      hasGuardianScope(parentUserId, athlete.id, "VIEW_ACADEMIC_ASSIGNMENTS"),
+      hasGuardianScope(parentUserId, athlete.id, "VIEW_TEAM_CALENDAR"),
+    ]);
+
+    // --- Care: next scheduled appointment, if any ---
+    const nextCare = upcomingCare[0];
+    if (nextCare) {
+      const daysOut = daysBetween(nextCare.scheduledStart!, now);
+      candidates.push({
+        kind: "PARENT_CARE_APPOINTMENT_UPCOMING",
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+        resolutionKey: nextCare.id,
+        title: `${athlete.name} has a care appointment ${daysOut <= 1 ? "soon" : `in ${daysOut} days`}`,
+        reasoning: `${CARE_OPERATIONAL_STATUS_LABELS.SCHEDULED} — you're seeing this because you're an approved guardian for ${athlete.name}. The reason for the visit stays private to ${athlete.name} and their provider.`,
+        evidence: [
+          { label: "Athlete", value: athlete.name },
+          { label: "Status", value: CARE_OPERATIONAL_STATUS_LABELS.SCHEDULED },
+          { label: "Scheduled", value: nextCare.scheduledStart!.toLocaleString() },
+        ],
+        actionHref: "/care",
+        score: 55 + Math.max(0, 7 - daysOut) * 3,
+      });
+    }
+
+    // --- Documents: a request the parent themselves made, still open ---
+    for (const req of outstandingRequests) {
+      const daysOpen = daysBetween(now, req.createdAt);
+      candidates.push({
+        kind: "PARENT_DOCUMENT_REQUEST_OUTSTANDING",
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+        resolutionKey: req.id,
+        title: `Follow up on "${req.title}" for ${athlete.name}`,
+        reasoning: `You requested this document ${daysOpen} day(s) ago and ${athlete.name} hasn't uploaded it yet.`,
+        evidence: [
+          { label: "Athlete", value: athlete.name },
+          { label: "Document", value: req.title },
+          { label: "Requested", value: req.createdAt.toLocaleDateString() },
+        ],
+        actionHref: "/documents",
+        score: 35 + Math.min(daysOpen, 20),
+      });
+    }
+
+    // --- Eligibility: gated behind VIEW_ACADEMIC_STATUS ---
+    if (canViewAcademicStatus) {
+      const incomplete = await prisma.eligibilityChecklistItem.findMany({
+        where: { userId: athlete.id, status: { not: "COMPLETED" } },
+      });
+      if (incomplete.length > 0) {
+        candidates.push({
+          kind: "PARENT_ELIGIBILITY_INCOMPLETE",
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          // Count-based, not tied to one row — must be athlete-scoped, see
+          // the big comment above this section.
+          resolutionKey: `eligibility:${athlete.id}`,
+          title:
+            incomplete.length === 1
+              ? `${athlete.name} has one eligibility item left`
+              : `${athlete.name} has ${incomplete.length} eligibility items left`,
+          reasoning: `${athlete.name} shared eligibility status with you. Left incomplete, these quietly become a real problem later in the season.`,
+          evidence: incomplete.slice(0, 3).map((i) => ({ label: i.category, value: i.title })),
+          actionHref: `/parent/athletes/${athlete.id}/academics`,
+          score: 20 + Math.min(incomplete.length * 4, 20),
+        });
+      }
+    }
+
+    // --- Academic assignments: gated behind VIEW_ACADEMIC_ASSIGNMENTS ---
+    if (canViewAcademicAssignments) {
+      const overdue = await prisma.assignment.findMany({
+        where: { userId: athlete.id, status: { not: "COMPLETED" }, dueDate: { lt: now } },
+        orderBy: { dueDate: "asc" },
+      });
+      for (const a of overdue) {
+        const overdueDays = daysBetween(now, a.dueDate!);
+        candidates.push({
+          kind: "PARENT_ACADEMIC_ASSIGNMENT_OVERDUE",
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          resolutionKey: a.id,
+          title: `"${a.title}" is overdue for ${athlete.name}`,
+          reasoning: `${athlete.name} shared assignment details with you. This one${a.subject ? ` (${a.subject})` : ""} was due ${overdueDays} day(s) ago and isn't marked complete.`,
+          evidence: [
+            { label: "Athlete", value: athlete.name },
+            { label: "Assignment", value: a.title },
+            { label: "Due", value: a.dueDate!.toLocaleDateString() },
+          ],
+          actionHref: `/parent/athletes/${athlete.id}/academics`,
+          score: 60 + Math.min(overdueDays * 2, 25),
+        });
+      }
+    }
+
+    // --- Team calendar: gated behind VIEW_TEAM_CALENDAR, only near-term events ---
+    if (canViewCalendar) {
+      const lookaheadEnd = new Date(now.getTime() + CALENDAR_LOOKAHEAD_DAYS * 24 * 60 * 60 * 1000);
+      const upcoming = await prisma.calendarEvent.findFirst({
+        where: {
+          team: { memberships: { some: { userId: athlete.id } } },
+          visibility: { in: ["TEAM", "PUBLIC"] },
+          startsAt: { gte: now, lte: lookaheadEnd },
+        },
+        orderBy: { startsAt: "asc" },
+      });
+      if (upcoming) {
+        const daysOut = daysBetween(upcoming.startsAt, now);
+        candidates.push({
+          kind: "PARENT_CALENDAR_UPCOMING",
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          resolutionKey: upcoming.id,
+          title: `${upcoming.title} ${daysOut <= 0 ? "is today" : `in ${daysOut} day(s)`} for ${athlete.name}`,
+          reasoning: `${athlete.name} shared team calendar access with you. ${upcoming.location ? `Location: ${upcoming.location}.` : ""}`,
+          evidence: [
+            { label: "Athlete", value: athlete.name },
+            { label: "Event", value: upcoming.title },
+            { label: "Starts", value: upcoming.startsAt.toLocaleString() },
+          ],
+          actionHref: `/parent/athletes/${athlete.id}/calendar`,
+          score: 30 + Math.max(0, CALENDAR_LOOKAHEAD_DAYS - daysOut) * 10,
+        });
+      }
+    }
+
+    // --- Messages: a conversation tied to one of this athlete's teams,
+    // where the parent participates and the latest message isn't theirs.
+    // No per-message read-tracking exists in this schema (Message has no
+    // readAt), so this is "awaiting your reply," not "unread" — the same
+    // honest distinction FILM_REVIEW_UNANSWERED already draws from
+    // req.response being null rather than a tracked read state. Limited to
+    // team-linked conversations only: a 1:1 conversation with no teamId
+    // can't be safely attributed to one specific linked athlete, so it's
+    // left out of this engine rather than guessed.
+    const athleteTeamIds = (
+      await prisma.teamMembership.findMany({ where: { userId: athlete.id }, select: { teamId: true } })
+    ).map((t) => t.teamId);
+    if (athleteTeamIds.length > 0) {
+      const parentConversations = await prisma.conversationParticipant.findMany({
+        where: { userId: parentUserId, conversation: { teamId: { in: athleteTeamIds } } },
+        select: {
+          conversation: {
+            select: {
+              id: true,
+              title: true,
+              messages: { orderBy: { createdAt: "desc" }, take: 1, select: { senderId: true, createdAt: true, body: true } },
+            },
+          },
+        },
+      });
+      for (const { conversation } of parentConversations) {
+        const latest = conversation.messages[0];
+        if (!latest || latest.senderId === parentUserId) continue;
+        const daysOpen = daysBetween(now, latest.createdAt);
+        candidates.push({
+          kind: "PARENT_MESSAGE_AWAITING_REPLY",
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          resolutionKey: conversation.id,
+          title: `A message about ${athlete.name} is awaiting your reply`,
+          reasoning: `The most recent message in ${conversation.title ?? "this conversation"} was sent ${daysOpen} day(s) ago and you haven't replied yet.`,
+          evidence: [
+            { label: "Athlete", value: athlete.name },
+            { label: "Conversation", value: conversation.title ?? "Direct message" },
+            { label: "Last message", value: latest.body.length > 80 ? `${latest.body.slice(0, 80)}…` : latest.body },
+          ],
+          actionHref: `/messages/${conversation.id}`,
+          score: 40 + Math.min(daysOpen * 4, 25),
+        });
+      }
+    }
+  }
+
+  return candidates.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Parent-side counterpart to getNextMove()/getCoachQueue() — same shared
+ * reconciliation core, plus one extra step neither of the others need: a
+ * live re-check of every permission-gated row's GuardianScope right
+ * before returning. A scope revoked after a row was persisted (but before
+ * the next full recompute) must not still show up here — this is what
+ * makes that true, enforced at read time, not just at the next
+ * reconciliation pass.
+ */
+export async function getParentQueue(parentUserId: string): Promise<SubjectQueueResult> {
+  const candidates = await computeParentCandidates(parentUserId);
+  const result = await reconcileSubjectQueue(parentUserId, candidates);
+
+  const scopeByKind: Partial<Record<RecommendationKind, GuardianScope>> = {
+    PARENT_ELIGIBILITY_INCOMPLETE: "VIEW_ACADEMIC_STATUS",
+    PARENT_ACADEMIC_ASSIGNMENT_OVERDUE: "VIEW_ACADEMIC_ASSIGNMENTS",
+    PARENT_CALENDAR_UPCOMING: "VIEW_TEAM_CALENDAR",
+  };
+
+  async function stillAuthorized(item: SubjectQueueItem): Promise<boolean> {
+    const scope = scopeByKind[item.kind as RecommendationKind];
+    if (!scope) return true; // not a permission-gated kind
+    return hasGuardianScope(parentUserId, item.athleteId, scope);
+  }
+
+  const [queue, recentlyResolved] = await Promise.all([
+    Promise.all(result.queue.map(async (item) => ((await stillAuthorized(item)) ? item : null))),
+    Promise.all(result.recentlyResolved.map(async (item) => ((await stillAuthorized(item)) ? item : null))),
+  ]);
+
   return {
-    ...stored,
-    athleteId: row.subjectAthleteId ?? "",
-    athleteName: (row.subjectAthleteId && nameByAthleteId.get(row.subjectAthleteId)) || "Athlete",
+    queue: queue.filter((i): i is SubjectQueueItem => i !== null),
+    recentlyResolved: recentlyResolved.filter((i): i is SubjectQueueItem => i !== null),
   };
-}
-
-async function toCoachStoredWithOutcome(
-  row: CoachStoredRow & { resolvedAt: Date | null; userId: string },
-  nameByAthleteId: Map<string, string>
-): Promise<CoachQueueItem> {
-  const base = toCoachStored(row, nameByAthleteId);
-  const outcome = await getOutcomeEvidence(row);
-  return outcome ? { ...base, outcome } : base;
 }

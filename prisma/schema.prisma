@@ -71,6 +71,8 @@ model User {
   createdTeams                Team[]                      @relation("TeamCreator")
   guardianOf                  GuardianLink[]              @relation("Guardian")
   athleteGuardians            GuardianLink[]              @relation("AthleteOfGuardian")
+  guardianScopeGrantsAsGuardian GuardianScopeGrant[]       @relation("GuardianScopeGuardian")
+  guardianScopeGrantsAsAthlete  GuardianScopeGrant[]       @relation("GuardianScopeAthlete")
   reportsFiled                Report[]                    @relation("Reporter")
   blocksMade                  Block[]                     @relation("Blocker")
   blocksReceived              Block[]                     @relation("Blocked")
@@ -806,6 +808,33 @@ model GuardianLink {
   athlete  User @relation("AthleteOfGuardian", fields: [athleteId], references: [id])
 
   @@unique([guardianId, athleteId])
+}
+
+/// An APPROVED GuardianLink establishes a relationship, not blanket access —
+/// each additional, more sensitive view (academic status, assignment detail,
+/// team calendar) requires its own explicit grant here, same shape as
+/// TeamPermissionGrant: row existence is the only state (no revokedAt — the
+/// athlete revokes by deleting the row, same convention TeamPermissionGrant
+/// already uses), scope values are the GUARDIAN_SCOPES list in
+/// src/lib/permissions.ts, and hasGuardianScope() re-checks this live on
+/// every read, not just at candidate-generation time, so a revoked scope
+/// stops being visible immediately rather than waiting for the next
+/// reconciliation pass. Only the athlete being linked can create or delete
+/// these rows (src/app/api/guardian/[id]/scopes/route.ts) — the same
+/// "only the athlete consents" rule the base GuardianLink approval already
+/// enforces; a guardian can never self-grant.
+model GuardianScopeGrant {
+  id         String   @id @default(cuid())
+  guardianId String
+  athleteId  String
+  scope      String
+  grantedAt  DateTime @default(now())
+
+  guardian User @relation("GuardianScopeGuardian", fields: [guardianId], references: [id], onDelete: Cascade)
+  athlete  User @relation("GuardianScopeAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([guardianId, athleteId, scope])
+  @@index([athleteId])
 }
 
 /// Category: GAME, PRACTICE, TRAINING, HIGHLIGHT

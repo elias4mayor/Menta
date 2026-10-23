@@ -4,29 +4,24 @@ import { useState } from "react";
 import Link from "next/link";
 import { GlowWaveText } from "@/components/GlowWaveText";
 
-export type CoachQueueEvidence = { label: string; value: string };
-export type CoachQueueOutcome = { status: string; detail: string };
-export type CoachQueueHistoryItem = {
+export type SubjectQueueEvidence = { label: string; value: string };
+export type SubjectQueueOutcome = { status: string; detail: string };
+export type SubjectQueueHistoryItem = {
   id: string;
   kind: string;
   athleteName: string;
   title: string;
-  outcome?: CoachQueueOutcome;
+  outcome?: SubjectQueueOutcome;
 };
-export type CoachQueueItemData = {
+export type SubjectQueueItemData = {
   id: string;
   kind: string;
   athleteId: string;
   athleteName: string;
   title: string;
   reasoning: string;
-  evidence: CoachQueueEvidence[];
+  evidence: SubjectQueueEvidence[];
   actionHref: string;
-};
-
-const KIND_LABEL: Record<string, string> = {
-  FILM_ASSIGNMENT_OVERDUE: "Film",
-  FILM_REVIEW_UNANSWERED: "Film question",
 };
 
 const OUTCOME_LABEL: Record<string, string> = {
@@ -38,20 +33,33 @@ const OUTCOME_LABEL: Record<string, string> = {
 };
 
 /**
- * Coach-side Next Move — the same engine as the athlete dashboard's
- * NextMoveCard, scoped to what a coach is actually authorized to see
- * (film assignments the team assigned, film questions directed at the
- * team's coaches). Answers "which athlete needs my attention most right
- * now" with the top item emphasized and the rest as a compact queue. The
- * history below is the same honest completed-vs-improved distinction as
- * the athlete side — never inferred, only what the underlying records show.
+ * Shared Next Move queue for any non-athlete viewer watching multiple
+ * athletes — Coach today, Parent (households with multiple linked
+ * athletes included — this list was already multi-subject by design)
+ * joining it here, and the same component is meant to serve
+ * Trainer/Educator/Administrator/Organization next. Same engine as the
+ * athlete dashboard's NextMoveCard, scoped to whatever that viewer is
+ * actually authorized to see. The history below keeps the same honest
+ * completed-vs-improved distinction as the athlete side — never inferred,
+ * only what the underlying records show.
  */
-export function CoachNextMoveQueue({
+export function SubjectNextMoveQueue({
   initialQueue,
   initialHistory,
+  apiEndpoint,
+  kindLabels,
+  emptyHeadline,
+  emptyBody,
 }: {
-  initialQueue: CoachQueueItemData[];
-  initialHistory: CoachQueueHistoryItem[];
+  initialQueue: SubjectQueueItemData[];
+  initialHistory: SubjectQueueHistoryItem[];
+  /** Which API route to POST accept/dismiss actions to — the viewer-specific queue endpoint. */
+  apiEndpoint: string;
+  /** Short badge label per recommendation kind, e.g. { FILM_ASSIGNMENT_OVERDUE: "Film" }. */
+  kindLabels: Record<string, string>;
+  /** Shown when the queue is empty — phrase for the specific viewer ("Your roster", "Your household", ...). */
+  emptyHeadline: string;
+  emptyBody: string;
 }) {
   const [queue, setQueue] = useState(initialQueue);
   const [history] = useState(initialHistory);
@@ -60,7 +68,7 @@ export function CoachNextMoveQueue({
   function acceptPing(id: string) {
     // Fire-and-forget: the link navigates immediately either way. Records
     // "recommendation accepted" only from this real click, never inferred.
-    fetch("/api/coach-queue", {
+    fetch(apiEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action: "accept" }),
@@ -71,7 +79,7 @@ export function CoachNextMoveQueue({
   async function dismiss(id: string) {
     setDismissingId(id);
     try {
-      const res = await fetch("/api/coach-queue", {
+      const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, action: "dismiss" }),
@@ -86,30 +94,19 @@ export function CoachNextMoveQueue({
 
   return (
     <div className="mb-8">
-      <div
-        className="card p-6 sm:p-8 mb-4"
-        style={{
-          border: "1px solid transparent",
-          backgroundImage: "linear-gradient(var(--surface), var(--surface)), var(--grad-signal)",
-          backgroundOrigin: "border-box",
-          backgroundClip: "padding-box, border-box",
-        }}
-      >
+      <div className="card glass-signal-card p-6 sm:p-8 mb-4">
         <div className="mono text-text-3 mb-3">Needs your attention</div>
         {!top ? (
           <>
             <h2 className="text-2xl font-semibold mb-2">
-              <GlowWaveText intensity="strong">Your roster is caught up.</GlowWaveText>
+              <GlowWaveText intensity="strong">{emptyHeadline}</GlowWaveText>
             </h2>
-            <p className="text-text-2 text-sm">
-              No overdue film assignments and no unanswered film questions across your teams right
-              now.
-            </p>
+            <p className="text-text-2 text-sm">{emptyBody}</p>
           </>
         ) : (
           <>
             <div className="flex items-center gap-2 mb-2">
-              <span className="badge">{KIND_LABEL[top.kind] ?? top.kind}</span>
+              <span className="badge">{kindLabels[top.kind] ?? top.kind}</span>
               <span className="text-xs text-text-3">{top.athleteName}</span>
             </div>
             <h2 className="text-2xl font-semibold mb-2">
