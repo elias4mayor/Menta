@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { hasGuardianScope, type GuardianScope } from "@/lib/permissions";
+import { hasGuardianScope, type GuardianScope, isVerifiedProvider, PROVIDER_TEAM_ROLES } from "@/lib/permissions";
 import { CARE_OPERATIONAL_STATUS_LABELS } from "@/lib/care";
 
 /**
@@ -41,6 +41,18 @@ export const RECOMMENDATION_KINDS = [
   "PARENT_ELIGIBILITY_INCOMPLETE",
   "PARENT_ACADEMIC_ASSIGNMENT_OVERDUE",
   "PARENT_CALENDAR_UPCOMING",
+  /// Trainer-only — see TRAINER_ONLY_KINDS and computeTrainerCandidates
+  /// below. Care-related kinds here deliberately carry status/timing only
+  /// — never CareRequest.reason/reasonNote/providerNote — even though a
+  /// trainer-as-assigned-provider has full legitimate access to those on
+  /// /care/provider itself; Next Move's own surface stays conservative
+  /// across every role, not just the roles with a narrower page-level grant.
+  "TRAINER_CARE_REQUEST_NEW",
+  "TRAINER_CARE_APPOINTMENT_UPCOMING",
+  "TRAINER_CARE_SCHEDULE_CONFLICT",
+  "TRAINER_CARE_FOLLOWUP_DUE",
+  "TRAINER_DOCUMENT_REQUEST_OUTSTANDING",
+  "TRAINER_MESSAGE_AWAITING_REPLY",
 ] as const;
 export type RecommendationKind = (typeof RECOMMENDATION_KINDS)[number];
 
@@ -61,6 +73,16 @@ export const PARENT_ONLY_KINDS: RecommendationKind[] = [
   "PARENT_ELIGIBILITY_INCOMPLETE",
   "PARENT_ACADEMIC_ASSIGNMENT_OVERDUE",
   "PARENT_CALENDAR_UPCOMING",
+];
+
+/** Kinds that are ONLY ever shown to a trainer — see computeTrainerCandidates below. */
+export const TRAINER_ONLY_KINDS: RecommendationKind[] = [
+  "TRAINER_CARE_REQUEST_NEW",
+  "TRAINER_CARE_APPOINTMENT_UPCOMING",
+  "TRAINER_CARE_SCHEDULE_CONFLICT",
+  "TRAINER_CARE_FOLLOWUP_DUE",
+  "TRAINER_DOCUMENT_REQUEST_OUTSTANDING",
+  "TRAINER_MESSAGE_AWAITING_REPLY",
 ];
 
 export type EvidenceItem = { label: string; value: string };
@@ -273,6 +295,16 @@ export type StoredRecommendation = {
   actionHref: string;
   createdAt: Date;
   acceptedAt: Date | null;
+  /**
+   * Internal bookkeeping, not display data — the same value matchesStored()
+   * uses to detect whether a condition cleared. Exposed here (not folded
+   * into `evidence`, which strips it) so a queue wrapper like
+   * getTrainerQueue can re-fetch the specific underlying record a
+   * persisted row refers to and re-verify authorization against it live,
+   * rather than trusting the row's own stored content. UI components are
+   * free to ignore this field; nothing renders it.
+   */
+  resolutionKey: string;
   /** Only ever set for RESOLVED rows — see getOutcomeEvidence. Honestly distinguishes "completed" from "measurably improved"; never fabricates the latter from the former. */
   outcome?: OutcomeEvidence;
 };
@@ -377,11 +409,14 @@ type StoredRow = {
 
 function toStored(row: StoredRow): StoredRecommendation {
   let evidence: EvidenceItem[] = [];
+  let resolutionKey = "";
   try {
+    const parsed = JSON.parse(row.evidence) as EvidenceItem[];
+    resolutionKey = parsed.find((e) => e.label === "resolutionKey")?.value ?? "";
     // Every hidden bookkeeping field (resolutionKey, __baselineProgress,
     // ...) uses a reserved "__"-prefixed or exact "resolutionKey" label —
     // never shown to anyone, athlete or coach.
-    evidence = (JSON.parse(row.evidence) as EvidenceItem[]).filter((e) => e.label !== "resolutionKey" && !e.label.startsWith("__"));
+    evidence = parsed.filter((e) => e.label !== "resolutionKey" && !e.label.startsWith("__"));
   } catch {
     evidence = [];
   }
@@ -391,6 +426,7 @@ function toStored(row: StoredRow): StoredRecommendation {
     title: row.title,
     reasoning: row.reasoning,
     evidence,
+    resolutionKey,
     actionHref: row.actionHref,
     createdAt: row.createdAt,
     acceptedAt: row.acceptedAt,
@@ -1051,6 +1087,342 @@ export async function getParentQueue(parentUserId: string): Promise<SubjectQueue
     const scope = scopeByKind[item.kind as RecommendationKind];
     if (!scope) return true; // not a permission-gated kind
     return hasGuardianScope(parentUserId, item.athleteId, scope);
+  }
+
+  const [queue, recentlyResolved] = await Promise.all([
+    Promise.all(result.queue.map(async (item) => ((await stillAuthorized(item)) ? item : null))),
+    Promise.all(result.recentlyResolved.map(async (item) => ((await stillAuthorized(item)) ? item : null))),
+  ]);
+
+  return {
+    queue: queue.filter((i): i is SubjectQueueItem => i !== null),
+    recentlyResolved: recentlyResolved.filter((i): i is SubjectQueueItem => i !== null),
+  };
+}
+
+// =====================================================================
+// Trainer Next Move — the fourth SubjectCandidate/reconcileSubjectQueue
+// instance. Built on MENTA Care's existing provider model
+// (isVerifiedProvider/canManageCareRequest in src/lib/permissions.ts),
+// not a new authorization system: a trainer only ever sees a CareRequest
+// where they are both the assigned provider (ownership) AND currently a
+// verified provider on that specific request's team (isVerifiedProvider,
+// re-checked live, never trusted as a historical fact — see
+// getTrainerQueue below). Document-request and message signals use their
+// own, already-existing authorization shapes (self-ownership for
+// DocumentRequest; current TeamMembership for messages) rather than
+// reusing the care-provider check where it doesn't apply — "appropriate
+// ownership of the underlying resource" means a different check per
+// resource, not one check reused everywhere it's convenient.
+//
+// Never CareRequest.reason/reasonNote/providerNote in title/reasoning/
+// evidence — status and real timestamps only, the same restraint Coach's
+// and Parent's care signals already apply, even though a trainer-as-
+// provider has broader legitimate access to that detail on /care/provider
+// itself. Next Move's own surface is deliberately the conservative one.
+// =====================================================================
+
+export type TrainerCandidate = SubjectCandidate;
+
+/** Appointments further out than this don't need a Next Move nudge yet — same reasoning as CALENDAR_LOOKAHEAD_DAYS above. */
+const CARE_APPOINTMENT_LOOKAHEAD_DAYS = 7;
+
+/**
+ * Every legitimate "needs your attention" candidate across every team
+ * this trainer is a currently-verified care provider on, plus their own
+ * outstanding document requests and 1:1 client messages awaiting a reply.
+ * Returns an empty array for a trainer with no verified provider teams
+ * and no other outstanding items — never fabricates one to fill the slot.
+ */
+export async function computeTrainerCandidates(trainerUserId: string): Promise<TrainerCandidate[]> {
+  const now = new Date();
+  const candidates: TrainerCandidate[] = [];
+
+  const verifiedMemberships = await prisma.teamMembership.findMany({
+    where: { userId: trainerUserId, teamRole: { in: PROVIDER_TEAM_ROLES }, verifiedAt: { not: null } },
+    select: { teamId: true },
+  });
+  const verifiedTeamIds = verifiedMemberships.map((m) => m.teamId);
+
+  if (verifiedTeamIds.length > 0) {
+    const careRequests = await prisma.careRequest.findMany({
+      where: { providerId: trainerUserId, teamId: { in: verifiedTeamIds }, status: { in: ["REQUESTED", "SCHEDULED", "FOLLOW_UP"] } },
+      include: { athlete: { select: { id: true, name: true } }, followUps: { select: { id: true } } },
+      orderBy: { updatedAt: "asc" },
+    });
+
+    for (const req of careRequests) {
+      if (req.status === "REQUESTED") {
+        const daysWaiting = daysBetween(now, req.requestedStart <= now ? req.requestedStart : req.createdAt);
+        candidates.push({
+          kind: "TRAINER_CARE_REQUEST_NEW",
+          resolutionKey: req.id,
+          athleteId: req.athlete.id,
+          athleteName: req.athlete.name,
+          title: `New care request from ${req.athlete.name}`,
+          reasoning: `${req.athlete.name} requested care and it hasn't been scheduled or declined yet.`,
+          evidence: [
+            { label: "Athlete", value: req.athlete.name },
+            { label: "Status", value: CARE_OPERATIONAL_STATUS_LABELS.REQUESTED },
+            { label: "Requested", value: req.requestedStart.toLocaleString() },
+          ],
+          actionHref: "/care/provider",
+          score: 60 + Math.min(Math.max(daysWaiting, 0) * 3, 20),
+        });
+      }
+
+      if (req.status === "SCHEDULED" && req.scheduledStart && req.scheduledStart > now) {
+        const daysOut = daysBetween(req.scheduledStart, now);
+        if (daysOut <= CARE_APPOINTMENT_LOOKAHEAD_DAYS) {
+          candidates.push({
+            kind: "TRAINER_CARE_APPOINTMENT_UPCOMING",
+            resolutionKey: req.id,
+            athleteId: req.athlete.id,
+            athleteName: req.athlete.name,
+            title: `Appointment with ${req.athlete.name} ${daysOut <= 1 ? "soon" : `in ${daysOut} days`}`,
+            reasoning: `${CARE_OPERATIONAL_STATUS_LABELS.SCHEDULED}.`,
+            evidence: [
+              { label: "Athlete", value: req.athlete.name },
+              { label: "Scheduled", value: req.scheduledStart.toLocaleString() },
+            ],
+            actionHref: "/care/provider",
+            score: 55 + Math.max(0, 7 - daysOut) * 3,
+          });
+        }
+      }
+
+      // Outstanding, never "overdue" — FOLLOW_UP has no stored deadline to
+      // compare against, only how long it's sat in this status.
+      if (req.status === "FOLLOW_UP" && req.followUps.length === 0) {
+        const daysOutstanding = daysBetween(now, req.updatedAt);
+        candidates.push({
+          kind: "TRAINER_CARE_FOLLOWUP_DUE",
+          resolutionKey: req.id,
+          athleteId: req.athlete.id,
+          athleteName: req.athlete.name,
+          title: `Follow up with ${req.athlete.name}`,
+          reasoning: `Marked for follow-up ${daysOutstanding <= 0 ? "today" : `${daysOutstanding} day(s) ago`} — no new follow-up request has been scheduled yet.`,
+          evidence: [
+            { label: "Athlete", value: req.athlete.name },
+            { label: "Status", value: "Outstanding follow-up" },
+          ],
+          actionHref: "/care/provider",
+          score: 30 + Math.min(Math.max(daysOutstanding, 0) * 2, 25),
+        });
+      }
+    }
+
+    // Schedule conflicts: pairwise comparison over requests that have a
+    // real scheduledStart AND scheduledEnd — a request missing an end time
+    // is never treated as conflicting with anything, since that would mean
+    // inventing a duration it doesn't have. Same overlap condition
+    // hasSchedulingConflict() in src/lib/care-server.ts already uses
+    // (start < otherEnd && otherStart < end), applied pairwise here
+    // because that helper only answers yes/no — this needs to know which
+    // specific pair, to attribute and dedupe correctly.
+    const windowed = careRequests.filter(
+      (r): r is typeof r & { scheduledStart: Date; scheduledEnd: Date } =>
+        r.status === "SCHEDULED" && r.scheduledStart !== null && r.scheduledEnd !== null
+    );
+    for (let i = 0; i < windowed.length; i++) {
+      for (let j = i + 1; j < windowed.length; j++) {
+        const a = windowed[i];
+        const b = windowed[j];
+        const overlaps = a.scheduledStart < b.scheduledEnd && b.scheduledStart < a.scheduledEnd;
+        if (!overlaps) continue;
+        // Anchor on whichever starts first; dedupe key is the sorted pair
+        // so (a,b) and (b,a) never produce two candidates.
+        const [first, second] = a.scheduledStart <= b.scheduledStart ? [a, b] : [b, a];
+        const [keyA, keyB] = [first.id, second.id].sort();
+        candidates.push({
+          kind: "TRAINER_CARE_SCHEDULE_CONFLICT",
+          resolutionKey: `${keyA}:${keyB}`,
+          athleteId: first.athlete.id,
+          athleteName: first.athlete.name,
+          title: `${first.athlete.name} and ${second.athlete.name} are double-booked`,
+          reasoning: `Two scheduled appointments overlap — this shouldn't normally happen (scheduling already checks for conflicts), so it's worth confirming which one is correct.`,
+          evidence: [
+            { label: first.athlete.name, value: `${first.scheduledStart.toLocaleString()} – ${first.scheduledEnd.toLocaleTimeString()}` },
+            { label: second.athlete.name, value: `${second.scheduledStart.toLocaleString()} – ${second.scheduledEnd.toLocaleTimeString()}` },
+          ],
+          actionHref: "/care/provider",
+          score: 75,
+        });
+      }
+    }
+  }
+
+  // Document requests: self-ownership only — matches the existing
+  // DocumentRequest authorization model (DocumentsPage gates creation by
+  // account role, not care-provider verification), not the care-provider
+  // check above.
+  const outstandingDocs = await prisma.documentRequest.findMany({
+    where: { requestedById: trainerUserId, status: "PENDING" },
+    include: { athlete: { select: { id: true, name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  for (const req of outstandingDocs) {
+    const daysOpen = daysBetween(now, req.createdAt);
+    candidates.push({
+      kind: "TRAINER_DOCUMENT_REQUEST_OUTSTANDING",
+      resolutionKey: req.id,
+      athleteId: req.athlete.id,
+      athleteName: req.athlete.name,
+      title: `Follow up on "${req.title}" for ${req.athlete.name}`,
+      reasoning: `You requested this document ${daysOpen} day(s) ago and ${req.athlete.name} hasn't uploaded it yet.`,
+      evidence: [
+        { label: "Athlete", value: req.athlete.name },
+        { label: "Document", value: req.title },
+        { label: "Requested", value: req.createdAt.toLocaleDateString() },
+      ],
+      actionHref: "/documents",
+      score: 35 + Math.min(daysOpen, 20),
+    });
+  }
+
+  // Messages: current TeamMembership (teamRole TRAINER), not care-provider
+  // verification — messaging isn't a Care concept. Scoped to 1:1
+  // (non-group) conversations with an actual current client only: a
+  // team-wide group chat can't be attributed to one specific athlete
+  // subject, which this engine's shape requires, so it's deliberately
+  // left out of this kind rather than guessed at — same reasoning Parent
+  // Next Move already applies to non-team-linked conversations.
+  const trainerTeams = await prisma.teamMembership.findMany({
+    where: { userId: trainerUserId, teamRole: "TRAINER" },
+    select: { teamId: true },
+  });
+  if (trainerTeams.length > 0) {
+    const clientIds = (
+      await prisma.teamMembership.findMany({
+        where: { teamId: { in: trainerTeams.map((t) => t.teamId) }, teamRole: "ATHLETE" },
+        select: { userId: true },
+      })
+    ).map((m) => m.userId);
+
+    if (clientIds.length > 0) {
+      const dmConversations = await prisma.conversationParticipant.findMany({
+        where: {
+          userId: trainerUserId,
+          conversation: { isGroup: false, teamId: null, participants: { some: { userId: { in: clientIds } } } },
+        },
+        select: {
+          conversation: {
+            select: {
+              id: true,
+              title: true,
+              participants: { select: { user: { select: { id: true, name: true } } } },
+              messages: { orderBy: { createdAt: "desc" }, take: 1, select: { senderId: true, createdAt: true, body: true } },
+            },
+          },
+        },
+      });
+      for (const { conversation } of dmConversations) {
+        const latest = conversation.messages[0];
+        if (!latest || latest.senderId === trainerUserId) continue;
+        const other = conversation.participants.find((p) => p.user.id !== trainerUserId)?.user;
+        if (!other || !clientIds.includes(other.id)) continue;
+        const daysOpen = daysBetween(now, latest.createdAt);
+        candidates.push({
+          kind: "TRAINER_MESSAGE_AWAITING_REPLY",
+          resolutionKey: conversation.id,
+          athleteId: other.id,
+          athleteName: other.name,
+          title: `A message from ${other.name} is awaiting your reply`,
+          reasoning: `Their most recent message was sent ${daysOpen} day(s) ago and you haven't replied yet.`,
+          evidence: [
+            { label: "Athlete", value: other.name },
+            { label: "Last message", value: latest.body.length > 80 ? `${latest.body.slice(0, 80)}…` : latest.body },
+          ],
+          actionHref: `/messages/${conversation.id}`,
+          score: 40 + Math.min(daysOpen * 4, 25),
+        });
+      }
+    }
+  }
+
+  return candidates.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Trainer-side counterpart to getNextMove()/getCoachQueue()/getParentQueue().
+ * Same shared reconciliation core, plus a live re-check before returning:
+ * verification can be revoked, team membership can be removed, and a
+ * stale CareRequest.providerId must never be trusted as still meaning
+ * "currently authorized" on its own — "do not rely solely on providerId
+ * or a historical assignment" is enforced here, not just at candidate
+ * generation. No SUPER_ADMIN bypass: consistent with getCoachQueue and
+ * getParentQueue, which don't have one either — this queue is scoped to
+ * being this specific trainer, not a platform-wide view.
+ */
+export async function getTrainerQueue(trainerUserId: string): Promise<SubjectQueueResult> {
+  const candidates = await computeTrainerCandidates(trainerUserId);
+  const result = await reconcileSubjectQueue(trainerUserId, candidates);
+
+  const SINGLE_CARE_KINDS: RecommendationKind[] = [
+    "TRAINER_CARE_REQUEST_NEW",
+    "TRAINER_CARE_APPOINTMENT_UPCOMING",
+    "TRAINER_CARE_FOLLOWUP_DUE",
+  ];
+
+  /**
+   * Re-derives authorization from the current database state for one
+   * persisted row, using resolutionKey to look up the specific underlying
+   * record it refers to — never trusting the row's own stored content
+   * (title/evidence) as still being accurate, and never relying on
+   * CareRequest.providerId alone without also re-checking isVerifiedProvider
+   * on that request's actual team right now.
+   */
+  async function stillAuthorized(item: SubjectQueueItem): Promise<boolean> {
+    const kind = item.kind as RecommendationKind;
+
+    if (SINGLE_CARE_KINDS.includes(kind)) {
+      const req = await prisma.careRequest.findUnique({
+        where: { id: item.resolutionKey },
+        select: { providerId: true, teamId: true },
+      });
+      if (!req || req.providerId !== trainerUserId) return false;
+      return isVerifiedProvider(trainerUserId, req.teamId);
+    }
+
+    if (kind === "TRAINER_CARE_SCHEDULE_CONFLICT") {
+      const [idA, idB] = item.resolutionKey.split(":");
+      if (!idA || !idB) return false;
+      const [reqA, reqB] = await Promise.all([
+        prisma.careRequest.findUnique({ where: { id: idA }, select: { providerId: true, teamId: true } }),
+        prisma.careRequest.findUnique({ where: { id: idB }, select: { providerId: true, teamId: true } }),
+      ]);
+      if (!reqA || !reqB || reqA.providerId !== trainerUserId || reqB.providerId !== trainerUserId) return false;
+      const [verifiedA, verifiedB] = await Promise.all([
+        isVerifiedProvider(trainerUserId, reqA.teamId),
+        isVerifiedProvider(trainerUserId, reqB.teamId),
+      ]);
+      return verifiedA && verifiedB;
+    }
+
+    if (kind === "TRAINER_DOCUMENT_REQUEST_OUTSTANDING") {
+      const req = await prisma.documentRequest.findUnique({
+        where: { id: item.resolutionKey },
+        select: { requestedById: true },
+      });
+      return Boolean(req && req.requestedById === trainerUserId);
+    }
+
+    if (kind === "TRAINER_MESSAGE_AWAITING_REPLY") {
+      // No stored teamId on a 1:1 conversation — re-derive "is this still
+      // a current client" the same way computeTrainerCandidates found them:
+      // a shared team where the trainer currently holds teamRole TRAINER.
+      const sharedTeam = await prisma.teamMembership.findFirst({
+        where: {
+          userId: trainerUserId,
+          teamRole: "TRAINER",
+          team: { memberships: { some: { userId: item.athleteId, teamRole: "ATHLETE" } } },
+        },
+        select: { teamId: true },
+      });
+      return Boolean(sharedTeam);
+    }
+
+    return true; // not a trainer-specific kind — shouldn't occur here, but never silently hide an unrecognized kind
   }
 
   const [queue, recentlyResolved] = await Promise.all([
