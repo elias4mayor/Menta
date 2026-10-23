@@ -10,7 +10,9 @@ import { WorkspaceDisclosure } from "@/components/WorkspaceDisclosure";
 import { PlanCard } from "@/components/PlanCard";
 import { DailyBrief } from "@/components/DailyBrief";
 import { TodaysSessionCard } from "@/components/TodaysSessionCard";
+import { NextMoveCard } from "@/components/NextMoveCard";
 import { demandsFor } from "@/lib/sports";
+import { getNextMove } from "@/lib/next-move";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { TrainerDashboard } from "@/components/TrainerDashboard";
@@ -129,10 +131,34 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
   // are due after today.
   const upcoming = myDay.upcoming.slice(0, 6);
 
+  const nextMove = await getNextMove(user.id);
 
   return (
     <div className="workspace-home">
       {myDay.todaySession ? <TodaysSessionCard session={myDay.todaySession} /> : null}
+
+      <NextMoveCard
+        initial={
+          nextMove.current
+            ? {
+                id: nextMove.current.id,
+                kind: nextMove.current.kind,
+                title: nextMove.current.title,
+                reasoning: nextMove.current.reasoning,
+                evidence: nextMove.current.evidence,
+                actionHref: nextMove.current.actionHref,
+              }
+            : null
+        }
+        initialCompetingCount={nextMove.competingCount}
+        initialHistory={nextMove.recentlyResolved.map((r) => ({
+          id: r.id,
+          kind: r.kind,
+          title: r.title,
+          outcome: r.outcome,
+        }))}
+      />
+
       <div className="workspace-cockpit">
       <section className="workspace-today" aria-label="Overview">
         <div className="workspace-today-top"><span className="workspace-eyebrow">Your day at a glance</span><time dateTime={now.toISOString().slice(0, 10)}>{now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</time></div>
@@ -150,8 +176,8 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
         <div className="workspace-today-actions"><Link href="/train" className="btn-primary">Start a workout <span aria-hidden="true">↗</span></Link><Link href="/film" className="workspace-text-link">Open film room →</Link></div>
       </section>
 
-      <aside className="workspace-cockpit-stack" aria-label="Your next moves">
-        <h2 className="workspace-panel-title">Your next moves</h2>
+      <aside className="workspace-cockpit-stack" aria-label="Quick links">
+        <h2 className="workspace-panel-title">Quick links</h2>
         <Link href="/dashboard#training-plan" className="workspace-glance workspace-glance-training">
           <span className="workspace-glance-icon" aria-hidden="true">↗</span>
           <div><span className="workspace-eyebrow">Next workout</span><h2>{planWorkouts[0]?.title ?? "Find your next session"}</h2><p>{profile?.trainingDaysPerWeek ? `${profile.trainingDaysPerWeek} training days per week` : "Open your training plan"}</p></div>

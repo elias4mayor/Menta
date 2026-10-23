@@ -242,4 +242,59 @@
 @media (min-width: 768px) { .workspace-shell .menta-island { left: calc(50% + 112px); } }
 @media (max-width: 1100px) and (min-width: 768px) { .workspace-sidebar { width: 200px; } .workspace-main { padding-inline: 24px; } .workspace-cockpit { grid-template-columns: minmax(0,1.5fr) minmax(240px,1fr); gap: 14px; } .workspace-cockpit .workspace-today { padding: 22px; } .workspace-cockpit .workspace-metrics a { padding: 14px; } .workspace-shell .menta-island { left: calc(50% + 100px); } }
 @media (max-width: 950px) { .workspace-cockpit { grid-template-columns: minmax(0,1fr); } .workspace-cockpit-stack { gap: 0; } .workspace-glance { padding: 16px 10px; } }
+
+/* ---------- Glass, reserved for MENTA Island and Next Move only ----------
+   Ported from the standalone nav/glass-system PR, adapted from a light to
+   this workspace's dark monochrome ONYX palette: the fill is a translucent
+   dark tint of --surface (not white), and the accent ring is --grad-signal
+   (pearl-white), so the one card that gets this treatment reads as a
+   genuinely lit, elevated surface against the matte-black dashboard around
+   it — not a generic frosted-glass look applied everywhere. Deliberately
+   not used by .workspace-glance, .workspace-disclosure, or any other
+   dashboard surface: those stay plain, opaque .card-style panels per the
+   ONYX direction (restrained, not another Liquid Glass imitation). Falls
+   back to a fully opaque surface under prefers-reduced-transparency and
+   @supports not (backdrop-filter), same as the rest of this theme's a11y
+   fallbacks above. */
+.workspace-shell .glass-surface {
+  background: rgba(24, 24, 26, 0.72);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 32px -24px rgba(0, 0, 0, 0.6);
+  border-radius: 24px;
+}
+
+.workspace-shell .glass-signal-card {
+  border: 1px solid transparent;
+  /* Explicit background-color: transparent — combined with .card in
+     markup for its radius/shadow, and .card's own solid background would
+     otherwise sit under this gradient and block the blur from showing
+     through, the same reasoning as the light-theme original. */
+  background-color: transparent;
+  background-image: linear-gradient(rgba(24, 24, 26, 0.86), rgba(24, 24, 26, 0.86)), var(--grad-signal);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  backdrop-filter: blur(22px) saturate(150%);
+  border-radius: 24px;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .workspace-shell .glass-surface {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+  .workspace-shell .glass-signal-card {
+    background-image: linear-gradient(var(--surface), var(--surface)), var(--grad-signal);
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .workspace-shell .glass-surface {
+    background: var(--surface);
+  }
+  .workspace-shell .glass-signal-card {
+    background-image: linear-gradient(var(--surface), var(--surface)), var(--grad-signal);
+  }
+}
 @media (max-width: 767px) { .workspace-sidebar { display: none; } .workspace-topbar { height: 62px; } .workspace-main { padding-top: 22px; } .workspace-welcome h1 { font-size: 26px; } .workspace-cockpit .workspace-today { padding: 20px; border-radius: 24px; } .workspace-today-top { align-items: flex-start; } .workspace-today-top .workspace-eyebrow { font-size: 17px; } .workspace-today-top time { font-size: 9px; padding: 8px 10px; } .workspace-cockpit .workspace-metrics a { padding: 13px; } .workspace-cockpit .workspace-metrics a > span { font-size: 32px; } .workspace-cockpit .workspace-metrics small { font-size: 10px; } .workspace-cockpit-stack { border-radius: 24px; padding: 22px 14px 12px; } .workspace-drawer { margin: auto auto 0; border-radius: 24px 24px 0 0; } }
