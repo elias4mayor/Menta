@@ -265,6 +265,56 @@ function useTimeOfDayGreeting(): string {
   return greeting;
 }
 
+function sectionLabelForPath(sections: NavSection[], pathname: string): string | null {
+  for (const section of sections) {
+    if (section.items.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"))) {
+      return section.label;
+    }
+  }
+  return null;
+}
+
+/**
+ * Accordion open/closed state for the desktop sidebar. Multiple sections
+ * can be open at once — deliberately not a strict single-open accordion —
+ * so opening one section to browse it never silently hides whichever
+ * section the active route lives in. The active route's section is
+ * always force-included (auto-reveal), but a section the user opened by
+ * hand stays open across navigation within this layout (AppShell lives in
+ * (app)/layout.tsx, so it doesn't remount between pages — this state
+ * survives clicking around, not just within one page).
+ */
+function useNavAccordion(sections: NavSection[], pathname: string) {
+  const active = sectionLabelForPath(sections, pathname);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(active ? [active] : []));
+
+  // "Adjusting state when a prop changes" (React's own documented pattern
+  // for this, preferred over an effect+setState, which would cost an
+  // extra render and trip the set-state-in-effect lint rule): mirror the
+  // last pathname we reacted to in state, and when it differs, fold the
+  // newly-active section into `open` right here during render — not in a
+  // useEffect. Toggling a section by hand never touches prevPathname, so
+  // it can't re-trigger this.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (active && !open.has(active)) {
+      setOpen((prevOpen) => new Set(prevOpen).add(active));
+    }
+  }
+
+  function toggle(label: string) {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
+
+  return { open, toggle };
+}
+
 export function AppShell({
   user,
   unreadCount,
@@ -280,6 +330,7 @@ export function AppShell({
   const greeting = useTimeOfDayGreeting();
   const navSections = navSectionsForRole(user.role);
   const mobileItems = mobileItemsForRole(user.role);
+  const { open: openSections, toggle: toggleSection } = useNavAccordion(navSections, pathname);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -291,8 +342,8 @@ export function AppShell({
   return (
     <div className="app-shell min-h-screen flex bg-bg">
       <aside
-        className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 shrink-0 flex-col px-4 py-6 dash-in dash-in-1"
-        style={{ borderRight: "1px solid var(--border-soft)", background: "var(--sidebar-tint)" }}
+        className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 shrink-0 flex-col px-4 py-6 dash-in dash-in-1 glass-nav"
+        style={{ borderRight: "1px solid var(--border-soft)" }}
       >
         <Link href="/dashboard" className="flex items-center px-2 mb-10">
           <Image
@@ -305,45 +356,64 @@ export function AppShell({
             priority
           />
         </Link>
-        <nav className="flex-1 space-y-6 overflow-y-auto">
-          {navSections.map((section) => (
-            <div key={section.label} className="nav-section">
-              <div className="mono text-text-3 px-3 mb-2.5" style={{ opacity: 0.75 }}>
-                {section.label}
+        <nav className="flex-1 space-y-1 overflow-y-auto">
+          {navSections.map((section) => {
+            const sectionId = `nav-section-${section.label.toLowerCase().replace(/\s+/g, "-")}`;
+            const isOpen = openSections.has(section.label);
+            return (
+              <div key={section.label} className="nav-section">
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={sectionId}
+                  onClick={() => toggleSection(section.label)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--r-sm)] transition-colors hover:bg-[var(--nav-hover-bg)]"
+                >
+                  <span className="mono text-text-3" style={{ opacity: 0.75 }}>
+                    {section.label}
+                  </span>
+                  <span className="nav-accordion-chevron shrink-0 text-text-3" data-open={isOpen}>
+                    <NavIcon name="chevron" />
+                  </span>
+                </button>
+                <div id={sectionId} className="nav-accordion-body" data-open={isOpen}>
+                  <div>
+                    <div className="space-y-0.5 pt-1 pb-2">
+                      {section.items.map((item) => {
+                        const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-full text-sm active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
+                            style={{
+                              color: active ? "var(--text-1)" : "var(--text-2)",
+                              background: active ? "var(--nav-hover-bg)" : "transparent",
+                            }}
+                          >
+                            {active && (
+                              <span
+                                className="absolute left-0 top-1/2 rounded-full nav-dot-in"
+                                style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
+                              />
+                            )}
+                            <NavIcon name={item.icon} className="shrink-0" />
+                            {active ? (
+                              <GlowWaveText intensity="subtle" hoverBoost={false}>
+                                {item.label}
+                              </GlowWaveText>
+                            ) : (
+                              <span className="truncate">{item.label}</span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + "/");
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-full text-sm active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
-                      style={{
-                        color: active ? "var(--text-1)" : "var(--text-2)",
-                        background: active ? "var(--nav-hover-bg)" : "transparent",
-                      }}
-                    >
-                      {active && (
-                        <span
-                          className="absolute left-0 top-1/2 rounded-full nav-dot-in"
-                          style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
-                        />
-                      )}
-                      <NavIcon name={item.icon} className="shrink-0" />
-                      {active ? (
-                        <GlowWaveText intensity="subtle" hoverBoost={false}>
-                          {item.label}
-                        </GlowWaveText>
-                      ) : (
-                        <span className="truncate">{item.label}</span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </nav>
         {/* Persistent account area — never inside the scrollable nav above,
             so Profile/Settings/Sign out are always reachable without
