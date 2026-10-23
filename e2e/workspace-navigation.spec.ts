@@ -53,6 +53,10 @@ test.describe("Compact workspace", () => {
 
   test("parent navigation retains the guardian-specific destinations", async ({ page, context }) => {
     const parent = await createTestUser("compact-parent", "PARENT");
+    // proxy.ts gates full page access behind onboarding completion — a
+    // bare User row (what createTestUser gives) gets redirected to
+    // /onboarding instead of /care, which has no sidebar at all.
+    await testPrisma.parentProfile.create({ data: { userId: parent.userId, onboardingCompletedAt: new Date() } });
     await context.addCookies([{ name: "menta_session", value: parent.cookie.split("=")[1], url: "http://localhost:3000" }]);
     await page.goto("/care");
     const nav = page.getByRole("complementary", { name: "Main sidebar" });

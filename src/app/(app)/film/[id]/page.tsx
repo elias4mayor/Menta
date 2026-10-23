@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { canViewFilm, hasTeamPermission, isTeamFilmStaff } from "@/lib/permissions";
 import { FilmWorkspace } from "@/components/FilmWorkspace";
+import { FilmAssignmentBanner } from "@/components/FilmAssignmentBanner";
 
 export default async function FilmDetailPage({
   params,
@@ -55,6 +56,15 @@ export default async function FilmDetailPage({
   const authors = await prisma.user.findMany({ where: { id: { in: authorIds } }, select: { id: true, name: true } });
   const nameById = new Map(authors.map((a) => [a.id, a.name]));
 
+  // Only this user's own FilmAssignmentTarget rows for this exact film —
+  // the same scoping the completion endpoint itself enforces
+  // (assignmentId_userId), so this can never show or affect another
+  // athlete's assignment.
+  const assignmentTargets = await prisma.filmAssignmentTarget.findMany({
+    where: { userId: user.id, assignment: { filmId: film.id } },
+    include: { assignment: { select: { id: true, title: true, instructions: true, dueAt: true, requiredViewing: true } } },
+  });
+
   return (
     <div className="max-w-3xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Film</div>
@@ -66,6 +76,16 @@ export default async function FilmDetailPage({
       {(film.opponent || film.season) && (
         <p className="text-text-2 text-sm mb-6">{[film.opponent, film.season].filter(Boolean).join(" · ")}</p>
       )}
+      <FilmAssignmentBanner
+        initialTargets={assignmentTargets.map((t) => ({
+          assignmentId: t.assignmentId,
+          status: t.status,
+          title: t.assignment.title,
+          instructions: t.assignment.instructions,
+          dueAt: t.assignment.dueAt ? t.assignment.dueAt.toISOString() : null,
+          requiredViewing: t.assignment.requiredViewing,
+        }))}
+      />
       <FilmWorkspace
         film={{
           id: film.id,

@@ -1,0 +1,26 @@
+import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
+import { getNextMove, dismissNextMove, acceptNextMove } from "@/lib/next-move";
+
+export async function GET() {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const result = await getNextMove(user.id);
+  return NextResponse.json(result);
+}
+
+export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const body = await request.json().catch(() => null);
+  const id = typeof body?.id === "string" ? body.id : null;
+  const action = body?.action === "dismiss" ? "dismiss" : body?.action === "accept" ? "accept" : null;
+  if (!id || !action) return NextResponse.json({ error: "Invalid input." }, { status: 400 });
+
+  const ok = action === "dismiss" ? await dismissNextMove(user.id, id) : await acceptNextMove(user.id, id);
+  if (!ok) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  return NextResponse.json({ ok: true });
+}

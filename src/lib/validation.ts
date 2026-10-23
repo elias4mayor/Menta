@@ -386,6 +386,11 @@ export const updateGuardianLinkSchema = z.object({
   status: z.enum(["APPROVED", "REVOKED"]),
 });
 
+export const updateGuardianScopeSchema = z.object({
+  scope: z.enum(["VIEW_ACADEMIC_STATUS", "VIEW_ACADEMIC_ASSIGNMENTS", "VIEW_TEAM_CALENDAR"]),
+  grant: z.boolean(),
+});
+
 const RECRUITING_SCHOOL_STATUSES = [
   "TARGET",
   "INTERESTED",

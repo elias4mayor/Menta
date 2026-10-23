@@ -71,6 +71,8 @@ model User {
   createdTeams                Team[]                      @relation("TeamCreator")
   guardianOf                  GuardianLink[]              @relation("Guardian")
   athleteGuardians            GuardianLink[]              @relation("AthleteOfGuardian")
+  guardianScopeGrantsAsGuardian GuardianScopeGrant[]       @relation("GuardianScopeGuardian")
+  guardianScopeGrantsAsAthlete  GuardianScopeGrant[]       @relation("GuardianScopeAthlete")
   reportsFiled                Report[]                    @relation("Reporter")
   blocksMade                  Block[]                     @relation("Blocker")
   blocksReceived              Block[]                     @relation("Blocked")
@@ -112,6 +114,7 @@ model User {
   createdExercises            Exercise[]
   createdTrainingPrograms     TrainingProgram[]           @relation("TrainingProgramCreator")
   createdTrainingSessions     TrainingSession[]           @relation("TrainingSessionCreator")
+  nextMoveRecommendations     NextMoveRecommendation[]
   trainingGroupMemberships    TrainingGroupMember[]
   athletePrescriptions        AthletePrescription[]       @relation("PrescriptionAthlete")
   prescriptionsSet            AthletePrescription[]       @relation("PrescriptionSetter")
@@ -794,6 +797,22 @@ model Block {
 }
 
 /// Status: PENDING, APPROVED, REVOKED — a parent/guardian requesting linked visibility into a minor athlete's account
+///
+/// LAUNCH-BLOCKING POLICY GAP, flagged deliberately rather than assumed
+/// away: APPROVED here means only "the account logged in as the athlete
+/// clicked approve." This code makes no attempt to verify that click
+/// reflects real legal guardianship, that the account belongs to the
+/// athlete it claims to (vs. a parent signed in as them), or that consent
+/// remains valid across an age-of-majority transition (isMinor() in
+/// src/lib/permissions.ts exists and is accurate, but nothing here
+/// currently re-prompts for consent or expires a grant when an athlete
+/// crosses that line). None of this is a FERPA question specifically —
+/// FERPA governs school education records, not every piece of data this
+/// app holds, and no blanket assumption about which law applies should be
+/// made for any given deployment. This needs real legal/product review
+/// before this feature is trusted with real families' data — do not
+/// treat the engineering-level authorization checks in this file (which
+/// are real and tested) as a substitute for that review.
 model GuardianLink {
   id         String   @id @default(cuid())
   guardianId String
@@ -805,6 +824,33 @@ model GuardianLink {
   athlete  User @relation("AthleteOfGuardian", fields: [athleteId], references: [id])
 
   @@unique([guardianId, athleteId])
+}
+
+/// An APPROVED GuardianLink establishes a relationship, not blanket access —
+/// each additional, more sensitive view (academic status, assignment detail,
+/// team calendar) requires its own explicit grant here, same shape as
+/// TeamPermissionGrant: row existence is the only state (no revokedAt — the
+/// athlete revokes by deleting the row, same convention TeamPermissionGrant
+/// already uses), scope values are the GUARDIAN_SCOPES list in
+/// src/lib/permissions.ts, and hasGuardianScope() re-checks this live on
+/// every read, not just at candidate-generation time, so a revoked scope
+/// stops being visible immediately rather than waiting for the next
+/// reconciliation pass. Only the athlete being linked can create or delete
+/// these rows (src/app/api/guardian/[id]/scopes/route.ts) — the same
+/// "only the athlete consents" rule the base GuardianLink approval already
+/// enforces; a guardian can never self-grant.
+model GuardianScopeGrant {
+  id         String   @id @default(cuid())
+  guardianId String
+  athleteId  String
+  scope      String
+  grantedAt  DateTime @default(now())
+
+  guardian User @relation("GuardianScopeGuardian", fields: [guardianId], references: [id], onDelete: Cascade)
+  athlete  User @relation("GuardianScopeAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([guardianId, athleteId, scope])
+  @@index([athleteId])
 }
 
 /// Category: GAME, PRACTICE, TRAINING, HIGHLIGHT
@@ -2607,4 +2653,50 @@ model UsageCounter {
   count       Int      @default(0)
 
   @@unique([ownerType, ownerId, key, periodStart])
+}
+
+/// MENTA's signature cross-domain recommendation — see src/lib/next-move.ts
+/// for the deterministic rules that compute candidates. Every kind in
+/// COACH_ONLY_KINDS in src/lib/next-move.ts, extend there first.
+/// status: ACTIVE (currently shown), RESOLVED (the underlying condition
+/// cleared — tracked automatically), DISMISSED (the owner said not now),
+/// SUPERSEDED (athlete single-slot only — a new computation replaced it
+/// before it resolved).
+///
+/// `userId` is who this recommendation is SHOWN to (its owner — an athlete
+/// for their own queue, a coach for their coaching queue). `subjectAthleteId`
+/// is null for an athlete's own recommendations (the subject is implicitly
+/// themselves) and set to the athlete in question for a coach's queue —
+/// this is how one table serves both without being two competing systems.
+/// Every coach-queue row's underlying data was already independently
+/// authorization-checked before it was ever computed (see
+/// computeCoachCandidates in src/lib/next-move.ts) — this field is for
+/// display/linking only, never itself a security boundary.
+model NextMoveRecommendation {
+  id              String    @id @default(cuid())
+  userId          String
+  subjectAthleteId String?
+  kind            String
+  title           String
+  reasoning       String
+  /// JSON-stringified array of {label, value} evidence pairs shown next to
+  /// the reasoning — e.g. [{"label":"Film assignment","value":"3 days overdue"}].
+  /// Never free-text claims; only references to the real rows that produced them.
+  evidence    String
+  actionHref  String
+  score       Float
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  /// Set the first time the owner clicks through the primary action —
+  /// "recommendation accepted," distinct from "completed." Never set by
+  /// anything other than that one click (see acceptNextMove in
+  /// src/lib/next-move.ts) — not inferred from a page view or any other
+  /// passive signal.
+  acceptedAt  DateTime?
+  resolvedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
 }

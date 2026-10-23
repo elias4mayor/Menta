@@ -2,6 +2,13 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/session";
 import { CARE_OPERATIONAL_STATUS_LABELS, type CareStatus } from "@/lib/care";
+import { getCoachQueue } from "@/lib/next-move";
+import { SubjectNextMoveQueue } from "@/components/SubjectNextMoveQueue";
+
+const COACH_KIND_LABELS: Record<string, string> = {
+  FILM_ASSIGNMENT_OVERDUE: "Film",
+  FILM_REVIEW_UNANSWERED: "Film question",
+};
 
 /**
  * Coach dashboard — Phase 1 scope: real data only (teams the coach
@@ -33,6 +40,8 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
     }),
     prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
+
+  const coachQueue = await getCoachQueue(user.id);
 
   // Operational status only — never CareRequest.reason/reasonNote/providerNote.
   // A coach sees "care appointment scheduled," never why.
@@ -113,6 +122,30 @@ export async function CoachDashboard({ user }: { user: SessionUser }) {
           </div>
         </div>
       </div>
+
+      <SubjectNextMoveQueue
+        apiEndpoint="/api/coach-queue"
+        kindLabels={COACH_KIND_LABELS}
+        emptyHeadline="Your roster is caught up."
+        emptyBody="No overdue film assignments and no unanswered film questions across your teams right now."
+        initialQueue={coachQueue.queue.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          athleteId: item.athleteId,
+          athleteName: item.athleteName,
+          title: item.title,
+          reasoning: item.reasoning,
+          evidence: item.evidence,
+          actionHref: item.actionHref,
+        }))}
+        initialHistory={coachQueue.recentlyResolved.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          athleteName: item.athleteName,
+          title: item.title,
+          outcome: item.outcome,
+        }))}
+      />
 
       <div className="card p-5 mb-8 dash-in dash-in-5">
         <div className="flex items-center justify-between mb-3">
