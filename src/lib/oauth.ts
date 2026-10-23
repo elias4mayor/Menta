@@ -31,8 +31,8 @@ function config(provider: OAuthProviderId): ProviderConfig {
       tokenUrl: "https://oauth2.googleapis.com/token",
       profileUrl: "https://www.googleapis.com/oauth2/v3/userinfo",
       scope: "openid email profile",
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_LOGIN_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_LOGIN_CLIENT_SECRET,
     };
   }
   return {

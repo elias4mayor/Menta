@@ -7,9 +7,9 @@ import { encryptSecret, decryptSecret } from "@/lib/crypto";
  * src/lib/oauth.ts's login-with-Google. That flow is one-shot (exchange
  * code for an identity, never persisted); this one requests offline
  * access and stores a refresh token long-term so MENTA can sync a
- * student's classes/assignments/grades on demand. Both reuse the same
- * GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET — one Google Cloud OAuth client,
- * two different scope/consent requests.
+ * student's classes/assignments/grades on demand. Classroom uses
+ * GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET; sign-in uses the separate
+ * GOOGLE_LOGIN_CLIENT_ID/GOOGLE_LOGIN_CLIENT_SECRET credentials.
  *
  * Deliberately plain fetch() against Google's REST/token endpoints, no
  * googleapis SDK — matching oauth.ts's existing convention, and the
