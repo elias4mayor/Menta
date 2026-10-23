@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { WORKOUT_CATEGORIES } from "@/lib/sports";
 import { WorkoutGenerator } from "@/components/WorkoutGenerator";
 import { EmptyState } from "@/components/EmptyState";
+import { WorkoutSessionSheet } from "@/components/WorkoutSessionSheet";
+import { parseWorkoutDraft, workoutDraftKey, type WorkoutDraft } from "@/lib/workout-draft";
 
 type Exercise = { name: string; sets?: string; reps?: string; notes?: string };
 
@@ -30,6 +32,7 @@ type Roster = Record<string, { id: string; name: string }[]>;
 const CATEGORIES = WORKOUT_CATEGORIES;
 
 export function TrainingView({
+  userId,
   initialWorkouts,
   manageableTeams,
   rosterByTeam,
@@ -37,6 +40,7 @@ export function TrainingView({
   defaultPosition,
   defaultTrainingDaysPerWeek,
 }: {
+  userId: string;
   initialWorkouts: WorkoutItem[];
   manageableTeams: { id: string; name: string }[];
   rosterByTeam: Roster;
@@ -52,25 +56,17 @@ export function TrainingView({
   const [editing, setEditing] = useState<WorkoutItem | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [session, setSession] = useState<{ workout: WorkoutItem; draft: WorkoutDraft | null; error: string | null } | null>(null);
 
   const visible = workouts.filter((w) => Boolean(w.isTemplate) === showTemplates);
   const filtered = filter ? visible.filter((w) => w.category === filter) : visible;
 
-  async function logCompletion(id: string) {
-    const res = await fetch(`/api/workouts/${id}/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (res.ok) {
-      setWorkouts((ws) =>
-        ws.map((w) =>
-          w.id === id
-            ? { ...w, yourCompletions: w.yourCompletions + 1, lastCompletedAt: new Date().toISOString() }
-            : w
-        )
-      );
-      router.refresh();
+  function openWorkout(workout: WorkoutItem) {
+    try {
+      const draft = parseWorkoutDraft(localStorage.getItem(workoutDraftKey(userId, workout.id)));
+      setSession({ workout, draft, error: null });
+    } catch {
+      setSession({ workout, draft: null, error: "Saved progress could not be read. Retry before starting, or clear this workout's local progress." });
     }
   }
 
@@ -135,6 +131,18 @@ export function TrainingView({
 
   return (
     <div>
+      {session && <WorkoutSessionSheet
+        workout={session.workout}
+        userId={userId}
+        initialDraft={session.draft}
+        initialError={session.error}
+        onClose={() => setSession(null)}
+        onSaved={(summary) => {
+          setWorkouts((ws) => ws.map((w) => w.id === session.workout.id
+            ? { ...w, yourCompletions: summary.count, lastCompletedAt: summary.lastCompletedAt } : w));
+          router.refresh();
+        }}
+      />}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap items-center">
           <button
@@ -228,8 +236,8 @@ export function TrainingView({
         <ul className="space-y-3">
           {filtered.map((w) => (
             <li key={w.id} className="card p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1 basis-48 break-words">
                   <button className="text-left" onClick={() => setExpanded(expanded === w.id ? null : w.id)}>
                     <div className="font-medium">{w.title}</div>
                   </button>
@@ -247,8 +255,8 @@ export function TrainingView({
                       {busyId === w.id ? "Working…" : "Use template"}
                     </button>
                   ) : (
-                    <button disabled={busyId === w.id} onClick={() => logCompletion(w.id)} className="btn-secondary">
-                      Mark complete
+                    <button disabled={busyId === w.id} onClick={() => openWorkout(w)} className="btn-secondary">
+                      Open workout
                     </button>
                   )}
                   {w.canManage && (
@@ -305,7 +313,7 @@ export function TrainingView({
               {w.yourCompletions > 0 && (
                 <p className="mono text-text-3 mt-3">
                   Done {w.yourCompletions}× — last{" "}
-                  {w.lastCompletedAt ? new Date(w.lastCompletedAt).toLocaleDateString() : "—"}
+                  {w.lastCompletedAt ? <CompletionDate iso={w.lastCompletedAt} /> : "—"}
                 </p>
               )}
 
@@ -332,6 +340,14 @@ export function TrainingView({
       )}
     </div>
   );
+}
+
+const subscribeToHydration = () => () => {};
+function CompletionDate({ iso }: { iso: string }) {
+  // The server and browser can use different locales/time zones. Render the
+  // same ISO date during hydration, then localize on the client.
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  return <time dateTime={iso}>{hydrated ? new Date(iso).toLocaleDateString() : iso.slice(0, 10)}</time>;
 }
 
 /** Native HTML5 drag-and-drop reorder — no extra dependency for a list this small. */
