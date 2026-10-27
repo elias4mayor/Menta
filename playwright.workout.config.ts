@@ -10,7 +10,8 @@ export default defineConfig({
   ...config,
   testMatch: "workout-session.spec.ts",
   webServer: {
-    command: "npm run dev",
+    // CI builds first so acceptance exercises the production server.
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

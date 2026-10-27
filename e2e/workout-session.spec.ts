@@ -101,6 +101,41 @@ test("a saved workout clears Next Move and reports the completion that resolved 
   await expect(page.getByText("Logged a workout on", { exact: false })).toBeVisible();
 });
 
+test("training resolution never credits old, later, or another athlete's workouts", async ({ request }) => {
+  const { athlete, workout } = await setup();
+  const other = await setup();
+  await testPrisma.athleteProfile.update({ where: { userId: athlete.userId }, data: { trainingDaysPerWeek: 3 } });
+  await testPrisma.performanceEntry.create({ data: { userId: athlete.userId, statName: "Vertical jump", value: 24 } });
+  await testPrisma.workoutCompletion.create({ data: {
+    workoutId: workout.id, userId: athlete.userId, completedAt: new Date(Date.now() - 30 * 86400_000),
+  } });
+  const options = { headers: { Cookie: athlete.cookie } };
+  const before = await request.get("/api/next-move", options);
+  expect(before.status()).toBe(200);
+  const { current } = await before.json();
+  expect(current.kind).toBe("TRAINING_GAP");
+
+  await testPrisma.workoutCompletion.create({ data: { workoutId: other.workout.id, userId: other.athlete.userId } });
+  // Removing the stated cadence clears this condition without a workout.
+  await testPrisma.athleteProfile.update({ where: { userId: athlete.userId }, data: { trainingDaysPerWeek: 0 } });
+  const after = await request.get("/api/next-move", options);
+  expect(after.status()).toBe(200);
+  const result = await after.json();
+  expect(result.current).toBeNull();
+  const resolved = result.recentlyResolved.find((item: { id: string }) => item.id === current.id);
+  expect(resolved).toBeDefined();
+  expect(resolved.outcome.status).toBe("INSUFFICIENT_DATA");
+
+  // Use an explicit later timestamp rather than timing-dependent sleeps.
+  await testPrisma.workoutCompletion.create({ data: {
+    workoutId: workout.id, userId: athlete.userId, completedAt: new Date(Date.now() + 60_000),
+  } });
+  const later = await request.get("/api/next-move", options);
+  expect(later.status()).toBe(200);
+  const laterResult = await later.json();
+  expect(laterResult.recentlyResolved.find((item: { id: string }) => item.id === current.id).outcome.status).toBe("INSUFFICIENT_DATA");
+});
+
 test("concurrent retries share one completion and cannot reuse another athlete's ID", async ({ request }) => {
   const { athlete, workout, url } = await setup();
   const completionId = randomUUID();

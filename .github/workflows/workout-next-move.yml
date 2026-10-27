@@ -1,0 +1,88 @@
+name: Workout + Next Move acceptance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  workout-next-move:
+    runs-on: ubuntu-latest
+    services:
+      # Real Postgres for CI, matching every other environment now that the
+      # Postgres migration baseline (staging-foundation pass) replaced the
+      # old SQLite-only setup. A fresh container per run — nothing persists
+      # between runs, same "always starts empty" guarantee the old SQLite
+      # file had, just via a real service container instead.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: menta
+          POSTGRES_PASSWORD: menta
+          POSTGRES_DB: menta_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U menta -d menta_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Throwaway credentials for an ephemeral, network-isolated CI service
+      # container — never a real deployment's database.
+      DATABASE_URL: "postgresql://menta:menta@localhost:5432/menta_e2e"
+      # This local Postgres service has no pooler; both URLs use the same DB.
+      DATABASE_URL_POOLED: "postgresql://menta:menta@localhost:5432/menta_e2e"
+      # Any 32+ byte value works here; this is a throwaway secret for an
+      # ephemeral CI database, not a real deployment.
+      SESSION_SECRET: "ci-e2e-session-secret-not-for-production-use-only"
+      APP_URL: "http://localhost:3000"
+      # RESEND_API_KEY is deliberately left unset: src/lib/email.ts's honest
+      # "not configured" fallback prints verification codes to the server
+      # console instead of sending real email, which e2e/fixtures.ts reads
+      # from playwright.config.ts's SERVER_LOG_PATH. Setting a real key here
+      # would break every signup/onboarding test.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed plans
+        run: npx tsx prisma/seed-plans.ts
+
+      - name: Seed exercises
+        run: npx tsx prisma/seed-exercises.ts
+
+      - name: Build production application
+        run: npm run build
+
+      - name: Verify workout lifecycle and Next Move
+        run: npx playwright test --config playwright.workout.config.ts
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workout-next-move-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
