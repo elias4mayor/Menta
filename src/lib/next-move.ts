@@ -417,6 +417,7 @@ export type OutcomeEvidence = {
 async function getOutcomeEvidence(row: {
   kind: string;
   evidence: string;
+  createdAt: Date;
   resolvedAt: Date | null;
   subjectAthleteId?: string | null;
   userId: string;
@@ -452,7 +453,13 @@ async function getOutcomeEvidence(row: {
       };
     }
     case "TRAINING_GAP": {
-      const resumed = await prisma.workoutCompletion.findFirst({ where: { userId: subjectUserId, completedAt: { gt: row.resolvedAt } } });
+      // The workout clears the condition before the next queue read records
+      // resolvedAt. Only count completions during this recommendation's life,
+      // so neither an old workout nor a later session becomes its evidence.
+      const resumed = await prisma.workoutCompletion.findFirst({
+        where: { userId: subjectUserId, completedAt: { gte: row.createdAt, lte: row.resolvedAt } },
+        orderBy: { completedAt: "desc" },
+      });
       return resumed
         ? { status: "COMPLETED_ONLY", detail: `Logged a workout on ${resumed.completedAt.toLocaleDateString()}.` }
         : { status: "INSUFFICIENT_DATA", detail: "Resolved, but no new workout completion found yet." };

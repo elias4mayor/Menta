@@ -259,6 +259,7 @@ export const updateWorkoutSchema = z.object({
 });
 
 export const logWorkoutCompletionSchema = z.object({
+  completionId: z.string().uuid().optional(),
   effort: z.coerce.number().int().min(1).max(10).optional(),
   notes: z.string().trim().max(500).optional(),
 });
