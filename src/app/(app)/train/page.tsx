@@ -46,6 +46,7 @@ export default async function TrainPage() {
     <div className="workspace-page dash-in dash-in-1">
       <WorkspaceHeader section="Training" title="Workout library" description="Build consistency. Follow your plan, finish your sessions, and keep moving forward." icon="train" />
       <TrainingView
+        userId={user.id}
         initialWorkouts={workouts.map((w) => ({
           id: w.id,
           title: w.title,
