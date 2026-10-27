@@ -98,6 +98,10 @@ test("a saved workout clears Next Move and reports the completion that resolved 
 
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "You’re caught up." })).toBeVisible();
+  const history = page.locator("details").filter({ has: page.locator("summary", { hasText: "Recently resolved" }) });
+  await expect(history).not.toHaveAttribute("open");
+  await history.locator("summary").click();
+  await expect(history).toHaveAttribute("open", "");
   await expect(page.getByText("Logged a workout on", { exact: false })).toBeVisible();
 });
 
