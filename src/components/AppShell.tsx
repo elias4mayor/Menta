@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import { DashboardHero } from "@/components/DashboardHero";
 import { GlowWaveText } from "@/components/GlowWaveText";
 import { Avatar } from "@/components/Avatar";
@@ -40,7 +40,11 @@ function navSectionsForRole(role: string): NavSection[] {
           { href: "/team", label: "Team", icon: "team" },
           { href: "/film", label: "Film", icon: "film" },
           { href: "/train", label: "Training", icon: "train" },
-          { href: "/train/exercises", label: "Exercise Library", icon: "train" },
+          {
+            href: "/train/exercises",
+            label: "Exercise Library",
+            icon: "train",
+          },
           { href: "/safety", label: "Safety", icon: "safety" },
           { href: "/school", label: "Academics", icon: "school" },
         ],
@@ -54,9 +58,7 @@ function navSectionsForRole(role: string): NavSection[] {
       },
       {
         label: "You",
-        items: [
-          { href: "/documents", label: "Documents", icon: "documents" },
-        ],
+        items: [{ href: "/documents", label: "Documents", icon: "documents" }],
       },
     ];
   }
@@ -75,7 +77,11 @@ function navSectionsForRole(role: string): NavSection[] {
         items: [
           { href: "/team", label: "Groups", icon: "team" },
           { href: "/train", label: "Training", icon: "train" },
-          { href: "/train/exercises", label: "Exercise Library", icon: "train" },
+          {
+            href: "/train/exercises",
+            label: "Exercise Library",
+            icon: "train",
+          },
           { href: "/care/provider", label: "Care queue", icon: "safety" },
         ],
       },
@@ -88,9 +94,7 @@ function navSectionsForRole(role: string): NavSection[] {
       },
       {
         label: "You",
-        items: [
-          { href: "/documents", label: "Documents", icon: "documents" },
-        ],
+        items: [{ href: "/documents", label: "Documents", icon: "documents" }],
       },
     ];
   }
@@ -118,9 +122,7 @@ function navSectionsForRole(role: string): NavSection[] {
       },
       {
         label: "You",
-        items: [
-          { href: "/documents", label: "Documents", icon: "documents" },
-        ],
+        items: [{ href: "/documents", label: "Documents", icon: "documents" }],
       },
     ];
   }
@@ -148,9 +150,7 @@ function navSectionsForRole(role: string): NavSection[] {
       },
       {
         label: "You",
-        items: [
-          { href: "/documents", label: "Documents", icon: "documents" },
-        ],
+        items: [{ href: "/documents", label: "Documents", icon: "documents" }],
       },
     ];
   }
@@ -200,7 +200,9 @@ function navSectionsForRole(role: string): NavSection[] {
   ];
 }
 
-function mobileItemsForRole(role: string): { href: string; label: string; icon: string }[] {
+function mobileItemsForRole(
+  role: string,
+): { href: string; label: string; icon: string }[] {
   if (role === "COACH") {
     return [
       { href: "/dashboard", label: "Home", icon: "home" },
@@ -258,7 +260,13 @@ function useTimeOfDayGreeting(): string {
   useEffect(() => {
     const timer = setTimeout(() => {
       const hour = new Date().getHours();
-      setGreeting(hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
+      setGreeting(
+        hour < 12
+          ? "Good morning"
+          : hour < 18
+            ? "Good afternoon"
+            : "Good evening",
+      );
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -292,7 +300,10 @@ export function AppShell({
     <div className="app-shell min-h-screen flex bg-bg">
       <aside
         className="hidden md:flex md:w-64 md:h-screen md:sticky md:top-0 shrink-0 flex-col px-4 py-6 dash-in dash-in-1"
-        style={{ borderRight: "1px solid var(--border-soft)", background: "var(--sidebar-tint)" }}
+        style={{
+          borderRight: "1px solid var(--border-soft)",
+          background: "var(--sidebar-tint)",
+        }}
       >
         <Link href="/dashboard" className="flex items-center px-2 mb-10">
           <Image
@@ -301,19 +312,24 @@ export function AppShell({
             width={863}
             height={194}
             className="h-6 w-auto"
-            style={{ filter: "invert(1)" }}
+            style={{ filter: "none" }}
             priority
           />
         </Link>
         <nav className="flex-1 space-y-6 overflow-y-auto">
           {navSections.map((section) => (
             <div key={section.label} className="nav-section">
-              <div className="mono text-text-3 px-3 mb-2.5" style={{ opacity: 0.75 }}>
+              <div
+                className="mono text-text-3 px-3 mb-2.5"
+                style={{ opacity: 0.75 }}
+              >
                 {section.label}
               </div>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                  const active =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
                   return (
                     <Link
                       key={item.href}
@@ -321,13 +337,19 @@ export function AppShell({
                       className={`nav-rail-item relative flex items-center gap-2.5 px-3 py-2 rounded-full text-sm active:scale-[0.97]${active ? "" : " nav-rail-item-idle"}`}
                       style={{
                         color: active ? "var(--text-1)" : "var(--text-2)",
-                        background: active ? "var(--nav-hover-bg)" : "transparent",
+                        background: active
+                          ? "var(--nav-hover-bg)"
+                          : "transparent",
                       }}
                     >
                       {active && (
                         <span
                           className="absolute left-0 top-1/2 rounded-full nav-dot-in"
-                          style={{ width: 3, height: 14, background: "var(--grad-signal)" }}
+                          style={{
+                            width: 3,
+                            height: 14,
+                            background: "var(--grad-signal)",
+                          }}
                         />
                       )}
                       <NavIcon name={item.icon} className="shrink-0" />
@@ -348,13 +370,20 @@ export function AppShell({
         {/* Persistent account area — never inside the scrollable nav above,
             so Profile/Settings/Sign out are always reachable without
             scrolling past the nav list, regardless of how long it is. */}
-        <div className="pt-3 mt-3 shrink-0" style={{ borderTop: "1px solid var(--border-soft)" }}>
+        <div
+          className="pt-3 mt-3 shrink-0"
+          style={{ borderTop: "1px solid var(--border-soft)" }}
+        >
           <Link
             href="/profile"
             className="flex items-center gap-2 px-2 py-2 rounded-[var(--r-sm)] transition-colors"
             style={{ color: "var(--text-1)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--nav-hover-bg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "var(--nav-hover-bg)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "transparent")
+            }
           >
             <Avatar userId={user.id} name={user.name} size={28} />
             <div className="min-w-0">
@@ -392,9 +421,7 @@ export function AppShell({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 dash-in dash-in-2 topbar-material chrome-edge-bottom"
-        >
+        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 dash-in dash-in-2 topbar-material chrome-edge-bottom">
           <Link href="/dashboard" className="flex items-center">
             <Image
               src="/logo.png"
@@ -402,7 +429,7 @@ export function AppShell({
               width={863}
               height={194}
               className="h-5 md:h-6 w-auto"
-              style={{ filter: "invert(1)" }}
+              style={{ filter: "none" }}
               priority
             />
           </Link>
@@ -413,44 +440,83 @@ export function AppShell({
               className="relative text-text-2 hover:text-text-1 transition-colors active:scale-90"
               aria-label="Notifications"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
               {unreadCount > 0 && (
                 <span
                   className="absolute -top-1 -right-1 flex items-center justify-center rounded-full text-[10px] font-semibold"
-                  style={{ background: "var(--grad-signal)", color: "var(--on-signal)", minWidth: 16, height: 16, padding: "0 4px" }}
+                  style={{
+                    background: "var(--grad-signal)",
+                    color: "var(--on-signal)",
+                    minWidth: 16,
+                    height: 16,
+                    padding: "0 4px",
+                  }}
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </Link>
-            <div className="md:hidden text-sm text-text-2">{user.name.split(" ")[0]}</div>
+            <div className="md:hidden text-sm text-text-2">
+              {user.name.split(" ")[0]}
+            </div>
           </div>
         </header>
         <main className="flex-1 px-6 py-8 pb-24 md:pb-8 flex justify-center">
           <div className="w-full max-w-6xl">
-            {/* Rendered once here (not per-page) so navigating between dashboard
-                pages doesn't remount it — the gallery keeps rotating in the same
-                order instead of restarting on every click. */}
-            <DashboardHero greeting={`${greeting}, ${user.name.split(" ")[0]}.`} />
+            {/* Home opens directly on the action dashboard. Keep the existing
+                video greeting on the other workspace pages. */}
+            {pathname !== "/dashboard" && (
+              <DashboardHero
+                greeting={`${greeting}, ${user.name.split(" ")[0]}.`}
+              />
+            )}
             {children}
           </div>
         </main>
       </div>
 
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 bottomnav-material chrome-edge-top"
+        className="menta-bottom-dock"
+        aria-label="Main navigation"
+        style={
+          {
+            "--dock-count": mobileItems.length,
+            "--dock-visible": mobileItems.some(
+              (item) =>
+                pathname === item.href || pathname.startsWith(item.href + "/"),
+            )
+              ? 1
+              : 0,
+            "--dock-index": Math.max(
+              0,
+              mobileItems.findIndex(
+                (item) =>
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/"),
+              ),
+            ),
+          } as CSSProperties
+        }
       >
         {mobileItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active =
+            pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
               href={item.href}
               className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors active:scale-95"
-              style={{ color: active ? "var(--text-1)" : "var(--text-3)" }}
+              aria-current={active ? "page" : undefined}
             >
               <NavIcon name={item.icon} className="shrink-0" />
               {item.label}
