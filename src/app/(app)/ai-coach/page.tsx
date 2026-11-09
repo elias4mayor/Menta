@@ -2,7 +2,6 @@ import { requireUser } from "@/lib/auth-guards";
 import { isAiConfigured } from "@/lib/ai";
 import { AiChat } from "@/components/AiChat";
 import { prisma } from "@/lib/prisma";
-import { GlowWaveText } from "@/components/GlowWaveText";
 
 export default async function AiCoachPage() {
   const user = await requireUser();
@@ -18,16 +17,8 @@ export default async function AiCoachPage() {
 
   return (
     <div className="max-w-2xl mx-auto h-[calc(100vh-8rem)] flex flex-col dash-in dash-in-1">
-      <div className="mono text-text-3 mb-1">MENTA AI</div>
-      <div className="flex items-center gap-2 mb-4">
-        <h1 className="text-2xl font-semibold"><GlowWaveText intensity="strong">Your intelligence layer</GlowWaveText></h1>
-        {isAiConfigured() ? (
-          <span className="badge badge-live">Connected</span>
-        ) : (
-          <span className="badge badge-demo">Not connected</span>
-        )}
-      </div>
       <AiChat
+        initialCoachName={user.aiCoachName ?? null}
         configured={isAiConfigured()}
         envVar={aiEnvVar}
         initialConversationId={conversation?.id ?? null}

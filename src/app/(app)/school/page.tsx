@@ -178,7 +178,7 @@ export default async function SchoolPage() {
       {/* MENTA STUDY HELP */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <div className="mono text-text-3">MENTA Study Help</div>
+          <div className="mono text-text-3">{user.aiCoachName ? `${user.aiCoachName} · Study Help` : "MENTA Study Help"}</div>
           {isAiConfigured() ? (
             <span className="badge badge-live">Connected</span>
           ) : (

@@ -11,12 +11,11 @@ export function Hero() {
           className="text-text-1 text-5xl md:text-7xl font-semibold leading-[1.05] mb-6 reveal reveal-scale"
           style={{ transitionDelay: "0ms" }}
         >
-          <GlowWaveText intensity="strong">Build the future of athlete development.</GlowWaveText>
+          <GlowWaveText intensity="strong">Know your next move.</GlowWaveText>
         </h1>
         <p className="text-text-2 text-lg max-w-xl mb-8 reveal" style={{ transitionDelay: "150ms" }}>
-          MENTA is the AI Athlete Operating System helping athletes improve performance, mindset,
-          academics, recruiting, recovery, and long-term development — all in one intelligent
-          platform.
+          MENTA brings training, film, school, and team schedules together so athletes and the
+          people supporting them know what comes next.
         </p>
         <div className="flex flex-wrap justify-center gap-3 reveal" style={{ transitionDelay: "300ms" }}>
           <Link href="/signup" className="btn-primary">
@@ -25,12 +24,12 @@ export function Hero() {
               <path d="M5 12h14M13 5l7 7-7 7" />
             </svg>
           </Link>
-          <Link href="/platform" className="btn-secondary">
-            Explore MENTA
+          <Link href="#menta-today" className="btn-secondary">
+            See a day in MENTA
           </Link>
         </div>
         <p className="text-text-3 text-sm mt-6 reveal" style={{ transitionDelay: "450ms" }}>
-          Built for athletes. Designed for teams. Powered by AI.
+          For athletes, coaches, families, and trainers.
         </p>
       </div>
     </section>

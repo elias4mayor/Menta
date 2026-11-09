@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 type Msg = { id: string; role: "user" | "assistant"; content: string };
 
 const SUGGESTIONS = [
-  "Explain this concept to me step by step",
+  "Explain this concept using my sport",
+  "Give me one hint at a time",
   "Quiz me on this topic",
   "Help me make a study plan for this week",
   "Why is this answer wrong?",
