@@ -37,14 +37,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ te
   }
 
   try {
-    const session = await transitionSessionStatus(teamId, id, parsed.data.status);
+    const { session, forgeMutation } = await transitionSessionStatus(teamId, id, parsed.data.status);
     await logAudit({
       actorId: user.id,
       action: `live_session.${parsed.data.status.toLowerCase()}`,
       targetType: "TrainingSession",
       targetId: id,
     });
-    return NextResponse.json({ session });
+    return NextResponse.json({ session, forgeMutation });
   } catch (err) {
     if (err instanceof LiveSessionError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

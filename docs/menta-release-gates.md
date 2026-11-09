@@ -46,6 +46,6 @@ Run the [Playwright burst test](forge-sse-performance-test.md) for the foregroun
 
 ## Web Forge stream status
 
-The web room and rack display now use `/api/teams/:teamId/sessions/:sessionId/stream`. The controller listens on the direct PostgreSQL connection. Session and set transactions send a PostgreSQL notification containing only the session ID. The stream rechecks access and returns a fresh room snapshot. Reconnects receive the latest state, with the existing HTTP refresh as a fallback.
+The web room and rack display now use `/api/teams/:teamId/sessions/:sessionId/stream`. The controller listens on the direct PostgreSQL connection. Session and set transactions send a PostgreSQL notification containing the session ID and the server-issued mutation token. The stream rechecks access and returns a fresh room snapshot. Reconnects receive the latest state, with the existing HTTP refresh as a fallback.
 
-This first controller does not implement per-mutation revisions, durable replay, an athlete-only stream, or the Playwright fixture adapter. Snapshot refreshes can coalesce writes. The performance gate remains pending. Before staging, check direct connection capacity and validate the stream behind the deployed gateway.
+Write responses expose `forgeMutation: { correlationId, recordedAtMs }`. The stream emits the same objects in a snapshot’s `mutations` array. `recordedAtMs` is the database clock sampled just before commit. Snapshot refreshes can coalesce writes while retaining their distinct IDs for the connected subscriber. Durable replay, an athlete-only stream, and the staging render markers remain open. The performance gate remains pending. Before staging, check direct connection capacity and validate the stream behind the deployed gateway.

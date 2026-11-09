@@ -26,8 +26,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   const canLogForOthers = await canLogTrainingSetsForOthers(user.id, teamId);
 
   try {
-    const set = await logSet(teamId, sessionId, user.id, canLogForOthers, parsed.data);
-    return NextResponse.json({ set });
+    const { set, forgeMutation } = await logSet(teamId, sessionId, user.id, canLogForOthers, parsed.data);
+    return NextResponse.json({ set, forgeMutation });
   } catch (err) {
     if (err instanceof LiveSessionError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

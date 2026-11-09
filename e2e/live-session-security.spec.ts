@@ -68,7 +68,7 @@ test.describe("MENTA LIVE security", () => {
   }
 
   test("Forge room streams committed status changes to an authorized viewer", async ({ request, baseURL }) => {
-    const { coach, athletes, team, program } = await setupTeamWithProgram("forge-stream");
+    const { coach, athletes, team, program, squatPE } = await setupTeamWithProgram("forge-stream");
     const headers = { Cookie: coach.cookie };
     const created = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {
       headers,
@@ -91,17 +91,39 @@ test.describe("MENTA LIVE security", () => {
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let received = "";
-      async function waitForStatus(status: string) {
-        while (!received.includes(`"status":"${status}"`)) {
+      async function waitForEvent(fragment: string) {
+        while (!received.includes(fragment)) {
           const chunk = await reader.read();
-          if (chunk.done) throw new Error(`Forge stream ended before ${status}`);
+          if (chunk.done) throw new Error("Forge stream ended before the expected update");
           received += decoder.decode(chunk.value, { stream: true });
         }
       }
 
-      await waitForStatus("SCHEDULED");
-      expect((await request.patch(path, { headers, data: { status: "LIVE" } })).status()).toBe(200);
-      await waitForStatus("LIVE");
+      await waitForEvent('"status":"SCHEDULED"');
+      const started = await request.patch(path, { headers, data: { status: "LIVE" } });
+      expect(started.status()).toBe(200);
+      const { forgeMutation } = await started.json();
+      expect(forgeMutation).toEqual({ correlationId: expect.any(String), recordedAtMs: expect.any(Number) });
+      await waitForEvent('"status":"LIVE"');
+      expect(received).toContain(JSON.stringify(forgeMutation));
+
+      const setMutations = await Promise.all(athletes.map(async (athlete) => {
+        const result = await request.post(`${path}/sets`, {
+          headers: { Cookie: athlete.cookie },
+          data: { athleteId: athlete.userId, programExerciseId: squatPE.id, setNumber: 1, reps: 5 },
+        });
+        expect(result.status()).toBe(200);
+        return (await result.json()).forgeMutation;
+      }));
+      expect(new Set(setMutations.map((mutation) => mutation.correlationId)).size).toBe(athletes.length);
+      for (const mutation of setMutations) await waitForEvent(JSON.stringify(mutation));
+
+      const paused = await request.patch(path, { headers, data: { status: "PAUSED" } });
+      expect(paused.status()).toBe(200);
+      const { forgeMutation: pauseMutation } = await paused.json();
+      expect(pauseMutation.correlationId).not.toBe(forgeMutation.correlationId);
+      await waitForEvent('"status":"PAUSED"');
+      expect(received).toContain(JSON.stringify(pauseMutation));
     } finally {
       clearTimeout(timeout);
       controller.abort();

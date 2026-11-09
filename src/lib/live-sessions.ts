@@ -160,8 +160,8 @@ export async function transitionSessionStatus(teamId: string, sessionId: string,
 
   return prisma.$transaction(async (tx) => {
     const updated = await tx.trainingSession.update({ where: { id: sessionId }, data });
-    await notifyForgeSession(tx, sessionId);
-    return updated;
+    const forgeMutation = await notifyForgeSession(tx, sessionId);
+    return { session: updated, forgeMutation };
   });
 }
 
@@ -190,8 +190,8 @@ export async function createSessionGroup(teamId: string, sessionId: string, inpu
     await tx.trainingGroupMember.createMany({
       data: input.athleteIds.map((athleteId) => ({ groupId: group.id, sessionId, athleteId })),
     });
-    await notifyForgeSession(tx, sessionId);
-    return group;
+    const forgeMutation = await notifyForgeSession(tx, sessionId);
+    return { group, forgeMutation };
   });
 }
 
@@ -230,8 +230,9 @@ export async function updateSessionGroup(
         data: input.athleteIds.map((athleteId) => ({ groupId, sessionId, athleteId })),
       });
     }
-    await notifyForgeSession(tx, sessionId);
-    return tx.trainingGroup.findUniqueOrThrow({ where: { id: groupId } });
+    const group = await tx.trainingGroup.findUniqueOrThrow({ where: { id: groupId } });
+    const forgeMutation = await notifyForgeSession(tx, sessionId);
+    return { group, forgeMutation };
   });
 }
 
@@ -247,8 +248,8 @@ export async function advanceGroup(teamId: string, sessionId: string, groupId: s
       where: { id: groupId },
       data: { currentBlockId: pe.blockId, currentProgramExerciseId: pe.id },
     });
-    await notifyForgeSession(tx, sessionId);
-    return updated;
+    const forgeMutation = await notifyForgeSession(tx, sessionId);
+    return { group: updated, forgeMutation };
   });
 }
 
@@ -266,8 +267,9 @@ export async function advanceWholeRoom(teamId: string, sessionId: string, progra
       where: { sessionId },
       data: { currentBlockId: pe.blockId, currentProgramExerciseId: pe.id },
     });
-    await notifyForgeSession(tx, sessionId);
-    return tx.trainingSession.findUniqueOrThrow({ where: { id: sessionId } });
+    const session = await tx.trainingSession.findUniqueOrThrow({ where: { id: sessionId } });
+    const forgeMutation = await notifyForgeSession(tx, sessionId);
+    return { session, forgeMutation };
   });
 }
 
@@ -335,8 +337,8 @@ export async function logSet(
     const set = existing
       ? await tx.trainingSet.update({ where: { id: existing.id }, data: { ...shared, editedAt: new Date() } })
       : await tx.trainingSet.create({ data: shared });
-    await notifyForgeSession(tx, sessionId);
-    return set;
+    const forgeMutation = await notifyForgeSession(tx, sessionId);
+    return { set, forgeMutation };
   });
 }
 

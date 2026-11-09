@@ -23,8 +23,8 @@ export async function POST(
   }
 
   try {
-    const group = await advanceGroup(teamId, sessionId, groupId, parsed.data.programExerciseId);
-    return NextResponse.json({ group });
+    const { group, forgeMutation } = await advanceGroup(teamId, sessionId, groupId, parsed.data.programExerciseId);
+    return NextResponse.json({ group, forgeMutation });
   } catch (err) {
     if (err instanceof LiveSessionError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

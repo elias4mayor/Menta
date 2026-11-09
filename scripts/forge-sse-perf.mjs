@@ -32,10 +32,10 @@ async function main() {
   if (fixture.origin !== base.origin || !Array.isArray(fixture.mutations) || fixture.mutations.length !== SAMPLE_COUNT) {
     throw new Error("Fixture origin must match and contain exactly 100 disposable mutations");
   }
-  const { serverMinusRunnerMs, clockUncertaintyMs } = fixture;
-  if (!Number.isFinite(serverMinusRunnerMs) || !Number.isFinite(clockUncertaintyMs)
+  const { databaseMinusRunnerMs, clockUncertaintyMs } = fixture;
+  if (!Number.isFinite(databaseMinusRunnerMs) || !Number.isFinite(clockUncertaintyMs)
     || clockUncertaintyMs < 0 || clockUncertaintyMs > 10) {
-    throw new Error("Provide a measured server clock offset and uncertainty of at most 10 ms");
+    throw new Error("Provide a measured database clock offset and uncertainty of at most 10 ms");
   }
   const receiverUrl = sameOriginUrl(fixture.receiverPath, base.origin);
   const mutations = fixture.mutations.map(({ id, method, path, body }) => {
@@ -75,23 +75,20 @@ async function main() {
         });
         record();
       });
-      const ids = mutations.map(({ id }) => id);
-      if (await page.evaluate((ids) => ids.some((id) => window.forgeRendered.has(id)), ids)) {
-        throw new Error("A fixture correlation ID has already rendered. Use fresh fixtures");
-      }
-
-      const committed = await Promise.all(mutations.map(async ({ id, method, url, body }) => {
+      const committed = await Promise.all(mutations.map(async ({ method, url, body }) => {
         const response = await coach.fetch(url, {
           method, data: body, timeout: 15_000, maxRedirects: 0,
-          headers: { "X-Forge-Perf-Id": id },
         });
         if (!response.ok()) throw new Error(`Mutation failed with HTTP ${response.status()}`);
-        const { correlationId, committedAtMs } = await response.json();
-        if (correlationId !== id || !Number.isFinite(committedAtMs)) {
-          throw new Error("Mutation did not return a matching ID and server commit timestamp");
+        const { forgeMutation } = await response.json();
+        const { correlationId, recordedAtMs } = forgeMutation ?? {};
+        if (typeof correlationId !== "string" || !correlationId || !Number.isFinite(recordedAtMs)) {
+          throw new Error("Mutation did not return its server-issued ID and database timestamp");
         }
-        return [id, committedAtMs - serverMinusRunnerMs];
+        return [correlationId, recordedAtMs - databaseMinusRunnerMs];
       }));
+      const ids = committed.map(([id]) => id);
+      if (new Set(ids).size !== SAMPLE_COUNT) throw new Error("Mutation responses reused a correlation ID");
 
       await page.waitForFunction((ids) => ids.every((id) => window.forgeRendered.has(id)), ids, { timeout: 10_000 });
       const rendered = new Map(await page.evaluate((ids) => ids.map((id) => [id, window.forgeRendered.get(id)]), ids));
@@ -104,6 +101,7 @@ async function main() {
       const upperP95Ms = p95Ms + clockUncertaintyMs;
       console.log(JSON.stringify({
         samples: sorted.length, concurrency: SAMPLE_COUNT, surface: "foreground-browser-dom",
+        start: "database-pre-commit",
         p50Ms: percentile(sorted, 0.5), p95Ms, upperP95Ms, clockUncertaintyMs, limitMs: LIMIT_MS,
       }, null, 2));
       if (upperP95Ms >= LIMIT_MS) process.exitCode = 1;

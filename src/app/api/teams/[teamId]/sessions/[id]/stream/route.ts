@@ -1,6 +1,6 @@
 import { Client } from "pg";
 import { NextResponse } from "next/server";
-import { FORGE_CHANNEL } from "@/lib/forge-events";
+import { FORGE_CHANNEL, type ForgeMutation } from "@/lib/forge-events";
 import { getSessionRoomView } from "@/lib/live-sessions";
 import { getTeamRole } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
@@ -38,6 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
       let closed = false;
       let refreshing = false;
       let pending = false;
+      const mutations: ForgeMutation[] = [];
       let heartbeat: ReturnType<typeof setInterval> | undefined;
       const deadline = setTimeout(() => stop(), 50_000);
 
@@ -58,6 +59,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
         try {
           while (pending && !closed) {
             pending = false;
+            const batch = mutations.splice(0);
             if (!(await hasAccess())) {
               if (!closed) controller.enqueue(encoder.encode("event: forge.access-ended\ndata: {}\n\n"));
               stop();
@@ -65,7 +67,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
             }
             const room = await getSessionRoomView(teamId, id);
             if (!room) { stop(); return; }
-            if (!closed) controller.enqueue(encoder.encode(`event: forge.snapshot\ndata: ${JSON.stringify(room)}\n\n`));
+            if (!closed) controller.enqueue(encoder.encode(`event: forge.snapshot\ndata: ${JSON.stringify({ ...room, mutations: batch })}\n\n`));
           }
         } catch {
           stop();
@@ -77,7 +79,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
       client.on("error", stop);
       client.on("end", stop);
       client.on("notification", (notice) => {
-        if (notice.channel === FORGE_CHANNEL && notice.payload === id) void refresh();
+        if (notice.channel !== FORGE_CHANNEL || !notice.payload) return;
+        try {
+          const { sessionId, correlationId, recordedAtMs } = JSON.parse(notice.payload);
+          if (sessionId !== id || typeof correlationId !== "string" || !Number.isFinite(recordedAtMs)) return;
+          if (mutations.length >= 1024) { stop(); return; }
+          mutations.push({ correlationId, recordedAtMs });
+          void refresh();
+        } catch {
+          // Ignore unrelated or malformed database notifications.
+        }
       });
       request.signal.addEventListener("abort", stop, { once: true });
       if (request.signal.aborted) { stop(); return; }

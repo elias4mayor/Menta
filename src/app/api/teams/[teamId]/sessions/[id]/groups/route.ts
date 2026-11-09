@@ -20,8 +20,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   }
 
   try {
-    const group = await createSessionGroup(teamId, sessionId, parsed.data);
-    return NextResponse.json({ group });
+    const { group, forgeMutation } = await createSessionGroup(teamId, sessionId, parsed.data);
+    return NextResponse.json({ group, forgeMutation });
   } catch (err) {
     if (err instanceof LiveSessionError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
