@@ -47,3 +47,16 @@ The first release pairs the athlete homepage with one staff approval queue. Test
 | **Helmet stickers** | Later, add `BadgeAward(athleteId, badgeKey, sourceId, awardedAt)`, starting with a coach-awarded team badge and optional athlete display. | A repeated award event does not duplicate the sticker. Private school and wellness data stay outside team recognition. |
 
 Defer automatic streaming and facility playback until the provider integration and usage rights have been verified. Defer smart-room controls, face matching, auto-tagging, and sponsor posting. Validate demand first through repeat song submissions, packed kit accuracy, and media downloads from the first game.
+
+### Uniform Election
+
+Start with three approved kit options in a single vote. Use existing product photos or staff-uploaded previews. The coach publishes the poll after equipment staff confirm availability. An eligible athlete can cast or change one vote until the server-side deadline.
+
+- `UniformPoll(id, teamId, eventId, closesAt, status, winningOptionId, finalizedOptionId)` tracks the election.
+- `UniformOption(id, pollId, kitId, previewAssetId)` references a prepared kit.
+- `UniformBallot(pollId, athleteId, optionId)` is unique on `(pollId, athleteId)`. The team sees totals, and each athlete can see their own ballot.
+- `PUT /api/teams/:teamId/uniform-polls/:pollId/ballot` validates roster membership, option ownership, and the deadline.
+- `POST /api/teams/:teamId/uniform-polls/:pollId/finalize` confirms inventory, records the winning kit, and creates one equipment handoff keyed by poll ID. A tied vote or an unavailable kit goes to staff review.
+- Once finalized, the team sees the confirmed kit in Live Status and the equipment manager sees the corresponding fulfillment ticket. Fit Check derives its options from that kit.
+
+Pilot with a visible vote preview, a working countdown, a late ballot that is rejected, and a repeated finalize request that creates one ticket. Add multi-round brackets and a season-limited captain nomination after the single-round workflow has run for several game weeks. Any proposed override still goes through equipment confirmation.

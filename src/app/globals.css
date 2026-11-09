@@ -863,7 +863,1624 @@ h4 {
   position: relative;
 }
 
-.tilt-c…10738 tokens truncated…    tokens (see the :root doc comment above), so strengthening them
+.tilt-card .glass-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.09) 0%, transparent 32%);
+}
+
+.tilt-card:hover .glass-sheen {
+  opacity: 1;
+}
+
+/* Flat, restrained MacBook-style frame for the homepage's dashboard
+   showcase — a dark bezel + thin base bar, no camera dot or 3D rotation,
+   so it reads as "premium hardware presentation" without tipping into a
+   skeuomorphic or spinning mockup. */
+.laptop-frame-bezel {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #3a3a3d, #1c1c1e);
+  padding: 14px;
+  box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+}
+
+.laptop-frame-screen {
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.laptop-frame-base {
+  height: 14px;
+  margin: 0 24px;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(180deg, #2b2b2d, #19191b);
+}
+
+@media (max-width: 640px) {
+  .laptop-frame-base {
+    margin: 0 10px;
+  }
+}
+
+::selection {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+
+/* Hero's own heading/subtitle/CTA/tagline text sits directly on the live
+   photo gallery background (not inside an opaque card), so it needs a
+   light-on-dark override — except the floating dashboard-mockup .card
+   nested inside it, which has its own opaque light surface and should
+   read with the normal dark-on-light text every other card uses. */
+.hero-on-dark {
+  /* --bg is overridden too, purely because .btn-primary is defined as
+     background: var(--text-1); color: var(--bg) — i.e. "whatever the
+     page isn't" — so Join the MENTA Beta renders as the same white pill
+     with dark text it always has here, instead of white-on-white. */
+  --bg: #08080a;
+  --text-1: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.78);
+  --text-3: rgba(255, 255, 255, 0.6);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-soft: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.28);
+  /* GlowWaveText's default --glow-wave-color is a dark shadow tuned for
+     the light-theme dashboards (dark text, so a dark glow reads as an
+     "ink" pulse) — on the hero's dark photo the headline is white, so it
+     needs a light glow instead or the effect is invisible. */
+  --glow-wave-color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-on-dark .card {
+  --text-1: #1d1d1f;
+  --text-2: #45454a;
+  --text-3: #6b6b70;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --border-strong: rgba(0, 0, 0, 0.14);
+}
+
+/* ---------- premium nav dropdown (Platform mega-menu) ---------- */
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 60;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top right;
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), visibility 0.2s;
+  pointer-events: none;
+}
+
+.nav-dropdown-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.nav-dropdown-item {
+  transition: background 0.2s var(--ease);
+}
+
+.nav-dropdown-item:hover,
+.nav-dropdown-item:focus-visible {
+  background: rgba(0, 0, 0, 0.055);
+}
+
+.nav-dropdown-item:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: -1px;
+}
+
+/* Anchored under a centered trigger (the logo) instead of a right-aligned one. */
+.nav-dropdown-center {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px) scale(0.98);
+  transform-origin: top center;
+}
+
+.nav-dropdown-center.nav-dropdown-open {
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-dropdown {
+    transition: opacity 0.15s ease, visibility 0.15s;
+    transform: none;
+  }
+}
+
+/* ---------- live gallery: crossfading athlete photos ---------- */
+.live-gallery {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  max-height: 600px;
+  min-height: 280px;
+  overflow: hidden;
+  background: #000;
+  border-radius: var(--r-lg);
+}
+
+.live-gallery .lg-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.05);
+  transition: opacity 1.4s var(--ease), transform 6.5s linear;
+}
+
+.live-gallery .lg-slide.lg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-gallery .lg-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.live-gallery::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 8, 10, 0.05) 0%, rgba(8, 8, 10, 0.1) 55%, rgba(8, 8, 10, 0.7) 100%);
+}
+
+.live-gallery .lg-meta {
+  position: absolute;
+  left: 28px;
+  bottom: 22px;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.live-gallery .lg-dots {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+
+.live-gallery .lg-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.32);
+  transition: background 0.3s var(--ease), width 0.3s var(--ease);
+}
+
+.live-gallery .lg-dot.active {
+  background: var(--text-1);
+  width: 16px;
+  border-radius: 3px;
+}
+
+@media (max-width: 640px) {
+  .live-gallery {
+    aspect-ratio: 4 / 5;
+    max-height: 520px;
+  }
+  .live-gallery .lg-meta {
+    left: 18px;
+    bottom: 16px;
+  }
+  .live-gallery .lg-dots {
+    right: 18px;
+    bottom: 18px;
+  }
+}
+
+/* hero variant: gallery as the hero's own background, contained + dimmed */
+.live-gallery.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  aspect-ratio: auto;
+  max-height: none;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.live-gallery.hero-bg .lg-slide {
+  transition: opacity 1.8s var(--ease), transform 8s linear;
+}
+
+.live-gallery.hero-bg::after {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 10, 0.5) 0%,
+    rgba(8, 8, 10, 0.28) 30%,
+    rgba(8, 8, 10, 0.3) 65%,
+    rgba(8, 8, 10, 0.62) 100%
+  );
+}
+
+.live-gallery.hero-bg .lg-meta,
+.live-gallery.hero-bg .lg-dots {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-gallery .lg-slide {
+    transition: opacity 0.3s ease;
+    transform: none !important;
+  }
+}
+
+/* ---------- dashboard hero: contained video entrance card ----------
+   A cinematic moment, but scoped like every other dashboard card: rounded,
+   bounded width, sits in the centered content column. Huge centered logo
+   over autoplay video, minimal supporting type on purpose. */
+.dashboard-hero {
+  position: relative;
+  width: 100%;
+  height: min(46vh, 380px);
+  min-height: 260px;
+  overflow: hidden;
+  background: #000;
+  border-radius: var(--r-lg, 20px);
+  margin-bottom: 32px;
+}
+
+.dashboard-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 10, 0.65) 0%,
+    rgba(8, 8, 10, 0.3) 40%,
+    rgba(8, 8, 10, 0.35) 65%,
+    rgba(8, 8, 10, 0.85) 100%
+  );
+}
+
+.dashboard-hero-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.dashboard-hero-logo {
+  width: clamp(140px, 20vw, 280px);
+  height: auto;
+  filter: drop-shadow(0 8px 40px rgba(0, 0, 0, 0.75));
+}
+
+.dashboard-hero-title {
+  font-family: var(--font-heading);
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.01em;
+  margin-top: 22px;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 640px) {
+  .dashboard-hero {
+    height: 34vh;
+    min-height: 220px;
+  }
+  .dashboard-hero-logo {
+    width: 46vw;
+  }
+}
+
+/* ---------- portal hero: scroll-driven panel reveal + wordmark growth ----------
+   Everything reads off the --p custom property (0 = closed/start, 1 =
+   open/finished), set on .portal-hero by PortalHero's scroll listener —
+   never a timer, so it reverses cleanly on scroll-up.
+
+   Accessibility: every rule below uses a fallback of the FINISHED value
+   (panels open, wordmark at rest, CTAs visible) so that with no
+   .portal-active class — i.e. prefers-reduced-motion, or no JS at all —
+   the section already renders as the finished page, nothing stays
+   hidden behind an animation that can't run. */
+.portal-hero {
+  position: relative;
+  height: 240vh;
+}
+
+.portal-hero-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+.portal-hero-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(calc(1 + (1 - var(--p, 1)) * 0.15));
+}
+
+.portal-hero-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(120% 100% at 50% 50%, rgba(8, 8, 10, 0) 30%, rgba(8, 8, 10, 0.6) 100%);
+  opacity: calc(0.4 + var(--p, 1) * 0.3);
+}
+
+.portal-hero-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-1);
+  box-shadow: 0 0 12px 2px rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.portal-active .portal-hero-dot {
+  opacity: var(--p, 0);
+}
+
+.portal-hero-dot-a {
+  transform: translate(calc(-50% - var(--p, 0) * 42vw), calc(-50% - var(--p, 0) * 30vh));
+}
+
+.portal-hero-dot-b {
+  transform: translate(calc(-50% + var(--p, 0) * 42vw), calc(-50% + var(--p, 0) * 30vh));
+}
+
+.portal-hero-meta {
+  position: absolute;
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
+  opacity: var(--p, 1);
+}
+
+.portal-hero-meta-top {
+  top: 24px;
+  left: 24px;
+}
+
+.portal-hero-meta-bottom {
+  bottom: 24px;
+  right: 24px;
+}
+
+.portal-hero-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 52%;
+  background: var(--bg);
+  z-index: 2;
+}
+
+.portal-hero-panel-left {
+  left: 0;
+  transform: translateX(calc(-1 * var(--p, 1) * 100%));
+}
+
+.portal-hero-panel-right {
+  right: 0;
+  transform: translateX(calc(var(--p, 1) * 100%));
+}
+
+.portal-hero-title {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-1);
+  font-size: clamp(48px, 9vw, 140px);
+  letter-spacing: calc(-0.02em - var(--p, 0) * 0.03em);
+  transform: scale(calc(1 + var(--p, 0) * 0.35));
+  text-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.portal-hero-title-a,
+.portal-hero-title-b {
+  display: inline-block;
+}
+
+.portal-hero-title-a {
+  transform: translateX(calc(var(--p, 0) * -0.5em));
+}
+
+.portal-hero-title-b {
+  transform: translateX(calc(var(--p, 0) * 0.5em));
+}
+
+.portal-hero-cta {
+  position: absolute;
+  z-index: 4;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  opacity: var(--p, 1);
+}
+
+@media (max-width: 640px) {
+  .portal-hero {
+    height: 180vh;
+  }
+  .portal-hero-cta {
+    bottom: 40px;
+    flex-direction: column;
+    width: calc(100% - 48px);
+  }
+  .portal-hero-meta {
+    font-size: 9.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-hero {
+    height: auto;
+  }
+  .portal-hero-stage {
+    position: relative;
+  }
+}
+
+/* ---------- boot flash: one-time premium logo reveal ---------- */
+.logo-intro-mark {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  /* Translucent, not opaque: IntroBoot only ever mounts on the homepage,
+     directly above Hero's LiveGallery, which is already live and rotating
+     underneath from first paint. A solid wash would hide it completely;
+     this lets the photography read as dim/subdued behind the logo instead
+     of a hard cut from white to photo once the overlay fades. */
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(3px) saturate(105%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.logo-intro-mark.boot {
+  display: flex;
+}
+
+/* The WebGL "product shot" reads as a real lit object, not a translucent
+   mark — it needs a solid stage so nothing shows through behind it (no
+   homepage, no dimmed photo) while it plays. Fade-out afterward is
+   unchanged: .fade still animates this same element's opacity to 0. */
+.logo-intro-mark.gl {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.logo-intro-mark.fade {
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+}
+
+.logo-intro-mark .intro-glow {
+  position: absolute;
+  width: 46vw;
+  height: 46vw;
+  max-width: 520px;
+  max-height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.06), transparent 72%);
+  opacity: 0;
+  transition: opacity 0.5s ease 0.05s;
+}
+
+.logo-intro-mark.show .intro-glow {
+  opacity: 1;
+}
+
+.intro-logo-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+/* The WebGL treatment (MentaLogoGL) reads as a full lit "product shot,"
+   not a small static badge, so it gets a much larger stage than the
+   90px CSS-only mark below — same real logo aspect ratio (863:194),
+   scaled up. */
+.intro-logo-wrap-gl {
+  width: min(70vw, 480px);
+  height: calc(min(70vw, 480px) * 194 / 863);
+}
+
+.intro-gl-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.logo-intro-mark img {
+  height: 90px;
+  width: auto;
+  display: block;
+  position: relative;
+  opacity: 0;
+  /* The raw asset is light-colored (built to sit on the old dark
+     background without inversion); every scope is white now, so it
+     needs the same filter: invert(1) the app already applies to this
+     logo everywhere else it sits on a light background. */
+  filter: blur(16px) invert(1);
+  transform: scale(0.94);
+  transition: opacity 0.65s var(--ease) 0.1s, filter 0.65s var(--ease) 0.1s,
+    transform 0.65s var(--ease) 0.1s;
+}
+
+.logo-intro-mark.show img {
+  opacity: 1;
+  filter: blur(0) invert(1);
+  transform: scale(1);
+}
+
+.intro-logo-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.85) 50%, transparent 65%);
+  background-size: 300% 100%;
+  background-position: 170% 0;
+  -webkit-mask-image: url(/logo.png);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-image: url(/logo.png);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+
+.logo-intro-mark.show .intro-logo-sheen {
+  animation: introSheen 0.65s var(--ease) 0.55s 1 both;
+}
+
+@keyframes introSheen {
+  0% {
+    opacity: 0;
+    background-position: 170% 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: -70% 0;
+  }
+}
+
+.logo-intro-mark .intro-slogan {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.5s ease 0.65s, transform 0.5s ease 0.65s;
+}
+
+.logo-intro-mark.show .intro-slogan {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .logo-intro-mark img {
+    height: 60px;
+  }
+  .intro-logo-wrap-gl {
+    width: min(78vw, 320px);
+    height: calc(min(78vw, 320px) * 194 / 863);
+  }
+  .logo-intro-mark .intro-slogan {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    padding: 0 24px;
+    text-align: center;
+  }
+}
+
+/* ---------- onboarding: first-launch experience ----------
+   Full-screen, quiet, black — one question at a time inside a single
+   persistent environment (the ambient glow never unmounts; only the
+   content swaps). See OnboardingExperience.tsx. Scoped dark-theme
+   tokens, same mechanism as .home-os-root: every .onb-* rule below reads
+   color through var(--text-1)/var(--text-2)/etc., so overriding them
+   here re-themes the whole experience without touching each rule.
+   Same #08080a/white-alpha-border values as .home-os-root — one MENTA
+   dark, not a second one invented for onboarding. */
+.onb-root {
+  position: relative;
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
+  padding: max(32px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
+
+  --bg: #08080a;
+  --surface: #131316;
+  --surface-2: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text-1: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.66);
+  --text-3: rgba(245, 245, 247, 0.4);
+  /* Same fix .home-os-root already applies — --grad-signal's default is a
+     dark gradient meant for light backgrounds (the multi-select "selected"
+     checkmark background clips to it), and --on-signal (the icon color on
+     top of it) defaults to white at :root — both need to flip together or
+     the checkmark either disappears into the fill or the fill disappears
+     into the page. */
+  --grad-signal: linear-gradient(90deg, #f5f5f7, #ffffff);
+  --on-signal: #08080a;
+  --glow-wave-color: rgba(255, 255, 255, 0.5);
+  --nav-hover-bg: rgba(255, 255, 255, 0.08);
+}
+
+.onb-ambient {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 640px;
+  max-height: 640px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 70%);
+  pointer-events: none;
+  animation: onbAmbientBreathe 9s ease-in-out infinite;
+}
+
+@keyframes onbAmbientBreathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* Header logo — top-center, small, gently floating/breathing. Separate
+   from the big centered welcome/reveal headlines; this is a persistent
+   header mark, present on every step, not part of the content that
+   fades between steps.
+
+   Entrance: a one-time boot animation (opacity + scale, ease-out, no
+   bounce, ~0.8s) plays once on mount, then the continuous breathing
+   loop picks up after the boot+hold window (1.3s — matches BOOT_MS in
+   OnboardingExperience.tsx) so the logo sits perfectly still during the
+   "hold" phase instead of already drifting. */
+.onb-logo {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  left: 50%;
+  height: 22px;
+  width: auto;
+  z-index: 2;
+  /* logo.png is already a white wordmark — no inversion needed to stay
+     white on this dark background (see the identical fix on the homepage
+     logo, confirmed via an actual rendered screenshot there). */
+  filter: invert(0);
+  animation:
+    onbLogoBoot 0.8s var(--ease) both,
+    onbLogoFloat 6s ease-in-out 1.3s infinite;
+}
+
+@keyframes onbLogoBoot {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.94);
+  }
+  to {
+    opacity: 0.92;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* Used by every onboarding content component (they're only ever reached
+   from behind OnboardingGate/MentaIntro, whose own small logo mark is
+   already sitting in this exact spot when it hands off) so the logo
+   doesn't play a second boot/fade-in on top of the one MentaIntro just
+   finished — it just keeps floating from wherever it already was. */
+.onb-logo.onb-logo-settled {
+  opacity: 0.92;
+  transform: translateX(-50%);
+  animation: onbLogoFloat 6s ease-in-out infinite;
+}
+
+@keyframes onbLogoFloat {
+  0%,
+  100% {
+    opacity: 0.92;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-3px);
+  }
+}
+
+.onb-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.onb-content {
+  width: 100%;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.onb-content.onb-exit {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.26s var(--ease), transform 0.26s var(--ease);
+}
+
+.onb-content.onb-enter {
+  animation: onbEnter 0.55s var(--ease) both;
+}
+
+@keyframes onbEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    /* Not translateY(0)/scale(1) — any non-"none" transform value (even an
+       identity one) creates a new stacking context that persists for as
+       long as the "both"-fill animation holds this end state, i.e.
+       forever. That trapped the Select dropdown (rendered inside a later
+       sibling here, .onb-fields) underneath .onb-nav, which got its own
+       identical stacking context and simply painted after it. */
+    transform: none;
+  }
+}
+
+/* Content reveal: headline, then subtitle, then the rest — a subtle
+   stagger (a 0–0.18s spread) so the reveal doesn't make the user wait for
+   each field to arrive in turn, but each element's own fade-in (and the
+   hold time before the next step) runs long enough to read comfortably —
+   see BOOT_MS/WELCOME_TITLE_HOLD_MS/STATUS_INTERVAL_MS/MOTIVATION_INTERVAL_MS
+   in OnboardingExperience.tsx for the matching JS-side dwell times.
+
+   All onboarding text is Inter (--font-heading/--font-body) — the same
+   font used everywhere else in the app as the closest free equivalent to
+   Apple's system sans — and sized up from the shared app-wide defaults,
+   scoped here and in the .onb-root overrides below so nothing outside
+   onboarding is affected. */
+.onb-eyebrow {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) both;
+}
+
+.onb-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(30px, 5.6vw, 44px);
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  margin: 10px 0 12px;
+  color: var(--text-1);
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) 0.03s both;
+}
+
+.onb-subtitle {
+  color: var(--text-2);
+  font-size: 19px;
+  max-width: 40ch;
+  margin: 0 auto;
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) 0.08s both;
+}
+
+.onb-micro {
+  color: var(--text-3);
+  font-size: 16px;
+  margin-top: 8px;
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) 0.06s both;
+}
+
+.onb-actions {
+  margin-top: 36px;
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) 0.18s both;
+}
+
+@keyframes onbFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    /* See the comment on @keyframes onbEnter above — same fix, same reason. */
+    transform: none;
+  }
+}
+
+.onb-fields {
+  width: 100%;
+  margin-top: 32px;
+  text-align: left;
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) 0.1s both;
+}
+
+.onb-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+  opacity: 0;
+  animation: onbFadeIn 0.55s var(--ease) 0.16s both;
+}
+
+/* Onboarding-scoped text scale-up for the shared field/select/button
+   classes used everywhere else in the app at their smaller default sizes
+   — bigger here on purpose, without touching those global defaults. */
+.onb-root .field-label {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  text-transform: none;
+}
+
+.onb-root .field-input,
+.onb-root .select-trigger {
+  font-size: 19px;
+  padding: 15px 18px;
+}
+
+.onb-root .select-option {
+  font-size: 18px;
+  padding: 13px 14px;
+}
+
+.onb-root .btn-primary,
+.onb-root .btn-secondary {
+  font-size: 17px;
+  padding: 14px 26px;
+}
+
+.onb-progress-track {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(220px, 60vw);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.onb-progress-fill {
+  height: 100%;
+  background: var(--grad-signal);
+  border-radius: 2px;
+  transition: width 0.5s var(--ease);
+}
+
+.onb-progress-count {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  z-index: 1;
+}
+
+.onb-goal-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+  color: var(--text-1);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 11px 14px;
+}
+
+.onb-status {
+  position: relative;
+  z-index: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onb-status-line {
+  position: absolute;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  /* Matches STATUS_INTERVAL_MS in OnboardingExperience.tsx. */
+  animation: onbStatusCycle 1.5s var(--ease) both;
+}
+
+@keyframes onbStatusCycle {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  15%,
+  75% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* The "technical metadata" readout on the building screen — real areas of
+   that role's MENTA (see OnboardingBuildingStep.tsx), styled with the same
+   --font-mono/.mono treatment already used for dashboard stat labels
+   elsewhere, not a new visual language. One row visible at a time (same
+   key-remount-triggers-animation pattern as .onb-status-line below), each
+   fading gray → dark → out per the label's own color transition. */
+.onb-checklist {
+  position: relative;
+  z-index: 1;
+  min-height: 24px;
+  width: min(300px, 78vw);
+  margin: 16px auto 0;
+}
+
+.onb-checklist-row {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  opacity: 0;
+  animation: onbChecklistRowIn 1.5s var(--ease) both;
+}
+
+.onb-checklist-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: onbChecklistLabelColor 1.5s var(--ease) both;
+}
+
+.onb-checklist-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+@keyframes onbChecklistRowIn {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+}
+
+@keyframes onbChecklistLabelColor {
+  0% {
+    color: var(--text-3);
+  }
+  60%,
+  100% {
+    color: var(--text-1);
+  }
+}
+
+.onb-reveal-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.onb-reveal-row b {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-ambient,
+  .onb-logo {
+    animation: none;
+  }
+  .onb-logo {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+  .onb-content.onb-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .onb-content.onb-exit {
+    transition: none;
+  }
+  .onb-eyebrow,
+  .onb-title,
+  .onb-subtitle,
+  .onb-micro,
+  .onb-actions,
+  .onb-fields,
+  .onb-nav {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .onb-status-line {
+    animation: none;
+  }
+  .onb-checklist-row {
+    animation: none;
+    opacity: 1;
+  }
+  .onb-checklist-label {
+    animation: none;
+    color: var(--text-1);
+  }
+}
+
+@media (max-width: 480px) {
+  .onb-title {
+    font-size: clamp(24px, 7vw, 32px);
+  }
+}
+
+/* ---------- MENTA cinematic first-launch intro ----------
+   Plays once, immediately after signup, before the role's onboarding
+   questions — see MentaIntro.tsx. Fixed full-screen overlay, dark like
+   every other scope in the product now — OnboardingGate renders this
+   BEFORE the .onb-root-wrapped children mount (not nested inside them),
+   so it can't inherit .onb-root's tokens and needs its own identical
+   dark mirror here, same as .onb-root mirrors .home-os-root rather than
+   depending on it. Composites with zero visible seam on top of the
+   .onb-root content it hands off to (same values, same logo mark, same
+   spot). Same fade grammar as .onb-content (.mi-enter/.mi-exit mirror
+   .onb-enter/.onb-exit) so the motion reads as the same product, not a
+   different animation system bolted on. */
+.mi-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
+  opacity: 1;
+  transition: opacity 0.6s var(--ease);
+
+  --bg: #08080a;
+  --surface: #131316;
+  --surface-2: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --text-1: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.66);
+  --text-3: rgba(245, 245, 247, 0.4);
+}
+
+/* Both this overlay and the .onb-root it hands off to are already the
+   same black, with the same small logo mark in the same spot by this
+   point — nothing left to crossfade colors for. This is just a final,
+   graceful fade of the overlay itself so the handoff to the mounting
+   onboarding content never reads as an abrupt cut, down to the pixel. */
+.mi-root.mi-revealing {
+  opacity: 0;
+}
+
+.mi-glow {
+  position: absolute;
+  width: 55vw;
+  height: 55vw;
+  max-width: 600px;
+  max-height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 72%);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+.mi-glow.mi-glow-on {
+  opacity: 1;
+  /* Subtle continuous breathe once the glow has finished fading in — reuses
+     the same 9s ease-in-out loop .onb-ambient already breathes with, so
+     this reads as the same product's ambient light, not a second effect.
+     Only touches transform (not opacity), so it can't fight the opacity
+     transition above. Delay roughly matches that transition's own 1.2s. */
+  animation: onbAmbientBreathe 9s ease-in-out 1.2s infinite;
+}
+
+.mi-logo {
+  position: fixed;
+  z-index: 2;
+  height: 56px;
+  width: auto;
+  opacity: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  /* logo.png is already a white wordmark — no inversion needed to stay
+     white on this dark background. blur(6px) is the "slight blur → sharp"
+     part of the reveal, alongside the existing opacity/scale — a physical
+     materialize, not a plain fade. */
+  filter: blur(6px) invert(0);
+  transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), top 0.9s var(--ease),
+    height 0.9s var(--ease), filter 0.9s var(--ease);
+}
+
+.mi-logo.mi-logo-on {
+  opacity: 0.92;
+  filter: blur(0) invert(0);
+}
+
+.mi-logo.mi-logo-small {
+  top: max(20px, env(safe-area-inset-top));
+  height: 22px;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.mi-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 640px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mi-content {
+  width: 100%;
+}
+
+.mi-content.mi-enter {
+  animation: miEnter 0.5s var(--ease) both;
+}
+
+.mi-content.mi-exit {
+  animation: miExit 0.24s var(--ease) both;
+}
+
+@keyframes miEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes miExit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.mi-line {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: clamp(30px, 6vw, 52px);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: var(--text-1);
+}
+
+.mi-line-sub {
+  margin-top: 14px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(13px, 2vw, 15px);
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+}
+
+/* Word-by-word reveal for .mi-line when it's built from <StaggerWords> —
+   each word its own inline-block span so the translateY actually renders
+   (a plain inline element's transform is a no-op in most browsers). */
+.mi-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: miWordIn 0.5s var(--ease) both;
+}
+
+@keyframes miWordIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The personalized "Let's build your next level, {firstName}." line under
+   "Welcome to MENTA." — delayed past that headline's own word-stagger
+   (3 words × 55ms + 500ms ≈ 660ms) so it reads as a second beat, not a
+   simultaneous one. Not uppercase/tracked as wide as .mi-line-sub's other
+   use (.mi-categories) — this is a warmer, sentence-case aside. */
+.mi-personal {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+  font-size: clamp(15px, 2.2vw, 17px);
+  color: var(--text-2);
+  opacity: 0;
+  animation: onbFadeIn 0.6s var(--ease) 0.6s both;
+}
+
+.mi-categories {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+}
+
+.mi-categories.mi-categories-on {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mi-root {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .mi-line {
+    font-size: clamp(24px, 7.5vw, 34px);
+  }
+}
+
+/* ============================================================
+   PHASE 5 — GLOBAL MOTION SYSTEM
+   ============================================================
+   A small, shared mount-triggered entrance system for surfaces the
+   existing .reveal (src/components/RevealInit.tsx) deliberately skips —
+   authenticated dashboard chrome and the auth pages. .reveal is
+   scroll-triggered (IntersectonObserver) and used for the marketing site,
+   where a visitor scrolls through content once; these surfaces are
+   visited repeatedly by signed-in users, so this system fires once on
+   mount, is short (≤420ms end-to-end), uses only opacity+transform (no
+   blur — cheap enough to not matter on a revisit), and never blocks
+   interaction: everything is interactive immediately, motion is purely
+   decorative. Five .stagger-N steps give a controlled, non-random
+   hierarchy (page chrome → nav → heading → primary content → secondary
+   cards) instead of animating every element independently. */
+:root {
+  --stagger-1: 0ms;
+  --stagger-2: 90ms;
+  --stagger-3: 160ms;
+  --stagger-4: 260ms;
+  --stagger-5: 360ms;
+}
+
+@keyframes dashIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-in {
+  animation: dashIn 0.45s var(--ease) both;
+}
+
+.dash-in-1 { animation-delay: var(--stagger-1); }
+.dash-in-2 { animation-delay: var(--stagger-2); }
+.dash-in-3 { animation-delay: var(--stagger-3); }
+.dash-in-4 { animation-delay: var(--stagger-4); }
+.dash-in-5 { animation-delay: var(--stagger-5); }
+
+/* Same treatment, one shared entry point (SplitAuthShell) for every
+   auth page — login, signup, forgot-password, reset-password. */
+.auth-in {
+  animation: dashIn 0.5s var(--ease) both;
+}
+
+/* Nav active-indicator: a soft fade+scale on arrival rather than an
+   instant pop, without the larger risk of rebuilding the sidebar into a
+   single sliding shared-layout element. */
+@keyframes navDotIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scaleY(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+  }
+}
+
+.nav-dot-in {
+  animation: navDotIn 0.3s var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-in,
+  .auth-in,
+  .nav-dot-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   PHASE 5B — SPATIAL DEPTH REFINEMENT
+   ============================================================
+   .depth-visual: the handful of "most important visual moments" the
+   Phase 5B spec calls out (product preview, the Performance/Recruiting
+   feature visuals, the mission statement) get a continuous sense of
+   depth as they cross the viewport — driven by the --depth custom
+   property RevealInit.tsx's second IntersectionObserver sets (0 at the
+   edge of the viewport, 1 once fully in view). Everything else on the
+   homepage keeps the existing one-time .reveal/.reveal-scale treatment;
+   this is deliberately applied to only a few elements, not the whole
+   page, per "do not animate everything." transform-only, so it's cheap
+   whether or not --depth is actually changing this frame. */
+.depth-visual {
+  --depth: 0;
+  transform: scale(calc(0.97 + var(--depth) * 0.03)) translateY(calc((1 - var(--depth)) * 8px));
+  transition: transform 0.4s var(--ease-cinematic);
+  will-change: transform;
+}
+
+/* Primary dashboard card gets a touch more presence than the plain
+   .dash-in opacity/translateY treatment secondary cards use — still
+   just transform+opacity, still ≤450ms, still fires once on mount. */
+@keyframes dashInPrimary {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dash-in-primary {
+  animation: dashInPrimary 0.45s var(--ease-cinematic) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .depth-visual {
+    transform: none;
+    transition: none;
+  }
+
+  .dash-in-primary {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   APPLE DESIGN REFINEMENTS
+   ============================================================
+   Targeted additions from .agents/skills/apple-design/SKILL.md, applied
+   only where MENTA had a genuine gap — not a parallel motion system.
+   Existing primitives (.reveal, .dash-in, .depth-visual, --ease/
+   --ease-cinematic) are untouched and reused as-is. */
+
+/* 1. Response — press feedback. MENTA had hover states everywhere but no
+   :active feedback anywhere (skill §1/§10: "highlight on touch-down").
+   Declared after the existing :hover rules so a press (:active) visually
+   wins over a simultaneous :hover during the interaction — a "settle
+   down" that reads as the physical inverse of hover's "lift up". Plain
+   CSS transition, not a spring: these are simple presses, not something
+   a user drags/redirects mid-motion, so the interruptibility case the
+   skill makes for springs (§3-4) doesn't apply here. */
+.btn-primary:active,
+.btn-secondary:active,
+.card-hover:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease-out;
+}
+
+/* 2. Materials — the sticky topbar/bottom-nav already use a real
+   translucent "material" (background + backdrop-filter), just via
+   inline styles that couldn't be targeted by the reduced-transparency
+   query below. Moved to classes so both the material itself and its
+   accessibility fallback live in one place. Visual treatment
+   unchanged from what AppShell already had. */
+.topbar-material {
+  background: var(--topbar-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+.bottomnav-material {
+  background: var(--bottomnav-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* Scroll-edge softening (skill §12: "scroll edge effects, not hard
+   dividers") — the hairline is kept (still real structure), paired with
+   a soft shadow bleed so content reads as fading under glass rather
+   than stopping at a stark line. CSS-only, no scroll listener. */
+.chrome-edge-bottom {
+  box-shadow: 0 1px 0 var(--border-soft), 0 12px 24px -20px rgba(0, 0, 0, 0.08);
+}
+
+.chrome-edge-top {
+  box-shadow: 0 -1px 0 var(--border-soft), 0 -12px 24px -20px rgba(0, 0, 0, 0.08);
+}
+
+/* Marketing nav's blur specifically — background/padding/border stay
+   inline since they're already scroll-reactive (see MarketingNav.tsx's
+   `scrolled` state); only the constant backdrop-filter moved here so
+   the reduced-transparency query below can reach it. */
+.marketing-nav-material {
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* 3. Accessibility signals the skill calls out that MENTA didn't have at
+   all yet (§14) — reduced-motion was already extensive (10+ blocks);
+   these two are net-new. */
+@media (prefers-reduced-transparency: reduce) {
+  .topbar-material,
+  .bottomnav-material,
+  .marketing-nav-material {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg);
+  }
+
+  .logo-intro-mark {
+    backdrop-filter: none;
+    background: var(--bg);
+  }
+}
+
+@media (prefers-contrast: more) {
+  /* Every component already reads border color through these three
+     tokens (see the :root doc comment above), so strengthening them
      once here raises contrast site-wide without touching each
      component individually. */
   :root,
@@ -2582,9 +4199,4 @@ h4 {
     -webkit-backdrop-filter: none;
     background: #0a0a0c;
   }
-}
-
-@keyframes menta-mindset-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
