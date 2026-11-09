@@ -24,6 +24,8 @@ Use `null` for an unassigned station, unavailable target count, or inactive dead
 
 **Staging gate:** On the same staging session, use a test rig to record the time from a committed web mutation to the foreground athlete view rendering the matching revision. Use a shared clock or account for measured clock offsets. Run at least 100 changes on the facility Wi-Fi, report p50/p95 and sample count, and target p95 below 200 ms. Separately measure lock-screen updates and label their observed behavior. Test reconnect, duplicate/out-of-order delivery, expired cursors, revoked membership, and concurrent set logging.
 
+Run the [Playwright burst test](forge-sse-performance-test.md) for the foreground browser measurement. Run the equivalent instrumented check on iOS before closing the native gate.
+
 ## Assistant and film parity
 
 - Add an authenticated read path for the selected coach name, reusing the same canonical approved list and nullable reset value as `PATCH /api/ai/name`. Sign in as the same athlete on web and iOS, save on each platform, and verify the result on the other platform and in Study Help.
