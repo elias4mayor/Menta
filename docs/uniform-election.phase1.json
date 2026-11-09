@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "mode": "single-round",
+  "publish": {
+    "optionCount": 3,
+    "requiresEquipmentApproval": true
+  },
+  "ballot": {
+    "uniqueKey": ["pollId", "athleteId"],
+    "requiresTeamMembership": true,
+    "allowChangeBeforeClose": true,
+    "deadlineAuthority": "server"
+  },
+  "finalize": {
+    "requiresAuthorizedStaff": true,
+    "recheckInventory": true,
+    "tiePolicy": "staff-review",
+    "unavailableKitPolicy": "staff-review",
+    "transaction": [
+      "record-finalized-kit",
+      "upsert-packing-ticket",
+      "upsert-fit-check-revision",
+      "append-uniform-finalized-outbox-event"
+    ],
+    "packingTicketUniqueKey": ["pollId"],
+    "fitCheckUniqueKey": ["teamId", "eventId"],
+    "outboxIdempotencyKey": "uniform-election:{pollId}:finalized"
+  },
+  "notifications": {
+    "audience": "team",
+    "delivery": "after-commit"
+  }
+}

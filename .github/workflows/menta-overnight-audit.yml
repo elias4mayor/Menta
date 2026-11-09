@@ -1,0 +1,81 @@
+name: MENTA overnight launch audit
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: menta-overnight-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out web source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Legal review inventory
+        id: legal
+        shell: bash
+        run: |
+          mkdir -p audit-output
+          result=0
+          git grep -ilE 'Catapult|Hudl|Teamworks|RackCoach|Spotify|Apple Music|NFL|NCAA' -- src public > audit-output/brand-review-paths.txt || result=$?
+          if (( result > 1 )); then exit "$result"; fi
+
+      - name: Install locked dependencies
+        id: install
+        run: npm ci
+
+      - name: Rehearse migration and recovery on disposable Postgres
+        id: migration
+        shell: bash
+        run: |
+          mkdir -p audit-output
+          bash scripts/overnight-migration-audit.sh | tee audit-output/migration.log
+
+      - name: Build the web app
+        id: build
+        run: npm run build
+
+      - name: Package audit status
+        if: always()
+        shell: bash
+        env:
+          INVENTORY: ${{ steps.legal.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          MIGRATION: ${{ steps.migration.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+        run: |
+          mkdir -p audit-output
+          {
+            printf '# MENTA web launch audit\n\nCommit: %s\n\n' "$GITHUB_SHA"
+            printf '| Check | Result |\n| --- | --- |\n'
+            printf '| Brand reference inventory | %s |\n' "$INVENTORY"
+            printf '| Locked dependencies | %s |\n' "$INSTALL"
+            printf '| Synthetic migration and restore | %s |\n' "$MIGRATION"
+            printf '| Web build | %s |\n' "$BUILD"
+            printf '\nCross-platform parity is tracked in the source manifest and the separate private iOS run. Brand matches are review candidates.\n'
+          } > audit-output/MENTA_PRODUCTION_READY_MANIFEST.md
+          cat audit-output/MENTA_PRODUCTION_READY_MANIFEST.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: menta-web-audit
+          path: audit-output/
+          retention-days: 14
