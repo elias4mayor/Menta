@@ -14,5 +14,5 @@ This file is the audit directive and runbook. The workflows in `.github/workflow
 ## Running
 
 - **Web:** Open PR #27 checks and select **MENTA overnight launch audit**. After the workflow lands on the default branch, it can also be started from the Actions tab.
-- **iOS:** Run the companion workflow from its own repository. Keep native source and build logs in that private repository.
+- **iOS:** Open the [iOS audit PR checks](https://github.com/elias4mayor/Menta-iOS/pull/3/checks) to see the companion workflow. Keep native source and build logs in that private repository.
 - **Review first:** Read the migration status and fixture comparison, then inspect the cross-platform gaps and brand review paths. Run outputs are short-lived artifacts. The root manifest is the durable release checklist.

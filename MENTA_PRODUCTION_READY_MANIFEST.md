@@ -5,10 +5,11 @@
 | Check | Evidence and status |
 | --- | --- |
 | Web PR #27 | The earlier web revision `67d5495abe671a7653408221e346858822264241` passed a production build and 25 targeted Playwright tests against disposable PostgreSQL. Those tests cover assistant naming and existing live-session behavior. |
-| Assistant name | Web saves the approved name in `User.aiCoachName` through `PATCH /api/ai/name` and uses it in AI Coach, Study Help, and the web Island. Native parity needs an authenticated read/write flow against the same account. |
-| Forge | The web rack display uses a four-second room poll and a local one-second display tick. Sub-second cross-device delivery and a native Live Activity require separate implementation and measurement. |
-| Film | Web authorizes the film page and media request, then seeks to the shared `t` after video metadata loads. A seek to a timestamp does not verify frame-exact decoding. Native link handling and signed-in playback remain a separate test. |
-| Database migration | The additive `User.aiCoachName` migration applied successfully during the earlier disposable PostgreSQL run. The automated snapshot and forced recovery rehearsal has its own status in the new workflow artifact. |
+| Assistant name | Web saves the approved name in `User.aiCoachName` through `PATCH /api/ai/name` and uses it in AI Coach, Study Help, and the web Island. The native default branch has no name picker or API mapping. Its foundation branch links to the hosted coach page. Native parity needs an authenticated read/write flow against the same account. |
+| Forge | The web rack display uses a four-second room poll and a local one-second display tick. The native foundation branch has a local ActivityKit workout timer. Sub-second Forge delivery and native set synchronization require separate implementation and measurement. |
+| Film | Web authorizes the film page and media request, then seeks to the shared `t` after video metadata loads. A seek to a timestamp does not verify frame-exact decoding. The native foundation branch links to the hosted film workspace. Incoming native timestamp handling and signed-in playback remain a separate test. |
+| Database migration | The additive `User.aiCoachName` migration applied successfully during the earlier disposable PostgreSQL run. The [web audit’s migration step](https://github.com/elias4mayor/Menta/actions/runs/42610210449) passed candidate deployment, snapshot restore after a forced failure, fixture and migration-history checks, and redeployment on disposable PostgreSQL. |
+| iOS build | The [private iOS audit](https://github.com/elias4mayor/Menta-iOS/actions/runs/42610218476) passed an unsigned simulator build for the audit PR. This verifies the build, while feature parity remains open. |
 | Uniform Election | [Phase 1 configuration](docs/uniform-election.phase1.json) is a proposed contract. Implement ballot authorization, inventory validation, and transactional finalization before enabling it. |
 
 ## Legal and policy review
