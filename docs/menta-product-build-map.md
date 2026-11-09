@@ -33,3 +33,17 @@ Names below are proposed. They describe contracts to implement and verify before
 | Membership | Existing entitlements and subscription routes. Treat proposed prices as product decisions before changing billing. | Keep the free toolkit usable and profile sharing independent of payment. Exercise renewals, plan changes, and school seat assignment before rollout. |
 
 Start the pilot with a schedule change, a shared film moment, and one live lift. Verify each as the coach and athlete, then test permission boundaries with an unrelated account.
+
+## Athlete culture MVP
+
+The first release pairs the athlete homepage with one staff approval queue. Test it with one varsity football position group during a game week. Keep the core training, schedule, film, and mindset tools usable on their own.
+
+| Workflow | First UI and proposed API | Acceptance check |
+| --- | --- | --- |
+| **Mindset Circle** | Athlete Home rotates short quotes and opens a reflection prompt with a link to the existing private check-in. | The athlete can pause or advance the quotes. Opening a reflection holds the current quote in place. No team-facing mood score is created. |
+| **Game-day music** | Athlete submits a track link and optional clean-version link. `POST /api/teams/:teamId/events/:eventId/song-requests` creates `SongRequest(id, eventId, athleteId, provider, trackRef, reviewStatus)`. Staff review requests on an event queue. | Staff can approve, decline, or reorder. Athletes see their own request status. The first release can share the approved list with event staff. |
+| **Fit Check** | Equipment staff publish a base kit and available accessories on a game event. `PUT /api/teams/:teamId/events/:eventId/my-kit` saves `KitSelection(eventId, athleteId, revision)`. | A selection becomes a pack ticket once submitted. Staff can mark a kit packed and show pickup details. A revision made after packing returns the ticket to review. |
+| **Media Vault** | Team media staff upload approved photos and manually tag roster members. `MediaAsset(id, teamId, eventId, storageKey)` and `MediaTag(assetId, athleteId)` drive each athlete's view. | A tagged athlete sees the approved asset and can download it. An unrelated athlete cannot open the file by copying its URL. External posting is an athlete action. |
+| **Helmet stickers** | Later, add `BadgeAward(athleteId, badgeKey, sourceId, awardedAt)`, starting with a coach-awarded team badge and optional athlete display. | A repeated award event does not duplicate the sticker. Private school and wellness data stay outside team recognition. |
+
+Defer automatic streaming and facility playback until the provider integration and usage rights have been verified. Defer smart-room controls, face matching, auto-tagging, and sponsor posting. Validate demand first through repeat song submissions, packed kit accuracy, and media downloads from the first game.

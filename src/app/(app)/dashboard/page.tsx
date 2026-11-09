@@ -10,6 +10,7 @@ import { GlowWaveText } from "@/components/GlowWaveText";
 import { PlanCard } from "@/components/PlanCard";
 import { DailyBrief } from "@/components/DailyBrief";
 import { TodaysSessionCard } from "@/components/TodaysSessionCard";
+import { MindsetCircle } from "@/components/MindsetCircle";
 import { demandsFor } from "@/lib/sports";
 import { ONBOARDING_PLAN_TAG } from "@/lib/generate-plan";
 import { CoachDashboard } from "@/components/CoachDashboard";
@@ -208,6 +209,7 @@ async function AthleteDashboard({ user }: { user: SessionUser }) {
         </div>
 
         <div className="space-y-4 dash-in dash-in-4">
+          <MindsetCircle />
           <div className="context-card">
             <div className="flex items-center justify-between mb-3">
               <div className="mono text-text-3">Next up</div>
