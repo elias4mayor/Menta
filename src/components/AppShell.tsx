@@ -200,49 +200,30 @@ function navSectionsForRole(role: string): NavSection[] {
   ];
 }
 
-function mobileItemsForRole(role: string): { href: string; label: string; icon: string }[] {
-  if (role === "COACH") {
-    return [
-      { href: "/dashboard", label: "Home", icon: "home" },
+function mobileItemsForRole(role: string): NavItem[] {
+  const tools: NavItem[] =
+    role === "COACH" ? [
       { href: "/team", label: "Team", icon: "team" },
-      { href: "/ai-coach", label: "AI", icon: "spark" },
-      { href: "/messages", label: "Msgs", icon: "messages" },
-      { href: "/profile", label: "You", icon: "profile" },
-    ];
-  }
-  if (role === "TRAINER") {
-    return [
-      { href: "/dashboard", label: "Home", icon: "home" },
-      { href: "/team", label: "Groups", icon: "team" },
-      { href: "/ai-coach", label: "AI", icon: "spark" },
-      { href: "/messages", label: "Msgs", icon: "messages" },
-      { href: "/profile", label: "You", icon: "profile" },
-    ];
-  }
-  if (role === "PARENT") {
-    return [
-      { href: "/dashboard", label: "Home", icon: "home" },
-      { href: "/ai-coach", label: "AI", icon: "spark" },
-      { href: "/messages", label: "Msgs", icon: "messages" },
-      { href: "/calendar", label: "Cal", icon: "calendar" },
-      { href: "/profile", label: "You", icon: "profile" },
-    ];
-  }
-  if (role === "DOCTOR") {
-    return [
-      { href: "/dashboard", label: "Home", icon: "home" },
+      { href: "/film", label: "Film", icon: "film" },
+    ] : role === "TRAINER" ? [
       { href: "/care/provider", label: "Care", icon: "safety" },
-      { href: "/team", label: "Teams", icon: "team" },
-      { href: "/messages", label: "Msgs", icon: "messages" },
-      { href: "/profile", label: "You", icon: "profile" },
+      { href: "/train", label: "Training", icon: "train" },
+    ] : role === "PARENT" ? [
+      { href: "/calendar", label: "Calendar", icon: "calendar" },
+      { href: "/care", label: "Care", icon: "safety" },
+    ] : role === "DOCTOR" ? [
+      { href: "/care/provider", label: "Care", icon: "safety" },
+      { href: "/documents", label: "Docs", icon: "documents" },
+    ] : [
+      { href: "/train", label: "Training", icon: "train" },
+      { href: "/film", label: "Film", icon: "film" },
     ];
-  }
+
   return [
     { href: "/dashboard", label: "Home", icon: "home" },
-    { href: "/ai-coach", label: "AI", icon: "spark" },
-    { href: "/team", label: "Team", icon: "team" },
-    { href: "/messages", label: "Msgs", icon: "messages" },
-    { href: "/profile", label: "You", icon: "profile" },
+    { href: "/messages", label: "Inbox", icon: "messages" },
+    ...tools,
+    { href: "/profile", label: "Profile", icon: "profile" },
   ];
 }
 
@@ -270,7 +251,7 @@ export function AppShell({
   unreadCount,
   children,
 }: {
-  user: { id: string; name: string; role: string };
+  user: { id: string; name: string; role: string; aiCoachName?: string | null };
   unreadCount: number;
   children: ReactNode;
 }) {
@@ -441,6 +422,7 @@ export function AppShell({
       </div>
 
       <nav
+        aria-label="Primary mobile navigation"
         className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around py-2 bottomnav-material chrome-edge-top"
       >
         {mobileItems.map((item) => {
@@ -449,6 +431,7 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className="flex flex-col items-center gap-1 px-2 py-1 text-xs transition-colors active:scale-95"
               style={{ color: active ? "var(--text-1)" : "var(--text-3)" }}
             >

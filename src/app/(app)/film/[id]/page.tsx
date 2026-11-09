@@ -6,11 +6,16 @@ import { FilmWorkspace } from "@/components/FilmWorkspace";
 
 export default async function FilmDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string | string[] }>;
 }) {
   const user = await requireUser();
-  const { id } = await params;
+  const [{ id }, { t }] = await Promise.all([params, searchParams]);
+  const startAt = typeof t === "string" && /^\d{1,8}(?:\.\d{1,3})?$/.test(t)
+    ? Number(t)
+    : undefined;
 
   const film = await prisma.film.findUnique({
     where: { id },
@@ -67,6 +72,7 @@ export default async function FilmDetailPage({
         <p className="text-text-2 text-sm mb-6">{[film.opponent, film.season].filter(Boolean).join(" · ")}</p>
       )}
       <FilmWorkspace
+        startAt={startAt}
         film={{
           id: film.id,
           title: film.title,

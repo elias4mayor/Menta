@@ -1,6 +1,7 @@
 "use client";
 
 import { AI_COACH_NAMES, DEFAULT_AI_COACH_NAME } from "@/lib/ai/coach-names";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type Msg = { id: string; role: "user" | "assistant"; content: string };
@@ -24,6 +25,7 @@ export function AiChat({
   initialConversationId: string | null;
   initialMessages: Msg[];
 }) {
+  const router = useRouter();
   const [savedName, setSavedName] = useState(initialCoachName ?? "");
   const [selectedName, setSelectedName] = useState(savedName);
   const [savingName, setSavingName] = useState(false);
@@ -52,6 +54,7 @@ export function AiChat({
       const { aiCoachName } = await response.json();
       setSavedName(aiCoachName ?? "");
       setNameStatus("Name saved.");
+      router.refresh();
     } catch {
       setNameStatus("Couldn't save your name. Try again.");
     } finally {
