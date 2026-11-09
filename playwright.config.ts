@@ -36,6 +36,6 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: true,
     timeout: 60_000,
-    env: { MENTA_E2E_DISABLE_RATE_LIMIT: "1" },
+    env: { MENTA_E2E_DISABLE_RATE_LIMIT: "1", FORGE_PERF_ENABLED: "1" },
   },
 });

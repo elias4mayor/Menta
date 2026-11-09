@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LiveSessionComplete } from "@/components/LiveSessionComplete";
 
 type MemberStatus = "NOT_STARTED" | "IN_SET" | "RESTING" | "COMPLETE" | "BEHIND";
@@ -14,6 +14,7 @@ type RoomGroup = {
 };
 
 type RoomView = {
+  mutations?: { correlationId: string }[];
   title: string;
   status: string;
   currentBlockTitle: string | null;
@@ -38,15 +39,62 @@ export function LiveRoomDisplay({
   sessionId,
   initialRoom,
   rackId,
+  measurePerformance = false,
 }: {
   teamId: string;
   sessionId: string;
   initialRoom: RoomView;
   rackId?: string;
+  measurePerformance?: boolean;
 }) {
   const [room, setRoom] = useState(initialRoom);
   const [accessEnded, setAccessEnded] = useState(false);
   const [now, setNow] = useState<number | null>(null);
+  const pendingMarks = useRef<string[]>([]);
+  const frames = useRef(new Set<number>());
+  const perfReady = measurePerformance && Array.isArray(room.mutations);
+
+  useLayoutEffect(() => {
+    if (!perfReady || accessEnded || document.visibilityState !== "visible") {
+      pendingMarks.current = [];
+      return;
+    }
+    const batch = pendingMarks.current.splice(0);
+    if (batch.length === 0) return;
+    for (const id of batch) performance.mark(`forge:${id}:commit`);
+
+    // The second animation frame observes a frame opportunity after React
+    // committed this room state. The browser does not expose pixel paint time.
+    const activeFrames = frames.current;
+    const first = requestAnimationFrame(() => {
+      activeFrames.delete(first);
+      const second = requestAnimationFrame(() => {
+        activeFrames.delete(second);
+        if (document.visibilityState !== "visible") return;
+        for (const id of batch) {
+          const prefix = `forge:${id}`;
+          performance.mark(`${prefix}:frame`);
+          performance.measure(`${prefix}:receive-to-commit`, `${prefix}:receive`, `${prefix}:commit`);
+          performance.measure(`${prefix}:receive-to-frame`, `${prefix}:receive`, `${prefix}:frame`);
+        }
+      });
+      activeFrames.add(second);
+    });
+    activeFrames.add(first);
+  }, [accessEnded, perfReady, room]);
+
+  useLayoutEffect(() => {
+    const activeFrames = frames.current;
+    return () => {
+      for (const frame of activeFrames) cancelAnimationFrame(frame);
+      activeFrames.clear();
+    };
+  }, []);
+
+  const perfAttributes = perfReady
+    ? { "data-forge-perf": "ready", "data-forge-transport": "sse" }
+    : {};
+
   const groups = rackId ? room.groups.filter((group) => group.id === rackId) : room.groups;
 
   useEffect(() => {
@@ -88,7 +136,18 @@ export function LiveRoomDisplay({
       streaming = true;
       clearInterval(fallback);
       fallback = undefined;
-      setRoom(JSON.parse(event.data));
+      const receivedAt = performance.now();
+      const snapshot: RoomView = JSON.parse(event.data);
+      if (measurePerformance) {
+        for (const { correlationId } of snapshot.mutations ?? []) {
+          const name = `forge:${correlationId}:receive`;
+          if (performance.getEntriesByName(name, "mark").length === 0) {
+            performance.mark(name, { startTime: receivedAt });
+            pendingMarks.current.push(correlationId);
+          }
+        }
+      }
+      setRoom(snapshot);
     });
     events.addEventListener("forge.access-ended", endAccess);
     events.onerror = () => {
@@ -104,13 +163,13 @@ export function LiveRoomDisplay({
       clearInterval(fallback);
       controller.abort();
     };
-  }, [teamId, sessionId]);
+  }, [teamId, sessionId, measurePerformance]);
 
   if (accessEnded) return <div className="live-root">This Forge session is no longer available.</div>;
 
   if (room.status === "COMPLETE") {
     return (
-      <div className="live-root">
+      <div className="live-root" {...perfAttributes}>
         <LiveSessionComplete
           teamId={teamId}
           sessionId={sessionId}
@@ -125,7 +184,7 @@ export function LiveRoomDisplay({
   }
 
   return (
-    <div className="live-root" style={{ padding: "clamp(16px, 5vw, 64px)" }}>
+    <div className="live-root" {...perfAttributes} style={{ padding: "clamp(16px, 5vw, 64px)" }}>
       <p className="live-eyebrow">Forge · {rackId ? "Rack display" : "Room display"}</p>
       <div className="flex items-center justify-between mb-2">
         <h1 className="live-focal-title" style={{ fontSize: "clamp(40px, 6vw, 68px)" }}>{room.title}</h1>

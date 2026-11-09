@@ -9,15 +9,23 @@ export default async function LiveSessionDisplayPage({
   searchParams,
 }: {
   params: Promise<{ teamId: string; id: string }>;
-  searchParams: Promise<{ rack?: string | string[] }>;
+  searchParams: Promise<{ rack?: string | string[]; perf?: string | string[] }>;
 }) {
   const user = await requireUser();
-  const [{ teamId, id }, { rack }] = await Promise.all([params, searchParams]);
+  const [{ teamId, id }, { rack, perf }] = await Promise.all([params, searchParams]);
 
   if (!(await getTeamRole(user.id, teamId)) && user.role !== "SUPER_ADMIN") notFound();
 
   const room = await getSessionRoomView(teamId, id);
   if (!room || (rack !== undefined && !room.groups.some((group) => group.id === rack))) notFound();
 
-  return <LiveRoomDisplay teamId={teamId} sessionId={id} initialRoom={JSON.parse(JSON.stringify(room))} rackId={typeof rack === "string" ? rack : undefined} />;
+  return (
+    <LiveRoomDisplay
+      teamId={teamId}
+      sessionId={id}
+      initialRoom={JSON.parse(JSON.stringify(room))}
+      rackId={typeof rack === "string" ? rack : undefined}
+      measurePerformance={process.env.FORGE_PERF_ENABLED === "1" && perf === "1" && rack === undefined}
+    />
+  );
 }

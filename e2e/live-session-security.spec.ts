@@ -130,6 +130,36 @@ test.describe("MENTA LIVE security", () => {
     }
   });
 
+  test("Forge performance marks follow a rendered room update", async ({ page, request, baseURL }) => {
+    const { coach, athletes, team, program } = await setupTeamWithProgram("forge-perf");
+    const headers = { Cookie: coach.cookie };
+    const created = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {
+      headers,
+      data: { title: `${E2E_RUN_ID} Forge Perf`, athleteIds: athletes.map((athlete) => athlete.userId) },
+    });
+    expect(created.status()).toBe(200);
+    const { session } = await created.json();
+    const [name, value] = coach.cookie.split("=");
+    await page.context().addCookies([{ name, value, url: baseURL! }]);
+    await page.goto(`/team/${team.id}/sessions/${session.id}/display?perf=1`);
+    await expect(page.locator('[data-forge-perf="ready"][data-forge-transport="sse"]')).toBeVisible();
+
+    const started = await request.patch(`/api/teams/${team.id}/sessions/${session.id}`, {
+      headers,
+      data: { status: "LIVE" },
+    });
+    expect(started.status()).toBe(200);
+    const { forgeMutation } = await started.json();
+    await expect(page.getByText("● LIVE", { exact: true })).toBeVisible();
+    const prefix = `forge:${forgeMutation.correlationId}`;
+    await page.waitForFunction((prefix) => performance.getEntriesByName(`${prefix}:receive-to-frame`, "measure").length > 0, prefix);
+    const timing = await page.evaluate((prefix) => ["receive", "commit", "frame"].map(
+      (stage) => performance.getEntriesByName(`${prefix}:${stage}`, "mark")[0].startTime,
+    ), prefix);
+    expect(timing[1]).toBeGreaterThanOrEqual(timing[0]);
+    expect(timing[2]).toBeGreaterThanOrEqual(timing[1]);
+  });
+
   test("an athlete cannot start a session", async ({ request }) => {
     const { athletes, team, program } = await setupTeamWithProgram("no-start");
     const res = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {

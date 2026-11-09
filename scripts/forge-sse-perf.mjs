@@ -59,22 +59,6 @@ async function main() {
       await page.goto(receiverUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
       if (new URL(page.url()).origin !== base.origin) throw new Error("Receiver left the staging origin");
       await page.locator('[data-forge-perf="ready"][data-forge-transport="sse"]').waitFor({ timeout: 10_000 });
-      await page.evaluate(() => {
-        window.forgeRendered = new Map();
-        const record = () => {
-          for (const element of document.querySelectorAll("[data-forge-rendered-id]")) {
-            const id = element.getAttribute("data-forge-rendered-id");
-            if (!window.forgeRendered.has(id)) {
-              window.forgeRendered.set(id, performance.timeOrigin + performance.now());
-            }
-          }
-        };
-        new MutationObserver(record).observe(document.body, {
-          childList: true, subtree: true, attributes: true,
-          attributeFilter: ["data-forge-rendered-id"],
-        });
-        record();
-      });
       const committed = await Promise.all(mutations.map(async ({ method, url, body }) => {
         const response = await coach.fetch(url, {
           method, data: body, timeout: 15_000, maxRedirects: 0,
@@ -90,9 +74,21 @@ async function main() {
       const ids = committed.map(([id]) => id);
       if (new Set(ids).size !== SAMPLE_COUNT) throw new Error("Mutation responses reused a correlation ID");
 
-      await page.waitForFunction((ids) => ids.every((id) => window.forgeRendered.has(id)), ids, { timeout: 10_000 });
-      const rendered = new Map(await page.evaluate((ids) => ids.map((id) => [id, window.forgeRendered.get(id)]), ids));
-      const latencies = committed.map(([id, time]) => rendered.get(id) - time);
+      await page.waitForFunction((ids) => ids.every(
+        (id) => performance.getEntriesByName(`forge:${id}:frame`, "mark").length > 0,
+      ), ids, { timeout: 10_000 });
+      const marks = new Map(await page.evaluate((ids) => ids.map((id) => {
+        const prefix = `forge:${id}`;
+        const frame = performance.getEntriesByName(`${prefix}:frame`, "mark")[0];
+        const commit = performance.getEntriesByName(`${prefix}:receive-to-commit`, "measure")[0];
+        const receiveToFrame = performance.getEntriesByName(`${prefix}:receive-to-frame`, "measure")[0];
+        return [id, {
+          frameAtMs: performance.timeOrigin + frame.startTime,
+          receiveToCommitMs: commit.duration,
+          receiveToFrameMs: receiveToFrame.duration,
+        }];
+      }), ids));
+      const latencies = committed.map(([id, time]) => marks.get(id).frameAtMs - time);
       if (latencies.some((ms) => !Number.isFinite(ms) || ms < -clockUncertaintyMs)) {
         throw new Error("Invalid render timestamp or clock calibration");
       }
@@ -100,9 +96,11 @@ async function main() {
       const p95Ms = percentile(sorted, 0.95);
       const upperP95Ms = p95Ms + clockUncertaintyMs;
       console.log(JSON.stringify({
-        samples: sorted.length, concurrency: SAMPLE_COUNT, surface: "foreground-browser-dom",
+        samples: sorted.length, concurrency: SAMPLE_COUNT, surface: "foreground-browser-post-frame",
         start: "database-pre-commit",
         p50Ms: percentile(sorted, 0.5), p95Ms, upperP95Ms, clockUncertaintyMs, limitMs: LIMIT_MS,
+        receiveToCommitP95Ms: percentile([...marks.values()].map((mark) => mark.receiveToCommitMs).sort((a, b) => a - b), 0.95),
+        receiveToFrameP95Ms: percentile([...marks.values()].map((mark) => mark.receiveToFrameMs).sort((a, b) => a - b), 0.95),
       }, null, 2));
       if (upperP95Ms >= LIMIT_MS) process.exitCode = 1;
     } finally {
