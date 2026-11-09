@@ -38,3 +38,9 @@ node scripts/forge-sse-perf.mjs
 ```
 
 An optional `FORGE_PERF_CHROMIUM` points to an installed Chromium executable. The command prints sample count and p50/p95. It exits nonzero for missing renders, mismatched IDs, bad clock evidence, or p95 plus clock uncertainty at or above 200 ms. Archive the result with the exact staging revision, runner location, and network conditions. The UI markers are built in. A seeded staging fixture and synchronized clock calibration are required.
+
+## Disposable CI fixture
+
+The Forge performance workflow provisions an empty loopback PostgreSQL database named `menta_forge_perf`. After migrations, `node scripts/seed-forge-perf.mjs <temp-dir>` creates 100 synthetic athletes with five sport contexts represented, a live session with 20 racks, and one set write per athlete. The generator measures the database clock offset and writes the benchmark fixture and two short-lived authentication files to the temporary directory.
+
+The burst uses one authorized coach session for 100 concurrent set requests and one authorized athlete session to observe the full room. This is a 100-write load test, with a single viewer. The job fails on missing marks or if p95 plus clock uncertainty reaches 200 ms. Its artifact contains timing and server logs. The temporary authentication files are deleted. Results measure a runner-local deployment and do not establish latency on the staging gateway, facility network, native iOS, or Dynamic Island.

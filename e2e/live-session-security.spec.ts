@@ -132,6 +132,7 @@ test.describe("MENTA LIVE security", () => {
 
   test("Forge performance marks follow a rendered room update", async ({ page, request, baseURL }) => {
     const { coach, athletes, team, program } = await setupTeamWithProgram("forge-perf");
+    await testPrisma.coachProfile.create({ data: { userId: coach.userId, onboardingCompletedAt: new Date() } });
     const headers = { Cookie: coach.cookie };
     const created = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {
       headers,
