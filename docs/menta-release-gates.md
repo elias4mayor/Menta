@@ -43,3 +43,9 @@ Run the [Playwright burst test](forge-sse-performance-test.md) for the foregroun
 1. Record passing web and iOS parity checks and the same-session latency report. Verify each App Store claim against the native release candidate. Keep transcript verification, plagiarism, and sub-second lock-screen claims out of the launch copy until supported.
 2. Approve the staging migration and recovery plan. Apply the additive migration to staging before serving code that reads the new column.
 3. Promote the verified web API, then the dependent native build. Recheck both as the same signed-in user. Use a release window and pin both commits so the two promotions can be tracked independently.
+
+## Web Forge stream status
+
+The web room and rack display now use `/api/teams/:teamId/sessions/:sessionId/stream`. The controller listens on the direct PostgreSQL connection. Session and set transactions send a PostgreSQL notification containing only the session ID. The stream rechecks access and returns a fresh room snapshot. Reconnects receive the latest state, with the existing HTTP refresh as a fallback.
+
+This first controller does not implement per-mutation revisions, durable replay, an athlete-only stream, or the Playwright fixture adapter. Snapshot refreshes can coalesce writes. The performance gate remains pending. Before staging, check direct connection capacity and validate the stream behind the deployed gateway.

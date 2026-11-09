@@ -31,7 +31,7 @@ const STATUS_COLOR: Record<MemberStatus, string> = {
 /**
  * Read-only, no controls at all — nothing on a wall-mounted TV needs to
  * be clickable. Largest type of any MENTA LIVE surface, fewest
- * simultaneous items, same 4s poll as the coach/athlete views.
+ * simultaneous items, updated from the Forge room stream.
  */
 export function LiveRoomDisplay({
   teamId,
@@ -45,6 +45,7 @@ export function LiveRoomDisplay({
   rackId?: string;
 }) {
   const [room, setRoom] = useState(initialRoom);
+  const [accessEnded, setAccessEnded] = useState(false);
   const [now, setNow] = useState<number | null>(null);
   const groups = rackId ? room.groups.filter((group) => group.id === rackId) : room.groups;
 
@@ -55,23 +56,57 @@ export function LiveRoomDisplay({
   }, [room.status]);
 
   useEffect(() => {
+    const path = `/api/teams/${teamId}/sessions/${sessionId}`;
     const controller = new AbortController();
-    async function poll() {
+    const events = new EventSource(`${path}/stream`);
+    let fallback: ReturnType<typeof setInterval> | undefined;
+    let streaming = false;
+
+    function endAccess() {
+      events.close();
+      clearInterval(fallback);
+      controller.abort();
+      setAccessEnded(true);
+    }
+
+    async function recover() {
       try {
-        const response = await fetch(`/api/teams/${teamId}/sessions/${sessionId}`, { signal: controller.signal });
-        if (!response.ok) return;
-        const { session } = await response.json();
-        if (!controller.signal.aborted) setRoom(session);
+        const response = await fetch(path, { signal: controller.signal });
+        if (controller.signal.aborted || streaming) return;
+        if ([401, 403, 404].includes(response.status)) {
+          endAccess();
+        } else if (response.ok) {
+          const { session } = await response.json();
+          if (!controller.signal.aborted && !streaming) setRoom(session);
+        }
       } catch {
-        // Keep the last room state visible while the next poll retries.
+        // The stream reconnects while the fallback retries.
       }
     }
-    const interval = setInterval(poll, 4000);
+
+    events.addEventListener("forge.snapshot", (event: MessageEvent<string>) => {
+      streaming = true;
+      clearInterval(fallback);
+      fallback = undefined;
+      setRoom(JSON.parse(event.data));
+    });
+    events.addEventListener("forge.access-ended", endAccess);
+    events.onerror = () => {
+      streaming = false;
+      if (fallback === undefined) {
+        void recover();
+        fallback = setInterval(() => void recover(), 4000);
+      }
+    };
+
     return () => {
+      events.close();
+      clearInterval(fallback);
       controller.abort();
-      clearInterval(interval);
     };
   }, [teamId, sessionId]);
+
+  if (accessEnded) return <div className="live-root">This Forge session is no longer available.</div>;
 
   if (room.status === "COMPLETE") {
     return (
@@ -91,7 +126,7 @@ export function LiveRoomDisplay({
 
   return (
     <div className="live-root" style={{ padding: "clamp(16px, 5vw, 64px)" }}>
-      <p className="live-eyebrow">Forge Mode · {rackId ? "Rack display" : "Room display"}</p>
+      <p className="live-eyebrow">Forge · {rackId ? "Rack display" : "Room display"}</p>
       <div className="flex items-center justify-between mb-2">
         <h1 className="live-focal-title" style={{ fontSize: "clamp(40px, 6vw, 68px)" }}>{room.title}</h1>
         <span className="live-eyebrow" style={{ fontSize: 20, letterSpacing: "0.1em" }}>

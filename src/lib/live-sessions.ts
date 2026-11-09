@@ -1,4 +1,5 @@
 import "server-only";
+import { notifyForgeSession } from "@/lib/forge-events";
 import { prisma } from "@/lib/prisma";
 import type { z } from "zod";
 import type {
@@ -157,7 +158,11 @@ export async function transitionSessionStatus(teamId: string, sessionId: string,
   if (targetStatus === "LIVE" && session.status === "PAUSED") data.pausedAt = null;
   if (targetStatus === "COMPLETE") data.completedAt = new Date();
 
-  return prisma.trainingSession.update({ where: { id: sessionId }, data });
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.trainingSession.update({ where: { id: sessionId }, data });
+    await notifyForgeSession(tx, sessionId);
+    return updated;
+  });
 }
 
 export async function createSessionGroup(teamId: string, sessionId: string, input: CreateGroupInput) {
@@ -185,6 +190,7 @@ export async function createSessionGroup(teamId: string, sessionId: string, inpu
     await tx.trainingGroupMember.createMany({
       data: input.athleteIds.map((athleteId) => ({ groupId: group.id, sessionId, athleteId })),
     });
+    await notifyForgeSession(tx, sessionId);
     return group;
   });
 }
@@ -224,6 +230,7 @@ export async function updateSessionGroup(
         data: input.athleteIds.map((athleteId) => ({ groupId, sessionId, athleteId })),
       });
     }
+    await notifyForgeSession(tx, sessionId);
     return tx.trainingGroup.findUniqueOrThrow({ where: { id: groupId } });
   });
 }
@@ -235,9 +242,13 @@ export async function advanceGroup(teamId: string, sessionId: string, groupId: s
   const group = await prisma.trainingGroup.findFirst({ where: { id: groupId, sessionId } });
   if (!group) throw new LiveSessionError("Group not found.", 404);
   const pe = await assertProgramExerciseInSessionProgram(session, programExerciseId);
-  return prisma.trainingGroup.update({
-    where: { id: groupId },
-    data: { currentBlockId: pe.blockId, currentProgramExerciseId: pe.id },
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.trainingGroup.update({
+      where: { id: groupId },
+      data: { currentBlockId: pe.blockId, currentProgramExerciseId: pe.id },
+    });
+    await notifyForgeSession(tx, sessionId);
+    return updated;
   });
 }
 
@@ -255,6 +266,7 @@ export async function advanceWholeRoom(teamId: string, sessionId: string, progra
       where: { sessionId },
       data: { currentBlockId: pe.blockId, currentProgramExerciseId: pe.id },
     });
+    await notifyForgeSession(tx, sessionId);
     return tx.trainingSession.findUniqueOrThrow({ where: { id: sessionId } });
   });
 }
@@ -319,10 +331,13 @@ export async function logSet(
     notes: input.notes,
   };
 
-  if (existing) {
-    return prisma.trainingSet.update({ where: { id: existing.id }, data: { ...shared, editedAt: new Date() } });
-  }
-  return prisma.trainingSet.create({ data: shared });
+  return prisma.$transaction(async (tx) => {
+    const set = existing
+      ? await tx.trainingSet.update({ where: { id: existing.id }, data: { ...shared, editedAt: new Date() } })
+      : await tx.trainingSet.create({ data: shared });
+    await notifyForgeSession(tx, sessionId);
+    return set;
+  });
 }
 
 /** parses "5" -> 5 but leaves "8-10"/"AMRAP"/"max" as null rather than guessing — see resolveActualPrefill. */

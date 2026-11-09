@@ -67,6 +67,47 @@ test.describe("MENTA LIVE security", () => {
     return { coach, athletes, team, program, squat, bench, squatPE, benchPE };
   }
 
+  test("Forge room streams committed status changes to an authorized viewer", async ({ request, baseURL }) => {
+    const { coach, athletes, team, program } = await setupTeamWithProgram("forge-stream");
+    const headers = { Cookie: coach.cookie };
+    const created = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {
+      headers,
+      data: { title: `${E2E_RUN_ID} Forge Stream`, athleteIds: athletes.map((athlete) => athlete.userId) },
+    });
+    expect(created.status()).toBe(200);
+    const { session } = await created.json();
+    const path = `/api/teams/${team.id}/sessions/${session.id}`;
+    const outsider = await createTestUser(`${E2E_RUN_ID}-forge-stream-outsider`, "COACH");
+    expect((await request.get(`${path}/stream`, { headers: { Cookie: outsider.cookie } })).status()).toBe(403);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    try {
+      const response = await fetch(new URL(`${path}/stream`, baseURL), {
+        headers, signal: controller.signal,
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/event-stream");
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let received = "";
+      async function waitForStatus(status: string) {
+        while (!received.includes(`"status":"${status}"`)) {
+          const chunk = await reader.read();
+          if (chunk.done) throw new Error(`Forge stream ended before ${status}`);
+          received += decoder.decode(chunk.value, { stream: true });
+        }
+      }
+
+      await waitForStatus("SCHEDULED");
+      expect((await request.patch(path, { headers, data: { status: "LIVE" } })).status()).toBe(200);
+      await waitForStatus("LIVE");
+    } finally {
+      clearTimeout(timeout);
+      controller.abort();
+    }
+  });
+
   test("an athlete cannot start a session", async ({ request }) => {
     const { athletes, team, program } = await setupTeamWithProgram("no-start");
     const res = await request.post(`/api/teams/${team.id}/programs/${program.id}/sessions`, {

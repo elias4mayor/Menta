@@ -84,7 +84,7 @@ export default async function SchoolPage() {
   return (
     <div className="max-w-5xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Academics</div>
-      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Academics</GlowWaveText></h1>
+      <h1 className="text-3xl font-semibold mb-2"><GlowWaveText intensity="strong">Timeline</GlowWaveText></h1>
       <p className="text-text-2 text-sm mb-8 max-w-2xl">
         Academic information is currently entered manually. This is your own tracking, not an official
         school record — see the Eligibility section for how that distinction matters for eligibility
@@ -178,7 +178,7 @@ export default async function SchoolPage() {
       {/* MENTA STUDY HELP */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <div className="mono text-text-3">{user.aiCoachName ? `${user.aiCoachName} · Study Help` : "MENTA Study Help"}</div>
+          <div className="mono text-text-3">{user.aiCoachName ? `Matrix · ${user.aiCoachName}` : "Matrix"}</div>
           {isAiConfigured() ? (
             <span className="badge badge-live">Connected</span>
           ) : (

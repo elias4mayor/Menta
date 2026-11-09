@@ -27,7 +27,7 @@ export function MindsetCircle() {
 
   return (
     <section className="context-card" aria-labelledby="mindset-circle-title">
-      <h2 id="mindset-circle-title" className="mono text-text-3 mb-3">Mindset Circle</h2>
+      <h2 id="mindset-circle-title" className="mono text-text-3 mb-3">Circle</h2>
       <blockquote key={index} className="text-lg font-semibold motion-safe:animate-[onbFadeIn_500ms_ease-out]">
         {prompt.quote}
       </blockquote>

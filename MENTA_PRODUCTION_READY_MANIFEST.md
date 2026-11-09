@@ -44,3 +44,27 @@ Confirm each claim and screenshot against the actual native release candidate. A
 ## Release gate
 
 Review the exact web and native run revisions and record the migration rehearsal outcome before promotion. Deploy the database migration before serving the web revision that uses the new column. Keep real account, academic, and performance records outside the rehearsal.
+
+## MENTA feature names
+
+| Area | Names |
+| --- | --- |
+| Mindset | Circle, Safe Room |
+| Excellence | Radar, Ledger, Match |
+| Nutrition | Fuel, Expo |
+| Training | Forge, Sideline, Drip |
+| Academics | Timeline, Matrix |
+
+Matrix is the tutoring feature. Each athlete can still choose their assistant's name. Proposed tab labels for Fuel, Expo, and Drip depend on those features being available in the release.
+
+### App Store screenshot placeholders
+
+Use only the ones the native release candidate supports. Show the actual screen and keep the copy tied to the interaction shown.
+
+| Feature | Headline | Caption |
+| --- | --- | --- |
+| Timeline | Know your next move. | See what’s on today and what’s due next. |
+| Circle | Take a moment to reset. | Read a short prompt and reflect at your own pace. |
+| Sideline | Find the play you need. | Open a shared film moment from your coach. |
+
+Coach audio, live sideline adjustments, and native timestamped film access need release-candidate verification before they appear in App Store copy.
