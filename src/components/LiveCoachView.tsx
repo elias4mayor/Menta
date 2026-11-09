@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useMemo, useState } from "react";
 import type { ProgramDetail } from "@/components/ProgramBuilder";
 import { LiveSessionComplete } from "@/components/LiveSessionComplete";
@@ -227,6 +229,12 @@ export function LiveCoachView({
                     </button>
                   )}
                 </div>
+                <Link
+                  href={`/team/${teamId}/sessions/${sessionId}/display?rack=${encodeURIComponent(group.id)}`}
+                  className="text-xs underline"
+                >
+                  Open Forge rack display
+                </Link>
                 <div className="live-eyebrow mb-3">{group.currentExerciseName ?? "No exercise"}</div>
                 <p className="live-sub" style={{ marginTop: 0, marginBottom: 8, fontSize: 13 }}>{completeCount}/{group.members.length} complete</p>
                 <ul className="space-y-1.5">

@@ -10,7 +10,7 @@ type RoomGroup = {
   name: string;
   stationLabel: string | null;
   currentExerciseName: string | null;
-  members: { athleteId: string; athleteName: string; status: MemberStatus; completedSets: number }[];
+  members: { athleteId: string; athleteName: string; status: MemberStatus; completedSets: number; restEndsAt?: string | null }[];
 };
 
 type RoomView = {
@@ -33,19 +33,42 @@ const STATUS_COLOR: Record<MemberStatus, string> = {
  * be clickable. Largest type of any MENTA LIVE surface, fewest
  * simultaneous items, same 4s poll as the coach/athlete views.
  */
-export function LiveRoomDisplay({ teamId, sessionId, initialRoom }: { teamId: string; sessionId: string; initialRoom: RoomView }) {
+export function LiveRoomDisplay({
+  teamId,
+  sessionId,
+  initialRoom,
+  rackId,
+}: {
+  teamId: string;
+  sessionId: string;
+  initialRoom: RoomView;
+  rackId?: string;
+}) {
   const [room, setRoom] = useState(initialRoom);
+  const [now, setNow] = useState<number | null>(null);
+  const groups = rackId ? room.groups.filter((group) => group.id === rackId) : room.groups;
 
   useEffect(() => {
-    let cancelled = false;
+    if (room.status !== "LIVE") return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [room.status]);
+
+  useEffect(() => {
+    const controller = new AbortController();
     async function poll() {
-      const res = await fetch(`/api/teams/${teamId}/sessions/${sessionId}`);
-      if (cancelled || !res.ok) return;
-      setRoom((await res.json()).session);
+      try {
+        const response = await fetch(`/api/teams/${teamId}/sessions/${sessionId}`, { signal: controller.signal });
+        if (!response.ok) return;
+        const { session } = await response.json();
+        if (!controller.signal.aborted) setRoom(session);
+      } catch {
+        // Keep the last room state visible while the next poll retries.
+      }
     }
     const interval = setInterval(poll, 4000);
     return () => {
-      cancelled = true;
+      controller.abort();
       clearInterval(interval);
     };
   }, [teamId, sessionId]);
@@ -67,7 +90,8 @@ export function LiveRoomDisplay({ teamId, sessionId, initialRoom }: { teamId: st
   }
 
   return (
-    <div className="live-root" style={{ padding: "56px 64px" }}>
+    <div className="live-root" style={{ padding: "clamp(16px, 5vw, 64px)" }}>
+      <p className="live-eyebrow">Forge Mode · {rackId ? "Rack display" : "Room display"}</p>
       <div className="flex items-center justify-between mb-2">
         <h1 className="live-focal-title" style={{ fontSize: "clamp(40px, 6vw, 68px)" }}>{room.title}</h1>
         <span className="live-eyebrow" style={{ fontSize: 20, letterSpacing: "0.1em" }}>
@@ -76,8 +100,9 @@ export function LiveRoomDisplay({ teamId, sessionId, initialRoom }: { teamId: st
       </div>
       {room.currentBlockTitle && <p className="live-eyebrow mb-10" style={{ fontSize: 22 }}>{room.currentBlockTitle.toUpperCase()}</p>}
 
-      <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${Math.min(room.groups.length, 3) || 1}, 1fr)` }}>
-        {room.groups.map((group) => {
+      {groups.length === 0 && <p>No stations assigned.</p>}
+      <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${Math.min(groups.length, 3) || 1}, 1fr)` }}>
+        {groups.map((group) => {
           const completeCount = group.members.filter((m) => m.status === "COMPLETE").length;
           return (
             <div key={group.id} className="live-card p-8">
@@ -90,6 +115,11 @@ export function LiveRoomDisplay({ teamId, sessionId, initialRoom }: { teamId: st
                   <li key={m.athleteId} className="flex items-center gap-3 text-2xl">
                     <span className="live-status-dot live-status-dot-lg" style={{ background: STATUS_COLOR[m.status] }} />
                     <span className="flex-1 truncate">{m.athleteName}</span>
+                    <span className="tabular-nums text-lg">
+                      {room.status === "LIVE" && m.status === "RESTING" && m.restEndsAt && now !== null
+                        ? `Rest · ${Math.max(0, Math.ceil((Date.parse(m.restEndsAt) - now) / 1000))}s`
+                        : `${m.completedSets} sets`}
+                    </span>
                   </li>
                 ))}
               </ul>

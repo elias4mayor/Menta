@@ -464,7 +464,10 @@ export async function getSessionRoomView(teamId: string, sessionId: string) {
           else if (completedSets > 0) status = "IN_SET";
           else status = "NOT_STARTED";
 
-          return { athleteId: m.athleteId, athleteName: m.athlete.name, status, completedSets, lastLoggedAt };
+          const restEndsAt = status === "RESTING" && lastLoggedAt && restSec != null
+            ? new Date(lastLoggedAt.getTime() + restSec * 1000).toISOString()
+            : null;
+          return { athleteId: m.athleteId, athleteName: m.athlete.name, status, completedSets, lastLoggedAt, restEndsAt };
         })
       );
 
