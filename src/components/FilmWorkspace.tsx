@@ -19,6 +19,7 @@ type Clip = {
 
 export function FilmWorkspace({
   film,
+  startAt,
   initialClips,
   teamId,
   canComment,
@@ -33,6 +34,7 @@ export function FilmWorkspace({
   initialReviewRequests,
 }: {
   film: { id: string; title: string; description: string | null; durationSec: number | null; isMine: boolean };
+  startAt?: number;
   initialClips: Clip[];
   teamId: string | null;
   canComment: boolean;
@@ -57,7 +59,7 @@ export function FilmWorkspace({
 
   return (
     <div>
-      <FilmPlayer film={film} initialClips={initialClips} onVideoRef={(el) => (videoRef.current = el)} />
+      <FilmPlayer film={film} startAt={startAt} initialClips={initialClips} onVideoRef={(el) => (videoRef.current = el)} />
 
       {teamId && (
         <FilmTags

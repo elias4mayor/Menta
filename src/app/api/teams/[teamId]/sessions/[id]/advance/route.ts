@@ -21,8 +21,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
   }
 
   try {
-    const session = await advanceWholeRoom(teamId, sessionId, parsed.data.programExerciseId);
-    return NextResponse.json({ session });
+    const { session, forgeMutation } = await advanceWholeRoom(teamId, sessionId, parsed.data.programExerciseId);
+    return NextResponse.json({ session, forgeMutation });
   } catch (err) {
     if (err instanceof LiveSessionError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

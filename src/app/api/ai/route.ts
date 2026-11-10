@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       { role: "user" as const, content: parsed.data.message },
     ].slice(-16);
 
-    const reply = await askMentaAi({ system: context, history });
+    const reply = await askMentaAi({ system: context, coachName: user.aiCoachName ?? undefined, history });
 
     await prisma.aIMessage.create({
       data: { conversationId: conversation.id, role: "assistant", content: reply },

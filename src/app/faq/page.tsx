@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "Is the recruiting assistant allowed under NCAA rules?",
-    a: "MENTA's recruiting tools are designed to work with publicly available information and help athletes organize outreach within NCAA contact-period rules. We haven't had this reviewed by an NCAA compliance attorney yet — treat this as a design intent, not a compliance guarantee.",
+    a: "MENTA helps athletes organize recruiting research and outreach. Check the applicable recruiting calendar and ask your school or college compliance staff about contact rules before sending.",
   },
   {
     q: "What's actually live right now?",

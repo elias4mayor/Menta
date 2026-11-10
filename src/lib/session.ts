@@ -29,6 +29,7 @@ export type SessionUser = {
   email: string;
   name: string;
   role: string;
+  aiCoachName?: string | null;
 };
 
 export async function createSession(
@@ -75,6 +76,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     email: session.user.email,
     name: session.user.name,
     role: session.user.role,
+    aiCoachName: session.user.aiCoachName,
   };
 }
 

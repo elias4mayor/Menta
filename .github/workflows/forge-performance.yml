@@ -1,0 +1,80 @@
+name: Forge performance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/forge-performance.yml'
+      - 'scripts/*forge-perf*'
+      - 'scripts/forge-sse-perf.mjs'
+      - 'src/components/LiveRoomDisplay.tsx'
+      - 'src/lib/forge-events.ts'
+      - 'src/lib/live-sessions.ts'
+      - 'src/app/**/sessions/**'
+      - 'prisma/**'
+      - 'package*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forge-burst:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: menta
+          POSTGRES_PASSWORD: menta
+          POSTGRES_DB: menta_forge_perf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U menta -d menta_forge_perf"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://menta:menta@127.0.0.1:5432/menta_forge_perf
+      DATABASE_URL_POOLED: postgresql://menta:menta@127.0.0.1:5432/menta_forge_perf
+      SESSION_SECRET: forge-perf-disposable-ci-session-secret
+      FORGE_PERF_ENABLED: '1'
+      FORGE_PERF_ORIGIN: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx prisma migrate deploy
+      - run: npm run build
+      - name: Run the 100-athlete Forge browser benchmark
+        shell: bash
+        run: |
+          fixture_dir="$(mktemp -d)"
+          results="$RUNNER_TEMP/forge-results"
+          mkdir -p "$results"
+          npm run start -- --hostname 127.0.0.1 > "$results/server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true; rm -rf -- "$fixture_dir"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$FORGE_PERF_ORIGIN" >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -fsS "$FORGE_PERF_ORIGIN" >/dev/null
+          node scripts/seed-forge-perf.mjs "$fixture_dir" | tee "$results/seed.log"
+          FORGE_PERF_FIXTURE="$fixture_dir/fixture.json" \
+          FORGE_PERF_COACH_STATE="$fixture_dir/coach.json" \
+          FORGE_PERF_ATHLETE_STATE="$fixture_dir/athlete.json" \
+          node scripts/forge-sse-perf.mjs 2>&1 | tee "$results/latency.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forge-performance
+          path: ${{ runner.temp }}/forge-results/
+          retention-days: 7

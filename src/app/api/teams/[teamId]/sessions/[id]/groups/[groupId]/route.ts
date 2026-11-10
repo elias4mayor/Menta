@@ -23,8 +23,8 @@ export async function PATCH(
   }
 
   try {
-    const group = await updateSessionGroup(teamId, sessionId, groupId, parsed.data);
-    return NextResponse.json({ group });
+    const { group, forgeMutation } = await updateSessionGroup(teamId, sessionId, groupId, parsed.data);
+    return NextResponse.json({ group, forgeMutation });
   } catch (err) {
     if (err instanceof LiveSessionError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

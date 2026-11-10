@@ -115,10 +115,11 @@ export function MENTAIsland({
   user,
   unreadCount,
 }: {
-  user: { id: string; name: string; role: string };
+  user: { id: string; name: string; role: string; aiCoachName?: string | null };
   unreadCount: number;
 }) {
   const pathname = usePathname();
+  const assistantLabel = user.aiCoachName ?? "MENTA";
 
   const [state, setState] = useState<IslandState | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -371,9 +372,10 @@ export function MENTAIsland({
           )}
 
           <div className="menta-island-section">
-            <div className="menta-island-eyebrow">Ask MENTA</div>
+            <div className="menta-island-eyebrow">Ask {assistantLabel}</div>
             {!asking ? (
               <>
+                <Link href="/ai-coach" className="menta-island-chip-btn inline-flex">Open AI Coach</Link>
                 <div className="menta-island-suggestions">
                   {ASK_SUGGESTIONS.map((s) => (
                     <button
@@ -398,7 +400,7 @@ export function MENTAIsland({
                     setTimeout(() => askInputRef.current?.focus(), 0);
                   }}
                 >
-                  Ask MENTA anything…
+                  Ask {assistantLabel} anything…
                 </button>
               </>
             ) : askState.status === "reply" ? (

@@ -1,0 +1,119 @@
+import { readFile } from "node:fs/promises";
+import { chromium, request } from "@playwright/test";
+
+const SAMPLE_COUNT = 100;
+const LIMIT_MS = 200;
+
+function required(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing ${name}`);
+  return value;
+}
+
+function sameOriginUrl(path, origin) {
+  if (typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) {
+    throw new Error("Fixture paths must be relative to the staging origin");
+  }
+  const url = new URL(path, origin);
+  if (url.origin !== origin) throw new Error("Fixture path leaves the staging origin");
+  return url.href;
+}
+
+function percentile(sorted, fraction) {
+  return sorted[Math.ceil(sorted.length * fraction) - 1];
+}
+
+async function main() {
+  const base = new URL(required("FORGE_PERF_ORIGIN"));
+  if (base.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(base.hostname)) {
+    throw new Error("Use HTTPS for a remote staging origin");
+  }
+  const fixture = JSON.parse(await readFile(required("FORGE_PERF_FIXTURE"), "utf8"));
+  if (fixture.origin !== base.origin || !Array.isArray(fixture.mutations) || fixture.mutations.length !== SAMPLE_COUNT) {
+    throw new Error("Fixture origin must match and contain exactly 100 disposable mutations");
+  }
+  const { databaseMinusRunnerMs, clockUncertaintyMs } = fixture;
+  if (!Number.isFinite(databaseMinusRunnerMs) || !Number.isFinite(clockUncertaintyMs)
+    || clockUncertaintyMs < 0 || clockUncertaintyMs > 10) {
+    throw new Error("Provide a measured database clock offset and uncertainty of at most 10 ms");
+  }
+  const receiverUrl = sameOriginUrl(fixture.receiverPath, base.origin);
+  const mutations = fixture.mutations.map(({ id, method, path, body }) => {
+    if (typeof id !== "string" || !id || !["POST", "PATCH", "PUT"].includes(method)) {
+      throw new Error("Each mutation needs a correlation ID and a supported method");
+    }
+    return { id, method, url: sameOriginUrl(path, base.origin), body };
+  });
+  if (new Set(mutations.map(({ id }) => id)).size !== SAMPLE_COUNT) {
+    throw new Error("Each mutation must have a unique correlation ID");
+  }
+
+  const coachState = required("FORGE_PERF_COACH_STATE");
+  const athleteState = required("FORGE_PERF_ATHLETE_STATE");
+  const browser = await chromium.launch({ executablePath: process.env.FORGE_PERF_CHROMIUM });
+  try {
+    const coach = await request.newContext({ storageState: coachState });
+    try {
+      const context = await browser.newContext({ storageState: athleteState });
+      const page = await context.newPage();
+      await page.goto(receiverUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
+      if (new URL(page.url()).origin !== base.origin) throw new Error("Receiver left the staging origin");
+      await page.locator('[data-forge-perf="ready"][data-forge-transport="sse"]').waitFor({ timeout: 10_000 });
+      const committed = await Promise.all(mutations.map(async ({ method, url, body }) => {
+        const response = await coach.fetch(url, {
+          method, data: body, timeout: 15_000, maxRedirects: 0,
+        });
+        if (!response.ok()) throw new Error(`Mutation failed with HTTP ${response.status()}`);
+        const { forgeMutation } = await response.json();
+        const { correlationId, recordedAtMs } = forgeMutation ?? {};
+        if (typeof correlationId !== "string" || !correlationId || !Number.isFinite(recordedAtMs)) {
+          throw new Error("Mutation did not return its server-issued ID and database timestamp");
+        }
+        return [correlationId, recordedAtMs - databaseMinusRunnerMs];
+      }));
+      const ids = committed.map(([id]) => id);
+      if (new Set(ids).size !== SAMPLE_COUNT) throw new Error("Mutation responses reused a correlation ID");
+
+      await page.waitForFunction((ids) => ids.every(
+        (id) => performance.getEntriesByName(`forge:${id}:frame`, "mark").length > 0,
+      ), ids, { timeout: 10_000 });
+      const marks = new Map(await page.evaluate((ids) => ids.map((id) => {
+        const prefix = `forge:${id}`;
+        const frame = performance.getEntriesByName(`${prefix}:frame`, "mark")[0];
+        const commit = performance.getEntriesByName(`${prefix}:receive-to-commit`, "measure")[0];
+        const receiveToFrame = performance.getEntriesByName(`${prefix}:receive-to-frame`, "measure")[0];
+        return [id, {
+          frameAtMs: performance.timeOrigin + frame.startTime,
+          receiveToCommitMs: commit.duration,
+          receiveToFrameMs: receiveToFrame.duration,
+        }];
+      }), ids));
+      const latencies = committed.map(([id, time]) => marks.get(id).frameAtMs - time);
+      if (latencies.some((ms) => !Number.isFinite(ms) || ms < -clockUncertaintyMs)) {
+        throw new Error("Invalid render timestamp or clock calibration");
+      }
+      const sorted = latencies.map((ms) => Math.max(0, ms)).sort((a, b) => a - b);
+      const p95Ms = percentile(sorted, 0.95);
+      const upperP95Ms = p95Ms + clockUncertaintyMs;
+      console.log(JSON.stringify({
+        samples: sorted.length, concurrency: SAMPLE_COUNT, surface: "foreground-browser-post-frame",
+        start: "database-pre-commit",
+        p50Ms: percentile(sorted, 0.5), p95Ms, upperP95Ms, clockUncertaintyMs, limitMs: LIMIT_MS,
+        receiveToCommitP95Ms: percentile([...marks.values()].map((mark) => mark.receiveToCommitMs).sort((a, b) => a - b), 0.95),
+        receiveToFrameP95Ms: percentile([...marks.values()].map((mark) => mark.receiveToFrameMs).sort((a, b) => a - b), 0.95),
+      }, null, 2));
+      if (upperP95Ms >= LIMIT_MS) process.exitCode = 1;
+    } finally {
+      await coach.dispose();
+    }
+  } finally {
+    await browser.close();
+  }
+}
+
+main().catch((error) => {
+  // Keep credentials, fixture bodies and request URLs out of console output.
+  const message = error instanceof Error ? error.message.split("\n")[0] : "Unknown error";
+  console.error(message.replace(/https?:\/\/\S+/g, "[redacted URL]"));
+  process.exitCode = 1;
+});

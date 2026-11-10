@@ -21,10 +21,12 @@ function formatTime(sec: number): string {
 
 export function FilmPlayer({
   film,
+  startAt,
   initialClips,
   onVideoRef,
 }: {
   film: { id: string; title: string; description: string | null; durationSec: number | null; isMine: boolean };
+  startAt?: number;
   initialClips: Clip[];
   onVideoRef?: (el: HTMLVideoElement | null) => void;
 }) {
@@ -39,6 +41,7 @@ export function FilmPlayer({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [highlightTitle, setHighlightTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [linkStatus, setLinkStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function startMarking() {
@@ -138,12 +141,31 @@ export function FilmPlayer({
     router.push("/film");
   }
 
+  async function copyMomentLink() {
+    const video = videoRef.current;
+    if (!video) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("t", video.currentTime.toFixed(3));
+    url.hash = "";
+    try {
+      await navigator.clipboard.writeText(url.href);
+      setLinkStatus(`Link copied at ${formatTime(video.currentTime)}. Only people with film access can open it.`);
+    } catch {
+      setLinkStatus("Couldn't copy the link. Try again.");
+    }
+  }
+
   async function onLoadedMetadata() {
-    if (film.durationSec == null && videoRef.current) {
+    const video = videoRef.current;
+    if (!video) return;
+    if (startAt !== undefined && Number.isFinite(video.duration)) {
+      video.currentTime = Math.min(startAt, video.duration);
+    }
+    if (film.durationSec == null) {
       await fetch(`/api/films/${film.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ durationSec: videoRef.current.duration }),
+        body: JSON.stringify({ durationSec: video.duration }),
       });
     }
   }
@@ -165,6 +187,8 @@ export function FilmPlayer({
       </div>
 
       <div className="flex items-center gap-2 mb-6 flex-wrap">
+        <button type="button" className="btn-secondary" onClick={copyMomentLink}>Copy moment link</button>
+        <span role="status" className="text-xs text-text-2">{linkStatus}</span>
         {[0.5, 1, 1.5, 2].map((rate) => (
           <button
             key={rate}
