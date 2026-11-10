@@ -119,6 +119,9 @@ model User {
   trainingSetsAsAthlete       TrainingSet[]               @relation("TrainingSetAthlete")
   trainingSetsLogged          TrainingSet[]               @relation("TrainingSetLogger")
 
+  requestedFilmAnalysisJobs FilmAnalysisJob[] @relation("FilmAnalysisRequester")
+  subjectFilmAnalysisJobs   FilmAnalysisJob[] @relation("FilmAnalysisSubject")
+
   @@index([role])
 }
 
@@ -855,6 +858,8 @@ model Film {
   assignments     FilmAssignment[]
   coachNotes      CoachNote[]
 
+  automatedAnalysisJobs FilmAnalysisJob[]
+
   @@index([teamId])
   @@index([uploadedById])
   @@index([sportContextId])
@@ -1301,6 +1306,39 @@ model FilmAnalysisEntry {
   @@index([categoryId])
   @@index([athleteId])
   @@index([filmId])
+}
+
+/// A trusted dispatcher binds each analysis job to the source window,
+/// explicitly selected athlete, reviewer and approved catalog cues.
+model FilmAnalysisJob {
+  id             String    @id @default(cuid())
+  filmId         String
+  subjectId      String
+  requestedById  String
+  startMs        Int
+  endMs          Int
+  allowedCueIds  String[]
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  film        Film                @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  subject     User                @relation("FilmAnalysisSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  requestedBy User                @relation("FilmAnalysisRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  report      FilmAnalysisReport?
+
+  @@index([filmId])
+  @@index([subjectId])
+  @@index([requestedById])
+}
+
+/// Automated, reviewer-only observations. Existing FilmReport and
+/// FilmAnalysisEntry records continue to represent their current workflows.
+model FilmAnalysisReport {
+  jobId     String   @id
+  payload   Json
+  createdAt DateTime @default(now())
+
+  job FilmAnalysisJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 /// reportType: TEAM, ATHLETE, POSITION, GAME, SEASON, OPPONENT.
