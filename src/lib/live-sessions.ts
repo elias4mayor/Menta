@@ -1,6 +1,8 @@
 import "server-only";
 import { notifyForgeSession } from "@/lib/forge-events";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import type { Client } from "pg";
 import type { z } from "zod";
 import type {
   createLiveSessionInputSchema,
@@ -432,86 +434,120 @@ export type MemberStatus = "NOT_STARTED" | "IN_SET" | "RESTING" | "COMPLETE" | "
  * count against their own group's median — a deterministic comparison,
  * never a guess.
  */
-export async function getSessionRoomView(teamId: string, sessionId: string) {
-  const session = await prisma.trainingSession.findFirst({
-    where: { id: sessionId, teamId },
-    include: {
-      program: { select: { id: true, title: true } },
-      currentBlock: { select: { id: true, title: true } },
-      groups: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          currentProgramExercise: { select: { targetSets: true, restSec: true, exercise: { select: { name: true } } } },
-          members: { include: { athlete: { select: { id: true, name: true } } } },
-        },
-      },
-    },
-  });
+type RoomRow = {
+  id: string;
+  title: string;
+  status: string;
+  startedAt: Date | null;
+  pausedAt: Date | null;
+  programTitle: string | null;
+  currentBlockTitle: string | null;
+  groupId: string | null;
+  groupName: string | null;
+  stationLabel: string | null;
+  exerciseName: string | null;
+  programExerciseId: string | null;
+  targetSets: number | null;
+  restSec: number | null;
+  athleteId: string | null;
+  athleteName: string | null;
+  completedSets: number;
+  lastLoggedAt: Date | null;
+};
+
+type RoomMember = {
+  athleteId: string;
+  athleteName: string;
+  status: MemberStatus;
+  completedSets: number;
+  lastLoggedAt?: Date | null;
+  restEndsAt?: string | null;
+};
+
+export async function getSessionRoomView(teamId: string, sessionId: string, streamClient?: Client) {
+  // Read session, current rack assignments, and set summaries in one DB
+  // statement. SSE uses its already-connected LISTEN client for this read
+  // so a burst of set writes cannot queue the snapshot in the Prisma pool.
+  const query = Prisma.sql`
+    WITH room AS (
+      SELECT *
+      FROM "TrainingSession"
+      WHERE id = ${sessionId} AND "teamId" = ${teamId}
+    ),
+    active AS (
+      SELECT g.id, g.name, g."stationLabel", g."createdAt", g."currentProgramExerciseId",
+        m."athleteId"
+      FROM room r
+      JOIN "TrainingGroup" g ON g."sessionId" = r.id
+      LEFT JOIN "TrainingGroupMember" m ON m."groupId" = g.id
+    ),
+    stats AS (
+      SELECT ts."athleteId", ts."programExerciseId",
+        count(*) FILTER (WHERE ts.completed)::int AS "completedSets",
+        max(ts."loggedAt") AT TIME ZONE 'UTC' AS "lastLoggedAt"
+      FROM room r
+      JOIN "TrainingSet" ts ON ts."sessionId" = r.id AND ts."teamId" = r."teamId"
+      JOIN active a ON a."athleteId" = ts."athleteId"
+        AND a."currentProgramExerciseId" = ts."programExerciseId"
+      GROUP BY ts."athleteId", ts."programExerciseId"
+    )
+    SELECT r.id, r.title, r.status,
+      r."startedAt" AT TIME ZONE 'UTC' AS "startedAt",
+      r."pausedAt" AT TIME ZONE 'UTC' AS "pausedAt",
+      p.title AS "programTitle", b.title AS "currentBlockTitle",
+      a.id AS "groupId", a.name AS "groupName", a."stationLabel", a."athleteId",
+      u.name AS "athleteName", ex.name AS "exerciseName",
+      a."currentProgramExerciseId" AS "programExerciseId", pe."targetSets", pe."restSec",
+      COALESCE(stats."completedSets", 0) AS "completedSets", stats."lastLoggedAt"
+    FROM room r
+    LEFT JOIN "TrainingProgram" p ON p.id = r."programId"
+    LEFT JOIN "TrainingBlock" b ON b.id = r."currentBlockId"
+    LEFT JOIN active a ON true
+    LEFT JOIN "User" u ON u.id = a."athleteId"
+    LEFT JOIN "ProgramExercise" pe ON pe.id = a."currentProgramExerciseId"
+    LEFT JOIN "Exercise" ex ON ex.id = pe."exerciseId"
+    LEFT JOIN stats ON stats."athleteId" = a."athleteId"
+      AND stats."programExerciseId" = a."currentProgramExerciseId"
+    ORDER BY a."createdAt", a.id
+  `;
+  const rows = streamClient
+    ? (await streamClient.query<RoomRow>(query.text, [...query.values])).rows
+    : await prisma.$queryRaw<RoomRow[]>(query);
+  const session = rows[0];
   if (!session) return null;
 
-  const activeAssignments = session.groups.flatMap((group) =>
-    group.currentProgramExerciseId && group.members.length
-      ? [{ programExerciseId: group.currentProgramExerciseId, athleteId: { in: group.members.map((m) => m.athleteId) } }]
-      : []
-  );
-  const setStats = activeAssignments.length
-    ? await prisma.trainingSet.groupBy({
-        by: ["athleteId", "programExerciseId", "completed"],
-        where: { teamId, sessionId, OR: activeAssignments },
-        _count: { _all: true },
-        _max: { loggedAt: true },
-      })
-    : [];
-  const statsByAssignment = new Map<string, { completedSets: number; lastLoggedAt: Date | null }>();
-  for (const row of setStats) {
-    const key = JSON.stringify([row.athleteId, row.programExerciseId]);
-    const stats = statsByAssignment.get(key) ?? { completedSets: 0, lastLoggedAt: null };
-    if (row.completed) stats.completedSets = row._count._all;
-    // An incomplete attempt still starts the rest countdown, as before.
-    const latest = row._max.loggedAt;
-    if (latest && (!stats.lastLoggedAt || latest > stats.lastLoggedAt)) stats.lastLoggedAt = latest;
-    statsByAssignment.set(key, stats);
-  }
-
   const now = Date.now();
-  const groups = session.groups.map((group) => {
-    const programExerciseId = group.currentProgramExerciseId;
-    const targetSets = group.currentProgramExercise?.targetSets ?? null;
-    const restSec = group.currentProgramExercise?.restSec ?? null;
-    const members = group.members.map((m) => {
-      if (!programExerciseId) {
-        return { athleteId: m.athleteId, athleteName: m.athlete.name, status: "NOT_STARTED" as MemberStatus, completedSets: 0 };
-      }
+  const groups = new Map<string, {
+    id: string;
+    name: string;
+    stationLabel: string | null;
+    currentExerciseName: string | null;
+    members: RoomMember[];
+  }>();
+  for (const row of rows) {
+    if (row.groupId === null || row.groupName === null) continue;
+    let group = groups.get(row.groupId);
+    if (!group) {
+      group = { id: row.groupId, name: row.groupName, stationLabel: row.stationLabel, currentExerciseName: row.exerciseName, members: [] };
+      groups.set(row.groupId, group);
+    }
+    if (row.athleteId === null || row.athleteName === null) continue;
+    const { athleteId, athleteName, completedSets, lastLoggedAt, targetSets, restSec } = row;
+    if (!row.programExerciseId) {
+      group.members.push({ athleteId, athleteName, status: "NOT_STARTED", completedSets: 0 });
+      continue;
+    }
 
-      const stats = statsByAssignment.get(JSON.stringify([m.athleteId, programExerciseId]));
-      const completedSets = stats?.completedSets ?? 0;
-      const lastLoggedAt = stats?.lastLoggedAt ?? null;
-      let status: MemberStatus;
-      if (targetSets != null && completedSets >= targetSets) status = "COMPLETE";
-      else if (lastLoggedAt && restSec != null && (now - lastLoggedAt.getTime()) / 1000 < restSec) status = "RESTING";
-      else if (completedSets > 0) status = "IN_SET";
-      else status = "NOT_STARTED";
-
-      const restEndsAt = status === "RESTING" && lastLoggedAt && restSec != null
-        ? new Date(lastLoggedAt.getTime() + restSec * 1000).toISOString()
-        : null;
-      return { athleteId: m.athleteId, athleteName: m.athlete.name, status, completedSets, lastLoggedAt, restEndsAt };
-    });
-
-    const counts = members.map((m) => m.completedSets).sort((a, b) => a - b);
-    const median = counts.length > 0 ? counts[Math.floor(counts.length / 2)] : 0;
-    const withBehind = members.map((m) =>
-      m.status !== "COMPLETE" && median - m.completedSets >= BEHIND_SET_THRESHOLD ? { ...m, status: "BEHIND" as MemberStatus } : m
-    );
-
-    return {
-      id: group.id,
-      name: group.name,
-      stationLabel: group.stationLabel,
-      currentExerciseName: group.currentProgramExercise?.exercise.name ?? null,
-      members: withBehind,
-    };
-  });
+    // The latest attempt starts rest even when it does not count as a set.
+    const restEnd = lastLoggedAt && restSec != null ? lastLoggedAt.getTime() + restSec * 1000 : null;
+    let status: MemberStatus;
+    if (targetSets != null && completedSets >= targetSets) status = "COMPLETE";
+    else if (restEnd != null && now < restEnd) status = "RESTING";
+    else if (completedSets > 0) status = "IN_SET";
+    else status = "NOT_STARTED";
+    const restEndsAt = status === "RESTING" && restEnd !== null ? new Date(restEnd).toISOString() : null;
+    group.members.push({ athleteId, athleteName, status, completedSets, lastLoggedAt, restEndsAt });
+  }
 
   return {
     id: session.id,
@@ -519,9 +555,20 @@ export async function getSessionRoomView(teamId: string, sessionId: string) {
     status: session.status,
     startedAt: session.startedAt,
     pausedAt: session.pausedAt,
-    programTitle: session.program?.title ?? null,
-    currentBlockTitle: session.currentBlock?.title ?? null,
-    groups,
+    programTitle: session.programTitle,
+    currentBlockTitle: session.currentBlockTitle,
+    groups: Array.from(groups.values(), (group) => {
+      const counts = group.members.map((m) => m.completedSets).sort((a, b) => a - b);
+      const median = counts[Math.floor(counts.length / 2)] ?? 0;
+      return {
+        ...group,
+        members: group.members.map((m) =>
+          m.status !== "COMPLETE" && median - m.completedSets >= BEHIND_SET_THRESHOLD
+            ? { ...m, status: "BEHIND" as const }
+            : m
+        ),
+      };
+    }),
   };
 }
 

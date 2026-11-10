@@ -65,7 +65,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ team
               stop();
               return;
             }
-            const room = await getSessionRoomView(teamId, id);
+            const room = await getSessionRoomView(teamId, id, client);
             if (!room) { stop(); return; }
             if (!closed) controller.enqueue(encoder.encode(`event: forge.snapshot\ndata: ${JSON.stringify({ ...room, mutations: batch })}\n\n`));
           }
