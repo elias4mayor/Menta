@@ -441,7 +441,7 @@ export async function getSessionRoomView(teamId: string, sessionId: string) {
       groups: {
         orderBy: { createdAt: "asc" },
         include: {
-          currentProgramExercise: { include: { exercise: { select: { name: true } } } },
+          currentProgramExercise: { select: { targetSets: true, restSec: true, exercise: { select: { name: true } } } },
           members: { include: { athlete: { select: { id: true, name: true } } } },
         },
       },
@@ -449,60 +449,69 @@ export async function getSessionRoomView(teamId: string, sessionId: string) {
   });
   if (!session) return null;
 
-  const groups = await Promise.all(
-    session.groups.map(async (group) => {
-      const programExerciseId = group.currentProgramExerciseId;
-      let targetSets: number | null = null;
-      let restSec: number | null = null;
-      if (programExerciseId) {
-        const pe = await prisma.programExercise.findUnique({
-          where: { id: programExerciseId },
-          select: { targetSets: true, restSec: true },
-        });
-        targetSets = pe?.targetSets ?? null;
-        restSec = pe?.restSec ?? null;
+  const activeAssignments = session.groups.flatMap((group) =>
+    group.currentProgramExerciseId && group.members.length
+      ? [{ programExerciseId: group.currentProgramExerciseId, athleteId: { in: group.members.map((m) => m.athleteId) } }]
+      : []
+  );
+  const setStats = activeAssignments.length
+    ? await prisma.trainingSet.groupBy({
+        by: ["athleteId", "programExerciseId", "completed"],
+        where: { teamId, sessionId, OR: activeAssignments },
+        _count: { _all: true },
+        _max: { loggedAt: true },
+      })
+    : [];
+  const statsByAssignment = new Map<string, { completedSets: number; lastLoggedAt: Date | null }>();
+  for (const row of setStats) {
+    const key = JSON.stringify([row.athleteId, row.programExerciseId]);
+    const stats = statsByAssignment.get(key) ?? { completedSets: 0, lastLoggedAt: null };
+    if (row.completed) stats.completedSets = row._count._all;
+    // An incomplete attempt still starts the rest countdown, as before.
+    const latest = row._max.loggedAt;
+    if (latest && (!stats.lastLoggedAt || latest > stats.lastLoggedAt)) stats.lastLoggedAt = latest;
+    statsByAssignment.set(key, stats);
+  }
+
+  const now = Date.now();
+  const groups = session.groups.map((group) => {
+    const programExerciseId = group.currentProgramExerciseId;
+    const targetSets = group.currentProgramExercise?.targetSets ?? null;
+    const restSec = group.currentProgramExercise?.restSec ?? null;
+    const members = group.members.map((m) => {
+      if (!programExerciseId) {
+        return { athleteId: m.athleteId, athleteName: m.athlete.name, status: "NOT_STARTED" as MemberStatus, completedSets: 0 };
       }
 
-      const members = await Promise.all(
-        group.members.map(async (m) => {
-          if (!programExerciseId) {
-            return { athleteId: m.athleteId, athleteName: m.athlete.name, status: "NOT_STARTED" as MemberStatus, completedSets: 0 };
-          }
-          const sets = await prisma.trainingSet.findMany({
-            where: { sessionId, athleteId: m.athleteId, programExerciseId },
-            orderBy: { loggedAt: "desc" },
-          });
-          const completedSets = sets.filter((s) => s.completed).length;
-          const lastLoggedAt = sets[0]?.loggedAt ?? null;
+      const stats = statsByAssignment.get(JSON.stringify([m.athleteId, programExerciseId]));
+      const completedSets = stats?.completedSets ?? 0;
+      const lastLoggedAt = stats?.lastLoggedAt ?? null;
+      let status: MemberStatus;
+      if (targetSets != null && completedSets >= targetSets) status = "COMPLETE";
+      else if (lastLoggedAt && restSec != null && (now - lastLoggedAt.getTime()) / 1000 < restSec) status = "RESTING";
+      else if (completedSets > 0) status = "IN_SET";
+      else status = "NOT_STARTED";
 
-          let status: MemberStatus;
-          if (targetSets != null && completedSets >= targetSets) status = "COMPLETE";
-          else if (lastLoggedAt && restSec != null && (Date.now() - lastLoggedAt.getTime()) / 1000 < restSec) status = "RESTING";
-          else if (completedSets > 0) status = "IN_SET";
-          else status = "NOT_STARTED";
+      const restEndsAt = status === "RESTING" && lastLoggedAt && restSec != null
+        ? new Date(lastLoggedAt.getTime() + restSec * 1000).toISOString()
+        : null;
+      return { athleteId: m.athleteId, athleteName: m.athlete.name, status, completedSets, lastLoggedAt, restEndsAt };
+    });
 
-          const restEndsAt = status === "RESTING" && lastLoggedAt && restSec != null
-            ? new Date(lastLoggedAt.getTime() + restSec * 1000).toISOString()
-            : null;
-          return { athleteId: m.athleteId, athleteName: m.athlete.name, status, completedSets, lastLoggedAt, restEndsAt };
-        })
-      );
+    const counts = members.map((m) => m.completedSets).sort((a, b) => a - b);
+    const median = counts.length > 0 ? counts[Math.floor(counts.length / 2)] : 0;
+    const withBehind = members.map((m) =>
+      m.status !== "COMPLETE" && median - m.completedSets >= BEHIND_SET_THRESHOLD ? { ...m, status: "BEHIND" as MemberStatus } : m
+    );
 
-      const counts = members.map((m) => m.completedSets).sort((a, b) => a - b);
-      const median = counts.length > 0 ? counts[Math.floor(counts.length / 2)] : 0;
-      const withBehind = members.map((m) =>
-        m.status !== "COMPLETE" && median - m.completedSets >= BEHIND_SET_THRESHOLD ? { ...m, status: "BEHIND" as MemberStatus } : m
-      );
-
-      return {
-        id: group.id,
-        name: group.name,
-        stationLabel: group.stationLabel,
-        currentExerciseName: group.currentProgramExercise?.exercise.name ?? null,
-        members: withBehind,
-      };
-    })
-  );
+    return {
+      id: group.id,
+      name: group.name,
+      stationLabel: group.stationLabel,
+      currentExerciseName: group.currentProgramExercise?.exercise.name ?? null,
+      members: withBehind,
+    };
+  });
 
   return {
     id: session.id,

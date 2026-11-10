@@ -107,16 +107,26 @@ test.describe("MENTA LIVE security", () => {
       await waitForEvent('"status":"LIVE"');
       expect(received).toContain(JSON.stringify(forgeMutation));
 
-      const setMutations = await Promise.all(athletes.map(async (athlete) => {
+      const setMutations = await Promise.all(athletes.map(async (athlete, index) => {
         const result = await request.post(`${path}/sets`, {
           headers: { Cookie: athlete.cookie },
-          data: { athleteId: athlete.userId, programExerciseId: squatPE.id, setNumber: 1, reps: 5 },
+          data: { athleteId: athlete.userId, programExerciseId: squatPE.id, setNumber: 1, reps: 5, completed: index === 0 },
         });
         expect(result.status()).toBe(200);
         return (await result.json()).forgeMutation;
       }));
       expect(new Set(setMutations.map((mutation) => mutation.correlationId)).size).toBe(athletes.length);
       for (const mutation of setMutations) await waitForEvent(JSON.stringify(mutation));
+
+      const room = await request.get(path, { headers });
+      expect(room.status()).toBe(200);
+      const { session: snapshot } = await room.json();
+      const members = snapshot.groups[0].members;
+      for (const [index, athlete] of athletes.entries()) {
+        const member = members.find((entry: { athleteId: string }) => entry.athleteId === athlete.userId);
+        expect(member).toMatchObject({ completedSets: index === 0 ? 1 : 0, status: "RESTING" });
+        expect(Date.parse(member.restEndsAt) - Date.parse(member.lastLoggedAt)).toBe(120_000);
+      }
 
       const paused = await request.patch(path, { headers, data: { status: "PAUSED" } });
       expect(paused.status()).toBe(200);
