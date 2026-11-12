@@ -57,7 +57,6 @@ export async function GET(
 
   const idField = ID_FIELD[p];
   let user = await prisma.user.findFirst({ where: { [idField]: profile.providerId } });
-  let isNewUser = false;
 
   if (!user) {
     const existingByEmail = await prisma.user.findUnique({ where: { email: profile.email } });
@@ -97,21 +96,14 @@ export async function GET(
         });
       }
     } else {
-      user = await prisma.user.create({
-        data: {
-          email: profile.email,
-          name: profile.name ?? profile.email.split("@")[0],
-          role: "ATHLETE",
-          [idField]: profile.providerId,
-          emailVerified: new Date(),
-        },
-      });
-      isNewUser = true;
+      // New accounts must complete the age and legal acknowledgement gate.
+      // Existing accounts may still sign in with a verified provider email.
+      return NextResponse.redirect(`${origin}/signup?oauth=signup_required`);
     }
   }
 
   await createSession(user.id, request.headers.get("user-agent"));
   await logAudit({ actorId: user.id, action: `auth.oauth_login_${p}` });
 
-  return NextResponse.redirect(`${origin}${isNewUser ? "/onboarding" : "/dashboard"}`);
+  return NextResponse.redirect(`${origin}/dashboard`);
 }

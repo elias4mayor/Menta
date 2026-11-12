@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isEligibleBirthDate, LEGAL_VERSION } from "@/lib/legal-version";
 import { countryCodeForName, statesForCountry } from "@/lib/geo";
 import { SCHOOL_TYPES } from "@/lib/schools";
 import { CARE_REASONS, PROVIDER_TITLES } from "@/lib/care";
@@ -32,7 +33,9 @@ export const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(10, "Use at least 10 characters"),
   role: z.enum(["ATHLETE", "COACH", "PARENT", "TRAINER", "DOCTOR"]).default("ATHLETE"),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().refine((value) => isEligibleBirthDate(value), "Enter a valid date of birth. MENTA accounts are for ages 14 and older."),
+  acceptedTerms: z.literal(true, { error: "Please accept the Terms and acknowledge the Privacy Policy." }),
+  legalVersion: z.literal(LEGAL_VERSION, { error: "The legal documents have changed. Refresh and review them before continuing." }),
 });
 
 export const loginSchema = z.object({

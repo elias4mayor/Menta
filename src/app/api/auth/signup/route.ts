@@ -39,14 +39,21 @@ export async function POST(request: Request) {
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      role,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-    },
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role,
+        dateOfBirth: new Date(dateOfBirth),
+      },
+    });
+    await tx.auditLog.create({ data: {
+      actorId: created.id, action: "auth.legal_accepted", targetType: "User", targetId: created.id,
+      metadata: JSON.stringify({ version: parsed.data.legalVersion, acceptedAt: new Date().toISOString(), method: "email_signup" }),
+    } });
+    return created;
   });
 
   await createSession(user.id, request.headers.get("user-agent"));

@@ -51,7 +51,7 @@ export async function signup(
   await page.locator("#name").fill(params.name);
   await page.locator("#email").fill(params.email);
   await page.locator("#password").fill(params.password);
-  if (params.dateOfBirth) await page.locator("#dob").fill(params.dateOfBirth);
+  await page.locator("#dob").fill(params.dateOfBirth ?? "2000-01-01");
   await page.locator("#role").selectOption(params.role);
   await page.locator('input[type="checkbox"]').check();
   await page.getByRole("button", { name: "Create account" }).click();

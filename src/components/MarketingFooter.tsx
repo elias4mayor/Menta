@@ -15,6 +15,7 @@ export function MarketingFooter() {
       <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-text-2">
         <Link href="/platform" className="hover:text-text-1">Platform</Link>
         <Link href="/membership" className="hover:text-text-1">Membership</Link>
+        <Link href="/gear" className="hover:text-text-1">Gear</Link>
         <Link href="/faq" className="hover:text-text-1">FAQ</Link>
         <Link href="/trust" className="hover:text-text-1">Trust &amp; Safety</Link>
         <Link href="/privacy" className="hover:text-text-1">Privacy (draft)</Link>
