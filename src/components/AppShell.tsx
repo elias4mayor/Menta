@@ -56,6 +56,7 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/gear", label: "MENTA Gear", icon: "train" },
         ],
       },
     ];
@@ -90,6 +91,7 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/gear", label: "MENTA Gear", icon: "train" },
         ],
       },
     ];
@@ -120,6 +122,7 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/gear", label: "MENTA Gear", icon: "train" },
         ],
       },
     ];
@@ -150,6 +153,7 @@ function navSectionsForRole(role: string): NavSection[] {
         label: "You",
         items: [
           { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/gear", label: "MENTA Gear", icon: "train" },
         ],
       },
     ];
@@ -194,6 +198,7 @@ function navSectionsForRole(role: string): NavSection[] {
       label: "You",
       items: [
         { href: "/documents", label: "Documents", icon: "documents" },
+          { href: "/gear", label: "MENTA Gear", icon: "train" },
         { href: "/care", label: "Care", icon: "safety" },
       ],
     },

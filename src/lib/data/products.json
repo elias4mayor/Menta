@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "products": [
+    {
+      "id": "compression",
+      "name": "MENTA Compression",
+      "category": "Apparel",
+      "summary": "A high-neck training layer with a small MENTA chest mark.",
+      "colors": [
+        "Black",
+        "White"
+      ],
+      "status": "Concept",
+      "detail": "Fit, fabric, sizing and supplier samples are being developed. Final specifications are not confirmed."
+    },
+    {
+      "id": "streamer",
+      "name": "MENTA Streamer",
+      "category": "Accessories",
+      "summary": "A slim football towel with a long, understated cursive wordmark.",
+      "colors": [
+        "Black",
+        "White"
+      ],
+      "status": "Concept",
+      "detail": "Attachment strength, absorbency and wash durability must be verified on physical samples."
+    },
+    {
+      "id": "mouthguard",
+      "name": "MENTA Mouthguard",
+      "category": "Protection",
+      "summary": "A black or white mouthguard concept with minimal cursive branding.",
+      "colors": [
+        "Black",
+        "White"
+      ],
+      "status": "Concept",
+      "detail": "Not available for use or purchase. Fit, materials, applicable safety standards and independent testing must be confirmed. No concussion-prevention claim is made."
+    },
+    {
+      "id": "pathways",
+      "name": "MENTA Pathways",
+      "category": "Training",
+      "summary": "Reconfigurable ground markers for release angles and footwork patterns.",
+      "colors": [
+        "Black / White"
+      ],
+      "status": "Prototype idea",
+      "detail": "A proposed modular training kit. Slip resistance, trip hazards, durability and coaching instructions require prototype testing."
+    },
+    {
+      "id": "cue",
+      "name": "MENTA Cue",
+      "category": "Training",
+      "summary": "A proposed visual cue system for reaction and decision drills across sports.",
+      "colors": [
+        "Black / White"
+      ],
+      "status": "Prototype idea",
+      "detail": "A research concept; electronics, timing accuracy, battery safety, weather resistance and manufacturing have not been validated."
+    }
+  ]
+}

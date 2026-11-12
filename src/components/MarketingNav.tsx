@@ -17,6 +17,7 @@ const NAV_LINKS: { href: string; label: string }[] = [
   { href: "/parents", label: "Parents" },
   { href: "/trainers", label: "Trainers" },
   { href: "/menta-safety", label: "MENTA Safety" },
+  { href: "/gear", label: "Gear" },
   { href: "/about", label: "About" },
 ];
 

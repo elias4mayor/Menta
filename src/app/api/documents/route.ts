@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { documentMetadataSchema } from "@/lib/validation";
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_UPLOAD_BYTES, extensionForMimeType, isUploadStorageConfigured, saveFile } from "@/lib/storage";
-import { canManageTeam } from "@/lib/permissions";
+import { canAccessDocument, canManageTeam } from "@/lib/permissions";
 import { documentStatus } from "@/lib/documents";
 import { logAudit } from "@/lib/audit";
 
@@ -38,8 +38,11 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
+  // Apply the same ownership-first policy as detail and download endpoints.
+  // A personal document carrying a teamId must not leak metadata to teammates.
+  const access = await Promise.all(documents.map((doc) => canAccessDocument(user, doc)));
   return NextResponse.json({
-    documents: documents.map((d) => ({
+    documents: documents.filter((_, index) => access[index]).map((d) => ({
       id: d.id,
       name: d.name,
       category: d.category,

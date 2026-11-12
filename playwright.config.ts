@@ -21,7 +21,7 @@ export default defineConfig({
   // build has no such per-route JIT compile at all.
   timeout: 90_000,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -32,8 +32,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `bash -c "npm run dev > ${SERVER_LOG_PATH} 2>&1"`,
-    url: "http://localhost:3000",
+    command: `bash -c "npm run dev -- --hostname 127.0.0.1 > ${SERVER_LOG_PATH} 2>&1"`,
+    url: "http://127.0.0.1:3000",
     reuseExistingServer: true,
     timeout: 60_000,
     env: { MENTA_E2E_DISABLE_RATE_LIMIT: "1" },

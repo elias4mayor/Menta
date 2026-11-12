@@ -1,69 +1,69 @@
 import { MarketingNav } from "@/components/MarketingNav";
 import { MarketingFooter } from "@/components/MarketingFooter";
 
-const LAST_UPDATED = "August 18, 2026";
+const LAST_UPDATED = "November 12, 2026";
 
 const SECTIONS = [
   {
-    title: "1. What this document is",
-    body: [
-      "This is a working draft of MENTA's Terms of Service, written by the team building the product so early users know the ground rules before we launch publicly. It has not been reviewed by an attorney and is not yet a binding legal agreement. It will be replaced by a final, attorney-reviewed version before MENTA is available to the general public.",
-    ],
+    "title": "1. Draft status and operator",
+    "body": [
+      "These proposed terms are dated November 12, 2026 and require review before public launch. The contracting entity, business address, support contact and applicable dispute provisions are not yet confirmed. No statement here eliminates statutory duties or guarantees protection against claims."
+    ]
   },
   {
-    title: "2. Beta access",
-    body: [
-      "MENTA is currently in beta. Features may change, break, or be removed without notice. Access is free during the beta; pricing for a full product has not been finalized.",
-    ],
+    "title": "2. Eligibility and accounts",
+    "body": [
+      "MENTA accounts are intended for people aged 14 or older. Provide accurate information, protect your credentials and use only accounts and records you are authorized to access. Minors should involve a parent or guardian; any legally required permission must be obtained through an appropriate process. A user-selected coach, trainer or doctor role does not establish professional credentials."
+    ]
   },
   {
-    title: "3. Who can use MENTA",
-    body: [
-      "MENTA is built for middle-school through college athletes, coaches, trainers, and parents/guardians. If you're under 18, a parent or guardian should be involved in setting up and reviewing your account. By creating an account you're confirming the account information you provide is accurate.",
-    ],
+    "title": "3. Service scope",
+    "body": [
+      "MENTA provides tools for organizing training, academics, teams, recruiting, communication and related activities. Availability varies by platform and deployment. The current iPhone client operates locally and does not synchronize website accounts. Previews, research concepts and unavailable integrations must not be relied on as delivered functionality."
+    ]
   },
   {
-    title: "4. Your content",
-    body: [
-      "You own what you create — your profile, film, training logs, messages, and other content. By posting content that's visible to a team or another user (e.g., a message, a team calendar event), you're granting MENTA the ability to store and display it to the people it's meant for. We don't claim ownership of your content and don't sell it.",
-    ],
+    "title": "4. Training, health and emergencies",
+    "body": [
+      "Training involves risks. Use suitable equipment and qualified supervision, follow your coach\u2019s and clinician\u2019s directions, and stop activity when symptoms or unsafe conditions warrant it. Check-ins, scores and AI responses are not diagnosis, medical clearance, individualized treatment or emergency monitoring. MENTA cannot guarantee injury prevention. Contact local emergency services in an emergency. These statements do not waive rights that cannot lawfully be waived."
+    ]
   },
   {
-    title: "5. Acceptable use",
-    body: [
-      "Don't use MENTA to harass, impersonate, or share another person's private information without consent. Don't upload content you don't have the right to share. Don't attempt to access another user's account or data you're not authorized to see. Messages support blocking and reporting another user — reports are reviewed by the team.",
-    ],
+    "title": "5. Academics, recruiting and AI",
+    "body": [
+      "School officials and relevant governing bodies determine eligibility; an app alert is not an official decision. MENTA does not guarantee scholarships, offers, admissions, grades or athletic results. AI can be inaccurate or incomplete. Review generated content and verify important facts with qualified people. Do not use study tools to violate your school\u2019s academic-integrity rules."
+    ]
   },
   {
-    title: "6. Not medical, legal, or recruiting advice",
-    body: [
-      "MENTA Recovery is a wellness/training-load tracker, not a medical system — nothing in it means you're medically cleared to play. MENTA Safety is an organizational preparedness tool, not a medical or emergency-prediction system — in a real emergency, call 911. MENTA's recruiting tools help you organize outreach; they are not a guarantee of recruiting outcomes and haven't been reviewed by an NCAA compliance attorney. MENTA AI is instructed never to give medical clearance, legal advice, or a recruiting guarantee, and to say when it doesn't have information rather than invent it.",
-    ],
+    "title": "6. User content and permissions",
+    "body": [
+      "You retain your rights in content you provide. You grant MENTA the limited rights needed to host, process and display it to operate the features you choose, subject to the privacy notice and your sharing settings. Upload only content you have permission to use, including footage, music and records about others. No blanket ownership transfer of an athlete\u2019s identity, likeness or content is intended."
+    ]
   },
   {
-    title: "7. AI features",
-    body: [
-      "AI features (chat, study help, outreach drafting) are generated by a third-party AI provider based on a limited slice of your own data. Review anything AI-drafted before you rely on it or send it to someone else — MENTA AI can be wrong, and it never sends messages on your behalf. If no AI provider is configured on a given deployment, the app will say so rather than fabricate a response.",
-    ],
+    "title": "7. Acceptable use and moderation",
+    "body": [
+      "Do not harass, exploit minors, impersonate others, infringe intellectual property, upload unlawful material, bypass access controls or misuse private information. Use available reporting and blocking controls. MENTA may restrict access to address abuse or security risks, subject to applicable law; reporting tools are not continuously monitored emergency channels."
+    ]
   },
   {
-    title: "8. Account & termination",
-    body: [
-      "You're responsible for keeping your password secure and for activity on your account. We may suspend or terminate accounts that violate these terms or that we reasonably believe put another user's safety at risk. You can stop using MENTA at any time; see the Privacy Policy for how to request deletion of your data.",
-    ],
+    "title": "8. Fees and product sales",
+    "body": [
+      "Any paid service must show price, billing frequency, renewal, cancellation and refund terms before purchase. An account or preview does not itself authorize a charge. Physical gear shown as a concept is not an offer for immediate delivery. Product availability, safety testing, shipping, returns and warranties must be confirmed before orders are accepted. Nothing excludes mandatory consumer rights or product-safety duties."
+    ]
   },
   {
-    title: "9. No warranty",
-    body: [
-      "MENTA is provided as-is during the beta, without warranty of any kind. We work to keep it accurate and reliable, but we don't guarantee it will be error-free or uninterrupted.",
-    ],
+    "title": "9. Availability and limits",
+    "body": [
+      "To the extent permitted by applicable law, the service is offered as available without guarantees of uninterrupted operation or particular outcomes. Any final limitation of liability must be reviewed for the actual operator, users and jurisdictions. It must not exclude liabilities or remedies that law prohibits excluding. This draft does not impose an unreviewed arbitration requirement or blanket injury waiver."
+    ]
   },
   {
-    title: "10. Changes to these terms",
-    body: [
-      "Because this is a pre-launch draft, it may change as features are built or removed. We'll update the date at the top of this page when it does.",
-    ],
-  },
+    "title": "10. Ending use and changes",
+    "body": [
+      "You may stop using MENTA. Follow the available cancellation process for a paid subscription; uninstalling an app may not cancel billing. Local reset and cloud account deletion are different operations. The final documents must include a working contact and verified deletion process. Material changes to the final terms should be notified appropriately, with renewed acceptance where required."
+    ]
+  }
 ];
 
 export default function TermsPage() {

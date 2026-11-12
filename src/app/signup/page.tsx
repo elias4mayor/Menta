@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SplitAuthShell } from "@/components/SplitAuthShell";
 import { OAuthButtons } from "@/components/OAuthButtons";
+import { LEGAL_VERSION } from "@/lib/legal-version";
 
 const ROLES = [
   { value: "ATHLETE", label: "Athlete" },
@@ -33,7 +34,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role, dateOfBirth: dateOfBirth || undefined }),
+        body: JSON.stringify({ name, email, password, role, dateOfBirth, acceptedTerms: agreed, legalVersion: LEGAL_VERSION }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -80,7 +81,8 @@ export default function SignupPage() {
         </div>
         <div>
           <label className="field-label" htmlFor="dob">Date of birth</label>
-          <input id="dob" type="date" className="field-underline" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+          <input id="dob" type="date" className="field-underline" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required />
+          <p className="text-text-3 text-xs mt-1">Accounts are for ages 14 and older.</p>
         </div>
         <div>
           <label className="field-label" htmlFor="role">I am a...</label>
@@ -103,7 +105,7 @@ export default function SignupPage() {
             <Link href="/terms" target="_blank" className="auth-link">
               Terms of Service
             </Link>{" "}
-            and{" "}
+            and acknowledge the{" "}
             <Link href="/privacy" target="_blank" className="auth-link">
               Privacy Policy
             </Link>{" "}
@@ -115,6 +117,7 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
+      <p className="text-text-3 text-xs mt-4">Already registered? Use Google or Facebook below. New users must complete the form above first.</p>
       <OAuthButtons />
     </SplitAuthShell>
   );
