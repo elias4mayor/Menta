@@ -20,6 +20,7 @@ export default async function AssignmentsPage() {
     <div className="max-w-3xl mx-auto dash-in dash-in-1">
       <div className="mono text-text-3 mb-2">Film</div>
       <h1 className="text-3xl font-semibold mb-8"><GlowWaveText intensity="strong">Assignments</GlowWaveText></h1>
+      <a href="/next-move" className="mb-6 inline-block rounded-xl bg-white px-4 py-3 font-semibold text-black">Open Next Move coaching</a>
       <AssignmentsList
         initialTargets={targets.map((t) => ({
           id: t.id,

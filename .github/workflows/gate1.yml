@@ -1,0 +1,58 @@
+name: Gate 1 backend
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  gate1:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gate1_migrator
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: menta_gate1_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gate1_migrator -d menta_gate1_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://gate1_migrator:disposable-ci-only@localhost:5432/menta_gate1_test
+      DATABASE_URL_POOLED: postgresql://gate1_migrator:disposable-ci-only@localhost:5432/menta_gate1_test
+      GATE1_TEST_DATABASE_URL: postgresql://gate1_app:disposable-app-only@localhost:5432/menta_gate1_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg postgresql-client
+      - run: npx prisma migrate deploy
+      - name: Create restricted test runtime
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE gate1_app LOGIN PASSWORD 'disposable-app-only';
+          GRANT USAGE ON SCHEMA public TO gate1_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gate1_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gate1_app;
+          SQL
+      - run: npm run test:gate1
+      - run: npx playwright install --with-deps chromium
+      - name: Mobile coaching browser flow
+        run: npm run test:gate1:browser
+        env:
+          DATABASE_URL_POOLED: postgresql://gate1_app:disposable-app-only@localhost:5432/menta_gate1_test
+          SESSION_SECRET: gate1-disposable-ci-session-secret-only
+          APP_URL: http://localhost:3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate1-browser-evidence
+          path: |
+            test-results/
+            /tmp/menta-gate1-ui/
+      - run: npx next typegen && npx tsc --noEmit
+      - run: npx eslint src/lib/gate1 'src/app/api/gate1/[...path]/route.ts' 'src/app/api/films/[id]/video/route.ts' src/lib/film-visibility.ts src/lib/permissions.ts tests/gate1 tests/gate1-browser src/components/gate1 'src/app/(app)/next-move/page.tsx' playwright.gate1.config.ts vitest.gate1.config.ts

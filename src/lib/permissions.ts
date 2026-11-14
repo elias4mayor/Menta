@@ -141,6 +141,9 @@ export async function canViewFilm(
   viewer: SessionUser,
   film: { uploadedById: string; visibility: string; teamId: string | null; positionGroupId?: string | null; id?: string }
 ): Promise<boolean> {
+  // Gate 1 resources never inherit legacy visibility, uploader or admin bypasses.
+  if (film.id && await prisma.gate1Evidence.findUnique({ where: { filmId: film.id }, select: { id: true } })) return false;
+
   if (viewer.id === film.uploadedById) return true;
   if (film.visibility === "PUBLIC") return true;
   if (viewer.role === "SUPER_ADMIN") return true;
@@ -249,8 +252,10 @@ export async function canLogTrainingSetsForOthers(userId: string, teamId: string
 /** Edit/delete/re-tier a film — uploader, or MANAGE_FILM on the team (optionally scoped to the film's position group). */
 export async function canManageFilm(
   viewer: SessionUser,
-  film: { uploadedById: string; teamId: string | null; positionGroupId?: string | null }
+  film: { id?: string; uploadedById: string; teamId: string | null; positionGroupId?: string | null }
 ): Promise<boolean> {
+  if (film.id && await prisma.gate1Evidence.findUnique({ where: { filmId: film.id }, select: { id: true } })) return false;
+
   if (viewer.id === film.uploadedById) return true;
   if (viewer.role === "SUPER_ADMIN") return true;
   if (!film.teamId) return false;

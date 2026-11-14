@@ -28,6 +28,16 @@ datasource db {
 /// Roles: SUPER_ADMIN, DEVELOPER, MENTA_STAFF, ORG_ADMIN, SCHOOL_ADMIN,
 /// ATHLETIC_DIRECTOR, COACH, TRAINER, ATHLETE, PARENT
 model User {
+  gate1Evidence     Gate1Evidence[]          @relation("EvidenceAthlete")
+  gate1Observations Gate1Observation[]
+  actionAssignments ActionAssignment[]       @relation("ActionAthlete")
+  assignedActions   ActionAssignment[]       @relation("ActionCoach")
+  actionReviews     AssignmentReview[]
+  actionHistory     AssignmentStateHistory[]
+  consentGiven      ConsentGrant[]           @relation("ConsentAthlete")
+  consentReceived   ConsentGrant[]           @relation("ConsentGrantee")
+  consentAuthored   ConsentGrant[]           @relation("ConsentAuthor")
+
   id            String    @id @default(cuid())
   email         String    @unique
   // Nullable: OAuth-only accounts (Google/Facebook) have no password until
@@ -51,75 +61,75 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  athleteProfile              AthleteProfile?
-  athleteSportContexts        AthleteSportContext[]
-  coachProfile                CoachProfile?
-  trainerProfile              TrainerProfile?
-  parentProfile               ParentProfile?
-  doctorProfile               DoctorProfile?
-  sessions                    Session[]
-  resetTokens                 PasswordResetToken[]
-  emailVerificationCodes      EmailVerificationCode[]
-  memberships                 TeamMembership[]
-  messages                    Message[]
-  conversations               ConversationParticipant[]
-  notifications               Notification[]
-  auditLogs                   AuditLog[]                  @relation("AuditActor")
-  aiConversations             AIConversation[]
-  createdEvents               CalendarEvent[]             @relation("EventCreator")
-  goals                       Goal[]
-  createdTeams                Team[]                      @relation("TeamCreator")
-  guardianOf                  GuardianLink[]              @relation("Guardian")
-  athleteGuardians            GuardianLink[]              @relation("AthleteOfGuardian")
-  guardianScopeGrantsAsGuardian GuardianScopeGrant[]       @relation("GuardianScopeGuardian")
-  guardianScopeGrantsAsAthlete  GuardianScopeGrant[]       @relation("GuardianScopeAthlete")
-  reportsFiled                Report[]                    @relation("Reporter")
-  blocksMade                  Block[]                     @relation("Blocker")
-  blocksReceived              Block[]                     @relation("Blocked")
-  createdWorkouts             Workout[]                   @relation("WorkoutCreator")
-  assignedWorkouts            Workout[]                   @relation("WorkoutAssignee")
-  workoutCompletions          WorkoutCompletion[]
-  performanceEntries          PerformanceEntry[]
-  uploadedFilms               Film[]                      @relation("FilmUploader")
-  clips                       Clip[]                      @relation("ClipCreator")
-  highlights                  Highlight[]
-  recruitingSchools           RecruitingSchool[]
-  recruitingContacts          RecruitingContact[]
-  recruitingActivities        RecruitingActivity[]
-  wellnessCheckIns            WellnessCheckIn[]
-  mindCheckIns                MindCheckIn[]
-  academicGoals               AcademicGoal[]
-  assignments                 Assignment[]
-  academicTerms               AcademicTerm[]
-  eligibilityItems            EligibilityChecklistItem[]
-  emergencyContacts           EmergencyContact[]
-  personalSafetyProfile       PersonalSafetyProfile?
-  safetyChecklistItems        SafetyChecklistItem[]
-  createdTeamSafetyProtocols  TeamSafetyProtocol[]        @relation("TeamSafetyProtocolCreator")
-  createdTeamSafetyChecklist  TeamSafetyChecklistItem[]   @relation("TeamSafetyChecklistCreator")
-  ownedDocuments              Document[]                  @relation("DocumentOwner")
-  uploadedDocuments           Document[]                  @relation("DocumentUploader")
-  documentRequestsMade        DocumentRequest[]           @relation("DocumentRequester")
-  documentRequestsReceived    DocumentRequest[]           @relation("DocumentRequestAthlete")
-  providerAvailability        ProviderAvailability[]
-  googleClassroomIntegration  GoogleClassroomIntegration?
-  careRequestsAsAthlete       CareRequest[]               @relation("CareRequestAthlete")
-  careRequestsAsProvider      CareRequest[]               @relation("CareRequestProvider")
-  filmSharedWithMe            FilmSharedWithUser[]        @relation("FilmSharedWithUser")
-  positionGroupMemberships    PositionGroupMembership[]
-  teamPermissionGrants        TeamPermissionGrant[]
-  filmAssignmentTargets       FilmAssignmentTarget[]
-  filmReviewRequestsAsAthlete FilmReviewRequest[]         @relation("FilmReviewRequestAthlete")
-  coachNotesAboutMe           CoachNote[]                 @relation("CoachNoteAthlete")
-  createdExercises            Exercise[]
-  createdTrainingPrograms     TrainingProgram[]           @relation("TrainingProgramCreator")
-  createdTrainingSessions     TrainingSession[]           @relation("TrainingSessionCreator")
-  nextMoveRecommendations     NextMoveRecommendation[]
-  trainingGroupMemberships    TrainingGroupMember[]
-  athletePrescriptions        AthletePrescription[]       @relation("PrescriptionAthlete")
-  prescriptionsSet            AthletePrescription[]       @relation("PrescriptionSetter")
-  trainingSetsAsAthlete       TrainingSet[]               @relation("TrainingSetAthlete")
-  trainingSetsLogged          TrainingSet[]               @relation("TrainingSetLogger")
+  athleteProfile                AthleteProfile?
+  athleteSportContexts          AthleteSportContext[]
+  coachProfile                  CoachProfile?
+  trainerProfile                TrainerProfile?
+  parentProfile                 ParentProfile?
+  doctorProfile                 DoctorProfile?
+  sessions                      Session[]
+  resetTokens                   PasswordResetToken[]
+  emailVerificationCodes        EmailVerificationCode[]
+  memberships                   TeamMembership[]
+  messages                      Message[]
+  conversations                 ConversationParticipant[]
+  notifications                 Notification[]
+  auditLogs                     AuditLog[]                  @relation("AuditActor")
+  aiConversations               AIConversation[]
+  createdEvents                 CalendarEvent[]             @relation("EventCreator")
+  goals                         Goal[]
+  createdTeams                  Team[]                      @relation("TeamCreator")
+  guardianOf                    GuardianLink[]              @relation("Guardian")
+  athleteGuardians              GuardianLink[]              @relation("AthleteOfGuardian")
+  guardianScopeGrantsAsGuardian GuardianScopeGrant[]        @relation("GuardianScopeGuardian")
+  guardianScopeGrantsAsAthlete  GuardianScopeGrant[]        @relation("GuardianScopeAthlete")
+  reportsFiled                  Report[]                    @relation("Reporter")
+  blocksMade                    Block[]                     @relation("Blocker")
+  blocksReceived                Block[]                     @relation("Blocked")
+  createdWorkouts               Workout[]                   @relation("WorkoutCreator")
+  assignedWorkouts              Workout[]                   @relation("WorkoutAssignee")
+  workoutCompletions            WorkoutCompletion[]
+  performanceEntries            PerformanceEntry[]
+  uploadedFilms                 Film[]                      @relation("FilmUploader")
+  clips                         Clip[]                      @relation("ClipCreator")
+  highlights                    Highlight[]
+  recruitingSchools             RecruitingSchool[]
+  recruitingContacts            RecruitingContact[]
+  recruitingActivities          RecruitingActivity[]
+  wellnessCheckIns              WellnessCheckIn[]
+  mindCheckIns                  MindCheckIn[]
+  academicGoals                 AcademicGoal[]
+  assignments                   Assignment[]
+  academicTerms                 AcademicTerm[]
+  eligibilityItems              EligibilityChecklistItem[]
+  emergencyContacts             EmergencyContact[]
+  personalSafetyProfile         PersonalSafetyProfile?
+  safetyChecklistItems          SafetyChecklistItem[]
+  createdTeamSafetyProtocols    TeamSafetyProtocol[]        @relation("TeamSafetyProtocolCreator")
+  createdTeamSafetyChecklist    TeamSafetyChecklistItem[]   @relation("TeamSafetyChecklistCreator")
+  ownedDocuments                Document[]                  @relation("DocumentOwner")
+  uploadedDocuments             Document[]                  @relation("DocumentUploader")
+  documentRequestsMade          DocumentRequest[]           @relation("DocumentRequester")
+  documentRequestsReceived      DocumentRequest[]           @relation("DocumentRequestAthlete")
+  providerAvailability          ProviderAvailability[]
+  googleClassroomIntegration    GoogleClassroomIntegration?
+  careRequestsAsAthlete         CareRequest[]               @relation("CareRequestAthlete")
+  careRequestsAsProvider        CareRequest[]               @relation("CareRequestProvider")
+  filmSharedWithMe              FilmSharedWithUser[]        @relation("FilmSharedWithUser")
+  positionGroupMemberships      PositionGroupMembership[]
+  teamPermissionGrants          TeamPermissionGrant[]
+  filmAssignmentTargets         FilmAssignmentTarget[]
+  filmReviewRequestsAsAthlete   FilmReviewRequest[]         @relation("FilmReviewRequestAthlete")
+  coachNotesAboutMe             CoachNote[]                 @relation("CoachNoteAthlete")
+  createdExercises              Exercise[]
+  createdTrainingPrograms       TrainingProgram[]           @relation("TrainingProgramCreator")
+  createdTrainingSessions       TrainingSession[]           @relation("TrainingSessionCreator")
+  nextMoveRecommendations       NextMoveRecommendation[]
+  trainingGroupMemberships      TrainingGroupMember[]
+  athletePrescriptions          AthletePrescription[]       @relation("PrescriptionAthlete")
+  prescriptionsSet              AthletePrescription[]       @relation("PrescriptionSetter")
+  trainingSetsAsAthlete         TrainingSet[]               @relation("TrainingSetAthlete")
+  trainingSetsLogged            TrainingSet[]               @relation("TrainingSetLogger")
 
   @@index([role])
 }
@@ -408,6 +418,10 @@ model Organization {
 }
 
 model Team {
+  gate1Evidence     Gate1Evidence[]
+  actionAssignments ActionAssignment[]
+  consentGrants     ConsentGrant[]
+
   id             String   @id @default(cuid())
   name           String
   sport          String?
@@ -857,6 +871,8 @@ model GuardianScopeGrant {
 /// Visibility: PRIVATE, COACH_STAFF, POSITION_GROUP, TEAM, SELECTED_ATHLETES, RECRUITING, PUBLIC
 /// Status: DRAFT, PUBLISHED, ARCHIVED
 model Film {
+  gate1Evidence Gate1Evidence?
+
   id               String   @id @default(cuid())
   title            String
   description      String?
@@ -925,6 +941,8 @@ model FilmSharedWithUser {
 }
 
 model Clip {
+  gate1Observation Gate1Observation?
+
   id          String   @id @default(cuid())
   filmId      String
   createdById String
@@ -2244,6 +2262,8 @@ model DocumentRequest {
 /// seed migration once real warmup/cooldown drill content needed a home
 /// that isn't a stretch fit for any of the seven WorkoutCategory values.
 model Exercise {
+  protocolVersions ProtocolVersion[]
+
   id              String   @id @default(cuid())
   teamId          String?
   sport           String?
@@ -2673,30 +2693,235 @@ model UsageCounter {
 /// computeCoachCandidates in src/lib/next-move.ts) — this field is for
 /// display/linking only, never itself a security boundary.
 model NextMoveRecommendation {
-  id              String    @id @default(cuid())
-  userId          String
+  id               String    @id @default(cuid())
+  userId           String
   subjectAthleteId String?
-  kind            String
-  title           String
-  reasoning       String
+  kind             String
+  title            String
+  reasoning        String
   /// JSON-stringified array of {label, value} evidence pairs shown next to
   /// the reasoning — e.g. [{"label":"Film assignment","value":"3 days overdue"}].
   /// Never free-text claims; only references to the real rows that produced them.
-  evidence    String
-  actionHref  String
-  score       Float
-  status      String    @default("ACTIVE")
-  createdAt   DateTime  @default(now())
+  evidence         String
+  actionHref       String
+  score            Float
+  status           String    @default("ACTIVE")
+  createdAt        DateTime  @default(now())
   /// Set the first time the owner clicks through the primary action —
   /// "recommendation accepted," distinct from "completed." Never set by
   /// anything other than that one click (see acceptNextMove in
   /// src/lib/next-move.ts) — not inferred from a page view or any other
   /// passive signal.
-  acceptedAt  DateTime?
-  resolvedAt  DateTime?
+  acceptedAt       DateTime?
+  resolvedAt       DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([userId, createdAt])
+}
+
+// Gate 1: a separate lifecycle from NextMoveRecommendation and FilmAssignment.
+// All actions are team-scoped until independent-coach authorization is specified.
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  SUBMITTED
+  NEEDS_REVISION
+  CLOSED
+}
+
+enum ReviewDecision {
+  NEEDS_REVISION
+  CLOSED
+}
+
+enum Comparability {
+  PENDING
+  COMPARABLE
+  NOT_COMPARABLE
+}
+
+enum AcquisitionMethod {
+  COACH_ENTERED
+  SELF_REPORTED
+  SENSOR_MEASURED
+  MODEL_ESTIMATED
+}
+
+enum Gate1Resource {
+  ATHLETE
+  EVIDENCE
+  OBSERVATION
+  ASSIGNMENT
+  SUBMISSION
+}
+
+enum Gate1Action {
+  READ
+  PLAY_MEDIA
+  UPLOAD_EVIDENCE
+  CREATE_OBSERVATION
+  EDIT_OBSERVATION
+}
+
+model ProtocolVersion {
+  id               String             @id @default(cuid())
+  exerciseId       String
+  exercise         Exercise           @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  sport            String
+  versionNumber    Int
+  instructions     String
+  cameraSetupNotes String
+  units            String?
+  successRubric    String
+  createdAt        DateTime           @default(now())
+  evidence         Gate1Evidence[]
+  assignments      ActionAssignment[]
+
+  @@unique([exerciseId, versionNumber])
+}
+
+// Athlete is the subject, not necessarily Film.uploadedById. Metadata validation
+// verifies duration/container only; it does not verify an athletic measurement.
+model Gate1Evidence {
+  id                         String                 @id @default(cuid())
+  filmId                     String                 @unique
+  film                       Film                   @relation(fields: [filmId], references: [id], onDelete: Restrict)
+  athleteId                  String
+  athlete                    User                   @relation("EvidenceAthlete", fields: [athleteId], references: [id], onDelete: Restrict)
+  teamId                     String
+  team                       Team                   @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  protocolVersionId          String
+  protocolVersion            ProtocolVersion        @relation(fields: [protocolVersionId], references: [id], onDelete: Restrict)
+  method                     AcquisitionMethod
+  recordedAt                 DateTime
+  recordingRightsConfirmedAt DateTime
+  metadataVerifiedAt         DateTime
+  contentSha256              String
+  captureNotes               String
+  createdAt                  DateTime               @default(now())
+  observations               Gate1Observation[]
+  baselines                  ActionAssignment[]
+  submissions                AssignmentSubmission[]
+
+  @@index([athleteId, createdAt])
+}
+
+model Gate1Observation {
+  id                 String             @id @default(cuid())
+  evidenceId         String
+  evidence           Gate1Evidence      @relation(fields: [evidenceId], references: [id], onDelete: Restrict)
+  clipId             String             @unique
+  clip               Clip               @relation(fields: [clipId], references: [id], onDelete: Restrict)
+  authorId           String
+  author             User               @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  observationNote    String
+  interpretationNote String?
+  method             AcquisitionMethod  @default(COACH_ENTERED)
+  createdAt          DateTime           @default(now())
+  assignments        ActionAssignment[]
+}
+
+model ActionAssignment {
+  id                   String                   @id @default(cuid())
+  athleteId            String
+  athlete              User                     @relation("ActionAthlete", fields: [athleteId], references: [id], onDelete: Restrict)
+  assignedById         String
+  assignedBy           User                     @relation("ActionCoach", fields: [assignedById], references: [id], onDelete: Restrict)
+  teamId               String
+  team                 Team                     @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  observationId        String
+  observation          Gate1Observation         @relation(fields: [observationId], references: [id], onDelete: Restrict)
+  protocolVersionId    String
+  protocolVersion      ProtocolVersion          @relation(fields: [protocolVersionId], references: [id], onDelete: Restrict)
+  baselineEvidenceId   String
+  baselineEvidence     Gate1Evidence            @relation(fields: [baselineEvidenceId], references: [id], onDelete: Restrict)
+  customCue            String
+  successCriterion     String
+  dueAt                DateTime
+  status               AssignmentStatus         @default(ASSIGNED)
+  currentAttemptNumber Int                      @default(0)
+  version              Int                      @default(1)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  submissions          AssignmentSubmission[]
+  stateHistory         AssignmentStateHistory[]
+
+  @@index([athleteId, status, dueAt])
+  @@index([teamId, status, dueAt])
+}
+
+model AssignmentSubmission {
+  id            String                   @id @default(cuid())
+  assignmentId  String
+  assignment    ActionAssignment         @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  attemptNumber Int
+  evidenceId    String
+  evidence      Gate1Evidence            @relation(fields: [evidenceId], references: [id], onDelete: Restrict)
+  athleteNotes  String?
+  submittedAt   DateTime                 @default(now())
+  review        AssignmentReview?
+  stateHistory  AssignmentStateHistory[]
+
+  @@unique([assignmentId, attemptNumber])
+}
+
+model AssignmentReview {
+  id                 String                   @id @default(cuid())
+  submissionId       String                   @unique
+  submission         AssignmentSubmission     @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  reviewerId         String
+  reviewer           User                     @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  decision           ReviewDecision
+  feedbackNote       String
+  comparability      Comparability            @default(PENDING)
+  comparabilityNotes String
+  // Baseline is pinned on assignment; follow-up is pinned on submission.
+  // No caller-supplied baseline ID can substitute an unrelated film.
+  reviewedAt         DateTime                 @default(now())
+  stateHistory       AssignmentStateHistory[]
+}
+
+model AssignmentStateHistory {
+  id             String                @id @default(cuid())
+  assignmentId   String
+  assignment     ActionAssignment      @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  actorId        String
+  actor          User                  @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  previousState  AssignmentStatus?
+  newState       AssignmentStatus
+  version        Int
+  submissionId   String?
+  submission     AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Restrict)
+  reviewId       String?
+  review         AssignmentReview?     @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+  operationKey   String
+  requestHash    String
+  transitionedAt DateTime              @default(now())
+
+  @@unique([assignmentId, version])
+  @@unique([actorId, operationKey])
+}
+
+// Resource scope is exact, action-specific, team-bound, and revocable.
+// ATHLETE grants are only for upload; no wildcard read/play scope.
+model ConsentGrant {
+  id               String        @id @default(cuid())
+  athleteId        String
+  athlete          User          @relation("ConsentAthlete", fields: [athleteId], references: [id], onDelete: Restrict)
+  granteeId        String
+  grantee          User          @relation("ConsentGrantee", fields: [granteeId], references: [id], onDelete: Restrict)
+  grantedById      String
+  grantedBy        User          @relation("ConsentAuthor", fields: [grantedById], references: [id], onDelete: Restrict)
+  teamId           String
+  team             Team          @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  resourceType     Gate1Resource
+  resourceId       String
+  permittedActions Gate1Action[]
+  expiresAt        DateTime
+  grantedAt        DateTime      @default(now())
+  revokedAt        DateTime?
+
+  @@index([athleteId, granteeId, teamId, resourceType, resourceId])
 }

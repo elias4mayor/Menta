@@ -1,0 +1,2 @@
+import { defineConfig, devices } from '@playwright/test';
+export default defineConfig({ testDir: './tests/gate1-browser', workers: 1, retries: 0, timeout: 120000, expect: { timeout: 20000 }, use: { baseURL: 'http://localhost:3000', ...devices['iPhone 13'], defaultBrowserType: 'chromium', launchOptions: { executablePath: process.env.GATE1_BROWSER_EXECUTABLE }, screenshot: 'only-on-failure', trace: 'retain-on-failure' }, webServer: { command: 'npm run dev -- --hostname 127.0.0.1', url: 'http://localhost:3000', timeout: 120000, reuseExistingServer: false } });
