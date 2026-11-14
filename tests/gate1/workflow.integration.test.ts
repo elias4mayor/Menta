@@ -129,6 +129,7 @@ describe('M11 media and read boundaries', () => {
   it('READ grant does not imply PLAY_MEDIA even for exact evidence', async () => {
     const g = await grant(parent, ['READ']);
     expect((await svc.readEvidence(parent, baseline.id)).id).toBe(baseline.id);
+    expect(await svc.readEvidence(parent, baseline.id)).not.toHaveProperty('protocol');
     await expect(svc.playback(parent, baseline.filmId)).rejects.toMatchObject({ status: 404 });
     await svc.revoke(athlete, g.id);
   });

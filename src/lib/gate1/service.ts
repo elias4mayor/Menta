@@ -214,7 +214,8 @@ export function gate1Service(db: PrismaClient) {
     async readEvidence(actor: Actor, evidenceId: string) {
       return withTransaction(db, async tx => {
         const e = await evidence(tx, evidenceId); await requireEvidenceRead(tx, actor, e, "READ");
-        return { id: e.id, filmId: e.filmId, protocol: { instructions: e.protocolVersion.instructions, cameraSetupNotes: e.protocolVersion.cameraSetupNotes, successRubric: e.protocolVersion.successRubric }, athleteId: e.athleteId, teamId: e.teamId, title: e.film.title, durationSec: e.film.durationSec,
+        const canReadProtocol = actor.id === e.athleteId || await isCoach(tx, actor, e.athleteId, e.teamId);
+        return { id: e.id, filmId: e.filmId, ...(canReadProtocol ? { protocol: { instructions: e.protocolVersion.instructions, cameraSetupNotes: e.protocolVersion.cameraSetupNotes, successRubric: e.protocolVersion.successRubric } } : {}), athleteId: e.athleteId, teamId: e.teamId, title: e.film.title, durationSec: e.film.durationSec,
           method: e.method, recordedAt: e.recordedAt, metadataVerifiedAt: e.metadataVerifiedAt, captureNotes: e.captureNotes, protocolVersionId: e.protocolVersionId };
       });
     },

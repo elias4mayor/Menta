@@ -18,6 +18,8 @@ test('mobile coaching loop, ambiguous-response retry and grant revocation use re
   const [athlete, coach, parent] = await Promise.all(['ATHLETE', 'COACH', 'PARENT'].map(role => db.user.create({ data: { name: `${role} QA`, role, email: `${role}-${suffix}@gate1.test`, emailVerified: new Date() } })));
   await Promise.all([db.athleteProfile.create({ data: { userId: athlete.id, onboardingCompletedAt: new Date() } }), db.coachProfile.create({ data: { userId: coach.id, onboardingCompletedAt: new Date() } }), db.parentProfile.create({ data: { userId: parent.id, onboardingCompletedAt: new Date() } })]);
   const team = await db.team.create({ data: { name: 'Mobile QA', sport: 'Football', inviteCode: suffix, createdById: coach.id } });
+  const plan = await db.plan.create({ data: { key: `GATE1_QA_${suffix}`, name: 'Isolated test storage', scope: 'TEAM', entitlements: { create: { key: 'FILM_STORAGE_GB', limitValue: 1 } } } });
+  await db.subscription.create({ data: { ownerType: 'TEAM', ownerId: team.id, planId: plan.id, status: 'ACTIVE' } });
   await db.teamMembership.createMany({ data: [athlete, coach, parent].map(u => ({ userId: u.id, teamId: team.id, teamRole: u.role, verifiedAt: new Date() })) });
   const exercise = await db.exercise.create({ data: { name: 'Split release', category: 'Footwork', sport: 'Football', teamId: team.id, createdById: coach.id } });
   const a = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
