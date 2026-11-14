@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test:e2e": "playwright test",
     "recruiting:check": "npx tsx scripts/recruiting-check.ts",
-    "test:gate1": "vitest run --config vitest.gate1.config.ts"
+    "test:gate1": "vitest run --config vitest.gate1.config.ts",
+    "test:gate1:browser": "playwright test --config playwright.gate1.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

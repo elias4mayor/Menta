@@ -175,6 +175,17 @@ describe('M11 media and read boundaries', () => {
     await expect(svc.readSubmission(outsider, s.submissionId!)).rejects.toMatchObject({ status: 404 });
   });
 });
+describe('Athlete sharing controls', () => {
+  it('lists only owned evidence and rejects every other role', async () => {
+    const own = await svc.sharing(athlete);
+    expect(own.evidence.some(e => e.id === baseline.id && e.filmId === baseline.filmId)).toBe(true);
+    expect(own.contacts.some(c => c.user.id === parent.id)).toBe(true);
+    expect(own.contacts.some(c => c.user.id === outsider.id)).toBe(false);
+    for (const actor of [parent, recruiter, coach, trainer]) await expect(svc.sharing(actor)).rejects.toMatchObject({ status: 404 });
+    const otherAthlete = await db.user.create({ data: { email: `${key()}@gate1.test`, name: 'Other', role: 'ATHLETE' } });
+    expect(await svc.sharing(otherAthlete)).toEqual({ evidence: [], contacts: [], grants: [] });
+  });
+});
 describe('M07 deterministic Today queues', () => {
   it('uses requested timezone at midnight and stable ordering', () => {
     const now = new Date('2026-11-14T05:30:00Z'); const due = new Date('2026-11-14T06:30:00Z');

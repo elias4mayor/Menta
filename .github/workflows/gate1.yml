@@ -40,5 +40,19 @@ jobs:
           GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gate1_app;
           SQL
       - run: npm run test:gate1
+      - run: npx playwright install --with-deps chromium
+      - name: Mobile coaching browser flow
+        run: npm run test:gate1:browser
+        env:
+          DATABASE_URL_POOLED: postgresql://gate1_app:disposable-app-only@localhost:5432/menta_gate1_test
+          SESSION_SECRET: gate1-disposable-ci-session-secret-only
+          APP_URL: http://localhost:3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate1-browser-evidence
+          path: |
+            test-results/
+            /tmp/menta-gate1-ui/
       - run: npx next typegen && npx tsc --noEmit
-      - run: npx eslint src/lib/gate1 'src/app/api/gate1/[...path]/route.ts' 'src/app/api/films/[id]/video/route.ts' src/lib/film-visibility.ts src/lib/permissions.ts tests/gate1 vitest.gate1.config.ts
+      - run: npx eslint src/lib/gate1 'src/app/api/gate1/[...path]/route.ts' 'src/app/api/films/[id]/video/route.ts' src/lib/film-visibility.ts src/lib/permissions.ts tests/gate1 tests/gate1-browser src/components/gate1 'src/app/(app)/next-move/page.tsx' playwright.gate1.config.ts vitest.gate1.config.ts

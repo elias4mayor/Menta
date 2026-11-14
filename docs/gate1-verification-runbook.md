@@ -10,7 +10,7 @@ Original implementation commit: c97c8f00d7c6de6de819bba681824f2df10ccdd4.
 - Vercel built a preview automatically. A ready preview is not proof that its database has the migration, storage works, or the app is usable.
 - Project environment metadata currently lists DATABASE_URL and DATABASE_URL_POOLED for both production and preview, with no branch-specific override. Do not run verification against that inherited configuration.
 - Neon branch creation and live execution: not performed; Neon connection required.
-- Physical iPhone and Gate 1 UI: not verified. PR #30 adds APIs, not an integrated coaching UI. The current UI cannot be signed off with the proposed mobile checklist.
+- Physical iPhone: not verified. Minimal athlete submission, coach review and evidence-sharing views now exist at /next-move; their device acceptance is still pending.
 
 ## 1. Establish isolation first
 
@@ -62,17 +62,17 @@ No automatic migration belongs in a shared preview build. Apply migrations only 
 
 ## 4. Real-session and physical iPhone acceptance
 
-First run authenticated API smoke tests against the isolated preview with synthetic users and actual storage. Record status codes and row IDs without cookies/tokens. Then implement/connect the minimal Gate 1 mobile UI and complete this physical-device checklist. Browser emulation is useful but does not replace Safari on a real iPhone.
+First run authenticated API smoke tests against the isolated preview with synthetic users and actual storage. Record status codes and row IDs without cookies/tokens. Then complete this physical-device checklist using /next-move. Browser emulation is useful but does not replace Safari on a real iPhone.
 
 | Check | Expected evidence | Status |
 |---|---|---|
 | MOV/HEVC baseline and retest upload | Actual bytes inspected; durationSec and digest stored; capture time remains labeled user-reported | Not run |
 | Coach clip scrubbing | Safari seeks; valid Range returns 206; clip range cannot exceed durationSec | Not run |
 | Assign → accept → submit → revision → resubmit → close | Same baseline/protocol throughout; six ordered history rows; latest submission reviewed | Not run |
-| Today queues | Correct actor/team, timezone and action; submitted athlete tasks removed; coach review appears | UI not implemented |
+| Today queues | Correct actor/team, timezone and action; submitted athlete tasks removed; coach review appears | Device not run |
 | Unauthorized media | GET /api/gate1/playback/:filmId and /api/films/:filmId/video return 404 for authenticated unauthorized actors; unauthenticated requests return 401 | Device not run |
 | Explicit grant/revoke | Resource type EVIDENCE with evidence ID and PLAY_MEDIA; next GET/range denied after revoke | Device not run |
-| Airplane Mode recovery | Recoverable UI error; retry submission with same operationKey/payload returns original receipt; exactly one submission | UI not implemented |
+| Airplane Mode recovery | Recoverable UI error; retry submission with same operationKey/payload returns original receipt; exactly one submission | Device not run |
 
 Playback is a session-protected proxy, not a signed URL. Revocation cannot erase bytes already buffered or stop an already-authorized in-flight response. Upload retries can create separate evidence records; assignment submission idempotency does not imply resumable/idempotent uploads. Record these as distinct checks.
 

@@ -1,6 +1,6 @@
 # Gate 1 backend contract
 
-Implementation baseline: `feat/next-move-onyx-integration`. This adds a dedicated evidence → observation → assignment → acceptance → submission → review loop alongside the existing NextMoveRecommendation engine. No UI or production migration is included.
+Implementation baseline: `feat/next-move-onyx-integration`. This adds a dedicated evidence → observation → assignment → acceptance → submission → review loop alongside the existing NextMoveRecommendation engine. Minimal mobile views are available at /next-move. No production migration is included.
 
 ## Scope and decisions
 
@@ -48,3 +48,13 @@ The existing `/api/films/:id/video` proxy checks Gate 1 authorization on **every
 The GitHub workflow provisions PostgreSQL 16 with separate migrator/runtime roles. Local validation uses real PostgreSQL 18, not SQLite or a mocked database. Storage bytes and the session resolver are mocked only in HTTP-boundary tests; Prisma and authorization run against PostgreSQL. Video inspection has a real ffmpeg/ffprobe test.
 
 Before Gate 1 is declared verified: run these checks against an isolated Neon branch with deployed runtime configuration; verify actual application-session login, real private object storage and iPhone upload/playback end to end; establish trusted coach verification, retention/deletion procedures and deployment migration review. No production/Neon migration or iPhone UI verification has been performed by this change. Immutable history intentionally blocks cascading account deletion; a separate authorized retention/pseudonymization process must precede production launch.
+
+## Minimal mobile views
+
+Open /next-move (also linked from Film Assignments). Athlete and coach use their real sessions; shared-video recipients open /next-move?film=<filmId>. The existing onboarding guard also covers this page. Athlete Today displays one selected task at a time, the pinned protocol and observation, baseline video, revision feedback, acceptance and retest upload. Coach review plays baseline and follow-up inline and requires an explicit comparability decision plus notes before closure. There is no preselected approval. Initial protocol/baseline/assignment creation remains an API fixture/setup step in this minimal QA scope.
+
+Upload duration comes only from server inspection. Capture time and conditions remain self-reported. A successful upload is reused after a failed submission; retries reuse an actor/payload-specific operation key held in sessionStorage. Only a hash and key are persisted, not notes, clips or playback URLs. A retry after losing the upload response can still create an extra unsubmitted evidence record; uploads are not resumable. Submission transactions remain protected against duplication.
+
+Sharing lists the athlete's 50 most recent evidence records and current active grants. UI recipients are parent/trainer/recruiter accounts on the athlete's teams; the UI grants PLAY_MEDIA for 24 hours only. Previously issued grants remain visible for revocation. External recipient discovery is not included. Every metadata read and media request retains its own backend authorization.
+
+Run npm run test:gate1:browser with the isolated runtime database, SESSION_SECRET, APP_URL=http://localhost:3000, ffmpeg/ffprobe and Playwright Chromium. Browser fixtures seed synthetic completed-onboarding users and real signed database sessions; requests, uploads and database writes are real. This is not a signup/login UX test. The test covers mobile viewport overflow, acceptance, upload, a committed submission with a deliberately lost response followed by idempotent retry, revision/resubmission/closure, six history events and grant/revoke range requests. CI uploads traces/screenshots; physical iPhone Safari/HEVC, cellular interruption and live Neon tests remain separate acceptance gates.

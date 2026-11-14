@@ -214,7 +214,7 @@ export function gate1Service(db: PrismaClient) {
     async readEvidence(actor: Actor, evidenceId: string) {
       return withTransaction(db, async tx => {
         const e = await evidence(tx, evidenceId); await requireEvidenceRead(tx, actor, e, "READ");
-        return { id: e.id, athleteId: e.athleteId, teamId: e.teamId, title: e.film.title, durationSec: e.film.durationSec,
+        return { id: e.id, filmId: e.filmId, protocol: { instructions: e.protocolVersion.instructions, cameraSetupNotes: e.protocolVersion.cameraSetupNotes, successRubric: e.protocolVersion.successRubric }, athleteId: e.athleteId, teamId: e.teamId, title: e.film.title, durationSec: e.film.durationSec,
           method: e.method, recordedAt: e.recordedAt, metadataVerifiedAt: e.metadataVerifiedAt, captureNotes: e.captureNotes, protocolVersionId: e.protocolVersionId };
       });
     },
@@ -268,10 +268,23 @@ export function gate1Service(db: PrismaClient) {
           queue.push({ assignmentId: row.id, roleView: coach ? "COACH" : "ATHLETE", ...score,
             title: row.protocolVersion.exercise.name, customCue: row.customCue, status: row.status, version: row.version, dueAt: row.dueAt,
             counterpartyName: coach ? row.athlete.name : row.assignedBy.name, teamName: row.team.name,
-            hasLinkedObservation: true, ...(coach && row.status === "SUBMITTED" ? { latestSubmissionId: row.submissions[0]?.id } : {}) });
+            hasLinkedObservation: true, ...((coach && row.status === "SUBMITTED") || (!coach && row.status === "NEEDS_REVISION") ? { latestSubmissionId: row.submissions[0]?.id } : {}) });
         }
         queue.sort(compareToday);
         return { generatedAt: now, timeZone, athleteQueue: coach ? [] : queue, coachQueue: coach ? queue : [] };
+      });
+    },
+    async sharing(actor: Actor) {
+      return withTransaction(db, async tx => {
+        if (await role(tx, actor) !== "ATHLETE") deny();
+        const evidence = await tx.gate1Evidence.findMany({ where: { athleteId: actor.id }, orderBy: [{ createdAt: "desc" }, { id: "asc" }], take: 50,
+          select: { id: true, filmId: true, teamId: true, film: { select: { title: true } } } });
+        const teams = await tx.teamMembership.findMany({ where: { userId: actor.id, teamRole: "ATHLETE" }, select: { teamId: true } });
+        const contacts = await tx.teamMembership.findMany({ where: { teamId: { in: teams.map(t => t.teamId) }, user: { role: { in: ["PARENT", "TRAINER", "RECRUITER"] } } },
+          select: { teamId: true, user: { select: { id: true, name: true, role: true } } } });
+        const grants = await tx.consentGrant.findMany({ where: { athleteId: actor.id, resourceType: "EVIDENCE", revokedAt: null, expiresAt: { gt: new Date() } },
+          select: { id: true, granteeId: true, resourceId: true, expiresAt: true, grantee: { select: { name: true } }, permittedActions: true } });
+        return { evidence: evidence.map(e => ({ id: e.id, filmId: e.filmId, teamId: e.teamId, title: e.film.title })), contacts, grants };
       });
     },
     async grant(actor: Actor, raw: unknown) {

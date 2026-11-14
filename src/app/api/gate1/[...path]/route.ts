@@ -15,6 +15,7 @@ async function handle(request: Request, context: Context) {
   try {
     const { path } = await context.params;
     if (request.method === "GET") {
+      if (path.length === 1 && path[0] === "sharing") return json(await service.sharing(actor));
       if (path.length === 1 && path[0] === "today") return json(await service.today(actor, new URL(request.url).searchParams.get("timeZone") ?? "UTC"));
       if (path.length !== 2) throw new Gate1Error(404, "NOT_FOUND");
       if (path[0] === "evidence") return json(await service.readEvidence(actor, path[1]));
