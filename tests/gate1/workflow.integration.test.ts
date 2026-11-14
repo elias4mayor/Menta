@@ -100,9 +100,9 @@ describe('Gate 1 real PostgreSQL workflow', () => {
     const s = await submitted(); const r = await svc.review(coach, reviewInput(s));
     for (const table of ['AssignmentStateHistory', 'AssignmentReview']) {
       const id = table === 'AssignmentReview' ? r.reviewId : (await db.assignmentStateHistory.findFirstOrThrow({ where: { assignmentId: s.assignmentId } })).id;
-      await expect(db.$executeRawUnsafe(`UPDATE "${table}" SET id=id WHERE id=$1`, id)).rejects.toThrow();
-      await expect(db.$executeRawUnsafe(`DELETE FROM "${table}" WHERE id=$1`, id)).rejects.toThrow();
-      await expect(db.$executeRawUnsafe(`TRUNCATE "${table}" CASCADE`)).rejects.toThrow();
+      await expect(db.$executeRawUnsafe(`UPDATE "${table}" SET id=id WHERE id=$1`, id)).rejects.toMatchObject({ code: 'P2010', meta: { code: '23001' } });
+      await expect(db.$executeRawUnsafe(`DELETE FROM "${table}" WHERE id=$1`, id)).rejects.toMatchObject({ code: 'P2010', meta: { code: '23001' } });
+      await expect(db.$executeRawUnsafe(`TRUNCATE "${table}" CASCADE`)).rejects.toMatchObject({ code: 'P2010', meta: { code: '42501' } });
     }
     await expect(db.protocolVersion.update({ where: { id: protocol.id }, data: { instructions: 'changed' } })).rejects.toThrow();
   });
@@ -113,7 +113,7 @@ describe('Gate 1 real PostgreSQL workflow', () => {
   });
   it('validates clip bounds and prevents film-duration or pinned-observation edits', async () => {
     await expect(svc.observe(coach, { evidenceId: baseline.id, startSec: 1, endSec: 11, observationNote: 'invalid' })).rejects.toMatchObject({ status: 422 });
-    await expect(db.film.update({ where: { id: baseline.filmId }, data: { durationSec: 1 } })).rejects.toThrow();
+    await expect(db.$executeRaw`UPDATE "Film" SET "durationSec"=1 WHERE id=${baseline.filmId}`).rejects.toMatchObject({ code: 'P2010', meta: { code: '23001' } });
     await svc.create(coach, creation());
     await expect(svc.editObservation(coach, observation.id, { observationNote: 'changed' })).rejects.toMatchObject({ status: 409 });
   });
