@@ -1,3 +1,4 @@
+import { gate1Service } from "@/lib/gate1/service";
 import { Readable } from "stream";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
@@ -23,7 +24,11 @@ export async function GET(
   const { id } = await context.params;
   const film = await prisma.film.findUnique({ where: { id } });
   if (!film) return new Response("Not found.", { status: 404 });
-  if (!(await canViewFilm(user, film))) return new Response("Not found.", { status: 404 });
+  const gate1 = await prisma.gate1Evidence.findUnique({ where: { filmId: film.id }, select: { id: true } });
+  if (gate1) {
+    try { await gate1Service(prisma).playback(user, film.id); }
+    catch { return new Response("Not found.", { status: 404, headers: { "Cache-Control": "no-store" } }); }
+  } else if (!(await canViewFilm(user, film))) return new Response("Not found.", { status: 404 });
 
   const totalSize = film.sizeBytes;
   const rangeHeader = request.headers.get("range");
@@ -48,7 +53,7 @@ export async function GET(
         "Accept-Ranges": "bytes",
         "Content-Length": String(end - start + 1),
         "Content-Type": film.mimeType,
-        "Cache-Control": "private, max-age=3600",
+        "Cache-Control": gate1 ? "private, no-store" : "private, max-age=3600",
       },
     });
   }
@@ -60,7 +65,7 @@ export async function GET(
       "Content-Length": String(totalSize),
       "Content-Type": film.mimeType,
       "Accept-Ranges": "bytes",
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": gate1 ? "private, no-store" : "private, max-age=3600",
     },
   });
 }

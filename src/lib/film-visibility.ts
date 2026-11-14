@@ -48,6 +48,7 @@ export async function visibleFilmWhere(userId: string): Promise<Prisma.FilmWhere
     .map((g) => g.filmId);
 
   return {
+    gate1Evidence: { is: null },
     status: { not: "ARCHIVED" },
     OR: [
       { uploadedById: userId },
